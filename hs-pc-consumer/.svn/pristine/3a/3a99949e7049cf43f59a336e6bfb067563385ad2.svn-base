@@ -1,0 +1,1084 @@
+package www.ucforward.com.manager.impl;
+
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.core.annotation.Order;
+import org.springframework.stereotype.Service;
+import org.utils.StringUtil;
+import www.ucforward.com.constants.Constant;
+import www.ucforward.com.constants.RedisConstant;
+import www.ucforward.com.constants.ResultConstant;
+import www.ucforward.com.controller.customService.CustomController;
+import www.ucforward.com.entity.*;
+import www.ucforward.com.manager.IHousesManager;
+import www.ucforward.com.serviceInter.HousesService;
+import www.ucforward.com.serviceInter.MemberService;
+import www.ucforward.com.serviceInter.OrderService;
+import www.ucforward.com.utils.ImageUtil;
+import www.ucforward.com.utils.JsonUtil;
+import www.ucforward.com.utils.RedisUtil;
+import www.ucforward.com.vo.ResultVo;
+
+import javax.annotation.Resource;
+import java.math.BigDecimal;
+import java.text.SimpleDateFormat;
+import java.util.*;
+
+/**
+ * @Auther: lsq
+ * @Date: 2018/8/20 19:02
+ * @Description:
+ */
+@Service("housesManager")
+public class IHousesManagerImpl implements IHousesManager {
+
+    private static Logger logger = LoggerFactory.getLogger(IHousesManagerImpl.class); // 日志记录
+
+    /**
+     * 房源相关
+     */
+    @Resource
+    private HousesService housesService;
+    /**
+     * 人员相关
+     */
+    @Resource
+    private MemberService memberService;
+
+    @Resource
+    private OrderService orderService;
+
+    /**
+     * lsq
+     * 获取业主预约获取房源申请
+     * @param condition
+     * @return
+     */
+    @Override
+    public ResultVo getOwnerHousingApplication(Map<Object, Object> condition) {
+        ResultVo result = new ResultVo();
+        List<Map<Object,Object>> dataSet = new ArrayList<>();
+        try {
+            //1.获取申请信息
+            result = housesService.selectList(new HsOwnerHousingApplication(),condition,0);
+
+            if(result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                //2.根据房源申请信息获取，房源所属人员memberIds
+                List<Integer> memberIds = new ArrayList<>();
+                //房源申请ids
+                List<Integer> applyIds = new ArrayList<>();
+                List<Map<Object,Object>> list = (List<Map<Object,Object>>)result.getDataSet();
+                list.forEach(map->{
+                    int memberId = Integer.parseInt(StringUtil.trim(map.get("memberId")));
+                    int id = Integer.parseInt(StringUtil.trim(map.get("id")));
+                    memberIds.add(memberId);
+                    applyIds.add(id);
+                });
+                //3.根据获取到的memberIds获取人员手机号map
+                //人员手机号map key 人员id value 人员手机号
+                Map<Integer,String> mobileMap = new HashMap<>(10);
+                condition.clear();
+                //自定义查询列名
+                List<String> queryColumn = new ArrayList<>();
+                //主键ID
+                queryColumn.add("ID id");
+                //手机号
+                queryColumn.add("MEMBER_MOBLE memberMoble");
+                condition.put("queryColumn",queryColumn);
+                condition.put("memberIds",memberIds);
+                ResultVo memberResultVo = memberService.selectList(new HsMember(), condition, 0);
+                if(result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS && memberResultVo.getDataSet() != null){
+                    List<HsMember> memberList = (List<HsMember>) memberResultVo.getDataSet();
+                    memberList.forEach(hsMember->{
+                        Integer id = Integer.parseInt(StringUtil.trim(hsMember.getId()));
+                        String memberMoble = StringUtil.trim(hsMember.getMemberMoble());
+                        mobileMap.put(id,memberMoble);
+                    });
+                }
+
+                //根据房源申请id获取房产证照片
+                Map<String,Map<String,String>> pocImgMap = new HashMap<>(10);
+                queryColumn.clear();
+                queryColumn.add("POC_IMG1 pocImg1");
+                queryColumn.add("POC_IMG2 pocImg2");
+                queryColumn.add("POC_IMG3 pocImg3");
+                condition.clear();
+                condition.put("queryColumn",queryColumn);
+                condition.put("applyIds",applyIds);
+                ResultVo resultVo = housesService.selectCustomColumnNamesList(HsHouseCredentialsData.class, condition);
+                if(resultVo != null && resultVo.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS && resultVo.getDataSet() != null){
+                    List<Map<Object, Object>> credentialsList = (List<Map<Object, Object>>) resultVo.getDataSet();
+                    credentialsList.forEach(credentials ->{
+                        //封装房产证信息
+                        Map<String,String> imgMap = new HashMap<>(3);
+                        String applyId = StringUtil.trim(credentials.get("applyId"));
+                        String pocImg1 = StringUtil.trim(credentials.get("pocImg1"));
+                        String pocImg2 = StringUtil.trim(credentials.get("pocImg2"));
+                        String pocImg3 = StringUtil.trim(credentials.get("pocImg3"));
+                        imgMap.put("pocImg1",pocImg1);
+                        imgMap.put("pocImg2",pocImg2);
+                        imgMap.put("pocImg3",pocImg3);
+                        pocImgMap.put(applyId,imgMap);
+                    });
+                }
+                //封装人员手机号及房产证信息
+                list.forEach(map->{
+                    String memberIdStr = StringUtil.trim(map.get("memberId"));
+                    String applyId = StringUtil.trim(map.get("applyId"));
+                    String memberMobile = "";
+                    String pocImg1 = "";
+                    String pocImg2 = "";
+                    String pocImg3 = "";
+                    //封装手机号
+                    if(StringUtil.hasText(memberIdStr)){
+                        Integer memberId = Integer.parseInt(memberIdStr);
+                        memberMobile = StringUtil.trim(mobileMap.get(memberId));
+                    }
+                    //获取房产证信息
+                    if(StringUtil.hasText(applyId)){
+                        Map<String, String> stringStringMap = pocImgMap.get(applyId);
+                        pocImg1 = stringStringMap.get("pocImg1");
+                        pocImg2 = stringStringMap.get("pocImg2");
+                        pocImg3 = stringStringMap.get("pocImg3");
+                    }
+                    map.put("memberMobile",memberMobile);
+                    //处理图片返回值
+                    String houseHoldImg = StringUtil.trim(map.get("houseHoldImg"));
+                    map.put("houseHoldImg",splice(houseHoldImg));
+                    map.put("pocImg1",splice(pocImg1));
+                    map.put("pocImg2",splice(pocImg2));
+                    map.put("pocImg3",splice(pocImg3));
+                    dataSet.add(map);
+                });
+            }
+            result.setDataSet(dataSet);
+        } catch (Exception e) {
+            logger.error("remote procedure call getOwnerHousingApplication is error" +e);
+            result.setDataSet(null);
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return result;
+    }
+
+    /**
+     * lsq
+     * 获取业主预约获取房源申请详情
+     * @param id 房源申请id
+     * @return
+     */
+    @Override
+    public ResultVo getOwnerHousingApplicationById(Integer id) {
+        ResultVo result = new ResultVo();
+        try {
+            Map resultMap = new HashMap(2);
+            Map housingApplication = null;
+            HsHouseCredentialsData houseCredentials = null;
+            //1.获取申请信息
+            ResultVo appResult = housesService.select(id,new HsOwnerHousingApplication());
+            if(appResult != null && appResult.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS && appResult.getDataSet() != null){
+                //2.根据房源申请信息获取，房源所属人员memberId
+                HsOwnerHousingApplication hsOwnerHousingApplication = (HsOwnerHousingApplication) appResult.getDataSet();
+                //3.根据获取到的memberId获取人员手机号map
+                Integer memberId = hsOwnerHousingApplication.getMemberId();
+                //4.根据上面获取到的人员手机号map,对房源申请信息结果集进行重新封装，将人员手机号封装进去
+                HsMember member = null;
+                ResultVo memberResultVo = memberService.select(memberId, new HsMember());
+                if(memberResultVo != null && memberResultVo.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                    member = (HsMember) memberResultVo.getDataSet();
+                }
+                String memberMobile = "";
+                if(member != null){
+                    Integer mId = member.getId();
+                    String memberMoble = member.getMemberMoble();
+                    if(memberId.equals(mId)){
+                        memberMobile = memberMoble;
+                        //将房源申请信息hsOwnerHousingApplication转换为map，然后将人员手机号加入进map,再将返回结果集替换为增加了人员手机号的map
+                        JSONObject jsonObject = JSON.parseObject(JSON.toJSONString(hsOwnerHousingApplication));
+                        housingApplication = JSON.toJavaObject(jsonObject, Map.class);
+                        //处理图片返回值
+                        String houseHoldImg = StringUtil.trim(housingApplication.get("houseHoldImg"));
+                        housingApplication.put("houseHoldImg",splice(houseHoldImg));
+                        housingApplication.put("memberMobile",memberMobile);
+                    }
+                }
+
+                //2.获取业主预约获取房源申请信息
+
+                Map<Object,Object> condition = new HashMap<>(16);
+                condition.put("applyId",id);
+                ResultVo resultVo = housesService.selectDataByCondition(new HsHouseCredentialsData(), condition);
+                if(resultVo != null && resultVo.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS && resultVo.getDataSet() != null){
+                    houseCredentials = (HsHouseCredentialsData) resultVo.getDataSet();
+                    resultMap.put("houseCredentials",houseCredentials);
+
+                }
+
+            }
+            resultMap.put("housingApplication",housingApplication);
+            resultMap.put("houseCredentials",houseCredentials);
+            result.setDataSet(resultMap);
+        } catch (Exception e) {
+            logger.error("remote procedure call getOwnerHousingApplicationById is error" +e);
+            result.setDataSet(null);
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return result;
+    }
+
+
+    /**
+     * 客服审核业主申请房源信息
+     * @param condition
+     * @return
+     */
+    @Override
+    public ResultVo checkHousingApply(Map<Object, Object> condition) {
+        ResultVo vo = null;
+        try {
+            vo = housesService.checkHousingApplyTx(condition);
+            if(vo.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                //加入订单池
+                condition.putAll((Map<Object, Object>) vo.getDataSet());
+                vo = orderService.addSystemOrderPoolTx(condition);
+            }
+        } catch (Exception e) {
+            logger.error("remote procedure call checkHousingApply is error" +e);
+            vo.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            vo.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return vo;
+    }
+
+    /**
+     * 客服审核房源信息
+     * @param condition
+     * @return
+     */
+    @Override
+    public ResultVo checkHouse(Map<Object, Object> condition) {
+        ResultVo vo = null;
+        try {
+            int houseId = StringUtil.getAsInt(StringUtil.trim(condition.get("houseId")));//房源ID
+            //查询该房源对应的任务有没有完成
+            //自定义查询列名
+            List<String> queryColumn = new ArrayList<>();
+            Map<Object,Object> queryFilter = Maps.newHashMap();
+            queryColumn.add("ID poolId");//主键ID
+            queryColumn.add("HOUSE_ID houseId");//主键ID
+            queryColumn.add("IS_FINISHED isFinished");//主键ID
+            queryFilter.put("houseId",houseId);
+            queryFilter.put("orderType",0);//订单类型 0外获订单->1-外看订单->2合同订单
+            queryFilter.put("isDel",0);//是否删除0:不删除，1：删除
+            queryFilter.put("queryColumn",queryColumn);
+            ResultVo orderVo = orderService.selectCustomColumnNamesList(HsSystemOrderPool.class, queryFilter);
+            if(orderVo.getResult() != ResultConstant.SYS_REQUIRED_SUCCESS){
+                return orderVo;
+            }
+            List<Map<Object,Object>> orderList = (List<Map<Object, Object>>) orderVo.getDataSet();
+            Map<Object,Object> orderPool =  orderList.get(0);
+            if(orderPool==null){
+                return ResultVo.error(ResultConstant.SYS_REQUIRED_FAILURE,ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+            }
+            int isFinished = StringUtil.getAsInt(StringUtil.trim(orderPool.get("isFinished")));
+            if(isFinished!=5){//外获或区域长的任务还未完成
+                //
+                return ResultVo.error(ResultConstant.SYS_REQUIRED_FAILURE,"外获或区域长的任务还未完成");
+            }
+
+            vo = housesService.checkHouse(condition);
+            if(vo.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                List<Integer> poolIds = Lists.newArrayList();
+                poolIds.add(StringUtil.getAsInt(StringUtil.trim(orderPool.get("poolId"))));
+                condition.clear();
+                condition.put("poolIds",poolIds);
+                //查询订单池的任务最后在哪个业务员手里
+                List<HsSystemUserOrderTasks>  userOrderTasks = memberService.selectExpiredTasks(condition);
+                HsSystemUserOrderTasks task = userOrderTasks.get(0);
+                //重置积分规则缓存
+                String cacheKey = RedisUtil.safeGet(RedisConstant.SYS_GOLD_RULE_CACHE_KEY);
+                List<Map<Object, Object>> goldList = JsonUtil.parseJSON2List(cacheKey);
+
+                //保存用户总共要修改的金额
+                Map<Integer,Integer> user_gold = Maps.newHashMap();
+                List<Integer> userIds = Lists.newArrayList();//保存用户Ids
+                List<HsUserGoldLog> userGoldLogs = Lists.newArrayList();//保存业务员积分日志
+                HsUserGoldLog userGoldLog = null;
+
+                Map<Object, Object> yaoshiGoldMap = null;//保存第一个拿到钥匙的人
+                Map<Object, Object> waihuoGoldMap = null;//外获上传任务完成
+                Map<Object, Object> quyuzhangGoldMap = null;//区域长上传任务完成
+                Date date = new Date();
+                for (Map<Object, Object> gold : goldList) {
+                    if(1==StringUtil.getAsInt(StringUtil.trim(gold.get("goldType")))){//外获上传任务完成
+                        waihuoGoldMap = gold;
+                    }
+                    if(2==StringUtil.getAsInt(StringUtil.trim(gold.get("goldType")))){//区域长上传任务完成
+                        quyuzhangGoldMap = gold;
+                    }
+                    if(6==StringUtil.getAsInt(StringUtil.trim(gold.get("goldType")))){//第一个业务员获取钥匙
+                        yaoshiGoldMap = gold;
+                    }
+                }
+
+                //添加对应业务员积分
+                Map<Object,Object> houseKeyMap = (Map<Object, Object>) vo.getDataSet();
+                if(houseKeyMap!=null){
+                    int userId = StringUtil.getAsInt(StringUtil.trim(houseKeyMap.get("userId")));
+                    userIds.add(userId);
+                    int goldRuleId = StringUtil.getAsInt(StringUtil.trim(yaoshiGoldMap.get("id")));
+                    int score = StringUtil.getAsInt(StringUtil.trim(yaoshiGoldMap.get("score")));
+
+                    userGoldLog = new HsUserGoldLog();//保存用户积分
+                    userGoldLog.setUserId(userId);
+                    userGoldLog.setTaskId(-1);
+                    userGoldLog.setGoldRuleId(goldRuleId);
+                    userGoldLog.setGold(score);
+                    userGoldLog.setCreateTime(date);
+                    userGoldLog.setRemark("第一个业务员获取钥匙+"+score);
+                    userGoldLogs.add(userGoldLog);
+
+                    //保存要修改的积分
+                    user_gold.put(userId,score);
+
+                }
+                Integer taskId = task.getId();//任务ID
+                Integer userId1 = task.getUserId();//保存外获业务员ID
+                Integer userId2 = StringUtil.getAsInt(StringUtil.trim(task.getStandby1()));//保存区域长ID
+
+                //添加外获业务员积分日志记录
+                userGoldLog = new HsUserGoldLog();
+                userGoldLog.setUserId(userId1);
+                userGoldLog.setTaskId(taskId);
+                userGoldLog.setGoldRuleId(StringUtil.getAsInt(StringUtil.trim(waihuoGoldMap.get("id"))));
+                int score1 = StringUtil.getAsInt(StringUtil.trim(waihuoGoldMap.get("score")));
+                userGoldLog.setGold(score1);
+                userGoldLog.setCreateTime(date);
+                userGoldLog.setRemark("外获上传任务完成+"+score1);
+                userGoldLogs.add(userGoldLog);
+                //保存要修改的积分
+                //user_gold.put(userId1,user_gold.get(userId1)+score1);
+                if(user_gold.containsKey(userId1)){
+                    user_gold.put(userId1,user_gold.get(userId1)+score1);
+                }else{
+                    user_gold.put(userId1,score1);
+                }
+
+                //添加区域长积分日志记录
+                userGoldLog = new HsUserGoldLog();
+                userGoldLog.setUserId(userId2);
+                userGoldLog.setTaskId(taskId);
+                userGoldLog.setGoldRuleId(StringUtil.getAsInt(StringUtil.trim(quyuzhangGoldMap.get("id"))));
+                int score2 = StringUtil.getAsInt(StringUtil.trim(quyuzhangGoldMap.get("score")));
+                userGoldLog.setGold(score1);
+                userGoldLog.setCreateTime(date);
+                userGoldLog.setRemark("区域长上传任务完成+"+score2);
+                userGoldLogs.add(userGoldLog);
+                //保存要修改的积分
+//                user_gold.put(userId2,user_gold.get(userId2)+score2);
+                if(user_gold.containsKey(userId2)){
+                    user_gold.put(userId2,user_gold.get(userId2)+score2);
+                }else{
+                    user_gold.put(userId2,score2);
+                }
+
+
+                userIds.add(userId1);
+                userIds.add(userId2);
+                //查询用户余额
+                condition.clear();
+                queryColumn.clear();
+                queryColumn.add("ID userId");//用户ID
+                queryColumn.add("GOLD gold");//积分帐户
+                condition.put("queryColumn",queryColumn);
+                condition.put("ids",userIds);
+                ResultVo userVo = memberService.selectCustomColumnNamesList(HsSysUser.class, condition);
+                if(userVo.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS) {
+                    List<Map<Object, Object>> userList = (List<Map<Object, Object>>) userVo.getDataSet();
+                    List<HsSysUser> updateUser = Lists.newArrayList();//要修改的用户
+                    HsSysUser _user = null;
+                    for (Map<Object, Object> user : userList) {
+                        _user = new HsSysUser();
+                        int _userId = StringUtil.getAsInt(StringUtil.trim(user.get("userId")));
+                        //获取总共要修改的积分数
+                        _user.setId(_userId);
+                        _user.setGold(user_gold.get(_userId));
+                        _user.setUpdateTime(date);
+                        updateUser.add(_user);
+
+                    }
+                    if(updateUser!=null && updateUser.size()>0){
+                        condition.clear();
+                        condition.put("data",updateUser);
+                        ResultVo updateVo = memberService.batchUpdate(_user, condition);
+                        if(updateVo.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                            condition.clear();
+                            condition.put("data",userGoldLogs);
+                            memberService.batchInsert(userGoldLog, condition);
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            logger.error("remote procedure call checkHouse is error" +e);
+            vo.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            vo.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        vo.setDataSet(null);
+        return vo;
+    }
+
+    @Override
+    public ResultVo getMainHousingList(Map<Object, Object> condition){
+        ResultVo resultVo = new ResultVo();
+        try {
+            resultVo = housesService.selectList(new HsMainHouse(),condition,0);
+        }catch (Exception e){
+            logger.error("remote procedure call getMainHousingList is error" +e);
+            resultVo.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            resultVo.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return resultVo;
+    }
+
+    @Override
+    public ResultVo getMainHousingInfo(Integer id){
+        ResultVo resultVo = new ResultVo();
+        try {
+            resultVo = housesService.select(id,new HsMainHouse());
+        }catch (Exception e){
+            logger.error("remote procedure call getMainHousingInfo is error" +e);
+            resultVo.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            resultVo.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return resultVo;
+    }
+
+    @Override
+    public ResultVo addPurchase(HsHouseNewBuildingMemberApply buildingMemberApply) {
+        ResultVo resultVo = new ResultVo();
+        try {
+            resultVo = housesService.insert(buildingMemberApply);
+            if(resultVo == null || resultVo.getResult() != ResultConstant.SYS_REQUIRED_SUCCESS || resultVo.getDataSet() == null){
+                resultVo.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+                resultVo.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+                return resultVo;
+            }
+            buildingMemberApply = (HsHouseNewBuildingMemberApply)resultVo.getDataSet();
+            Integer memberId = buildingMemberApply.getMemberId();
+            Integer projectId = buildingMemberApply.getProjectId();
+            //插入人员直购申请
+            HsMemberDirectPurchaseApply purchaseApply = new HsMemberDirectPurchaseApply();
+            purchaseApply.setCode(UUID.randomUUID().toString());
+            purchaseApply.setMemberId(memberId);
+            purchaseApply.setBuildingId(projectId);
+            purchaseApply.setStatus(0);
+            purchaseApply.setCreateBy(memberId);
+            purchaseApply.setCreateTime(new Date());
+            ResultVo insert = memberService.insert(purchaseApply);
+            if(insert == null || insert.getResult() != ResultConstant.SYS_REQUIRED_SUCCESS || insert.getDataSet() == null){
+                resultVo.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+                resultVo.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+                return resultVo;
+            }
+
+        }catch (Exception e){
+            logger.error("remote procedure call addPurchase is error" +e);
+            resultVo.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            resultVo.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return resultVo;
+    }
+
+    @Override
+    public ResultVo addDirectSalesProperty(HsHouseNewBuilding hsHouseNewBuilding) {
+        ResultVo resultVo = new ResultVo();
+        try {
+            resultVo = housesService.insert(hsHouseNewBuilding);
+        }catch (Exception e){
+            logger.error("remote procedure call addDirectSalesProperty is error" +e);
+            resultVo.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            resultVo.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return resultVo;
+    }
+
+    @Override
+    public ResultVo getPropertyArea() {
+        ResultVo resultVo = new ResultVo();
+        try {
+            List<Map<Object,Object>> propertyArea = housesService.getPropertyArea();
+            resultVo.setDataSet(propertyArea);
+        }catch (Exception e){
+            logger.error("remote procedure call getPropertyArea is error" +e);
+            resultVo.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            resultVo.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return resultVo;
+    }
+
+    @Override
+    public ResultVo getDirectSalesDetails(Integer id){
+        ResultVo resultVo = new ResultVo();
+        try {
+            resultVo = housesService.select(id,new HsHouseNewBuilding());
+        }catch (Exception e){
+            logger.error("remote procedure call getDirectSalesDetails is error" +e);
+            resultVo.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            resultVo.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return resultVo;
+    }
+
+    @Override
+    public ResultVo getDirectSalesPropertyList(Map<Object, Object> condition){
+        ResultVo resultVo = new ResultVo();
+        List<Map<Object, Object>> resultList = new ArrayList<>();
+        try {
+            resultVo = housesService.selectList(new HsHouseNewBuilding(),condition,0);
+            if(resultVo.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS && resultVo.getDataSet() != null){
+                List<Map<Object, Object>> buildingList = (List<Map<Object, Object>>) resultVo.getDataSet();
+                for (Map<Object, Object> map : buildingList) {
+                    String projectMainImg = StringUtil.trim(map.get("projectMainImg"));
+                    if(StringUtil.hasText(projectMainImg)){
+                        projectMainImg = ImageUtil.IMG_URL_PREFIX + projectMainImg;
+                    }
+                    map.put("projectMainImg",projectMainImg);
+                    resultList.add(map);
+                }
+
+            }
+        }catch (Exception e){
+            logger.error("remote procedure call getDirectSalesPropertyList is error" +e);
+            resultVo.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            resultVo.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return resultVo;
+    }
+
+    /**
+     * 房源投诉列表
+     * @param condition
+     * @return
+     */
+    @Override
+    public ResultVo getHouseComplainList(Map<Object, Object> condition) {
+        ResultVo resultVo = null;
+        try {
+            resultVo = housesService.selectList(new HsHouseComplain(),condition,1);
+            if(resultVo.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                List<HsHouseComplain> lists = (List<HsHouseComplain>) resultVo.getDataSet();
+                if(lists!=null && lists.size()>0){
+                    List<Integer> houseIds = Lists.newArrayListWithCapacity(lists.size());
+                    for (HsHouseComplain houseComplain : lists) {
+                        houseIds.add(houseComplain.getHouseId());
+                        String complainProofPic1 = houseComplain.getComplainProofPic1();
+                        String complainProofPic2 = houseComplain.getComplainProofPic2();
+                        String complainProofPic3 = houseComplain.getComplainProofPic3();
+                        if(StringUtil.hasText(complainProofPic1)){
+                            houseComplain.setComplainProofPic1(ImageUtil.IMG_URL_PREFIX+complainProofPic1);
+                        }
+                        if(StringUtil.hasText(complainProofPic2)){
+                            houseComplain.setComplainProofPic2(ImageUtil.IMG_URL_PREFIX+complainProofPic2);
+                        }
+                        if(StringUtil.hasText(complainProofPic3)){
+                            houseComplain.setComplainProofPic3(ImageUtil.IMG_URL_PREFIX+complainProofPic3);
+                        }
+                    }
+                }
+            }
+
+        }catch (Exception e){
+            logger.error("remote procedure call getHouseComplainList is error" +e);
+            resultVo.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            resultVo.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return resultVo;
+    }
+
+    /**
+     *  房源投诉详情
+     * @param id
+     * @return
+     */
+    @Override
+    public ResultVo getHouseComplainDetail(Integer id) {
+        ResultVo resultVo = null;
+        try {
+            resultVo = housesService.select(id,new HsHouseComplain());
+            if(resultVo.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                HsHouseComplain houseComplain = (HsHouseComplain) resultVo.getDataSet();
+                if(houseComplain == null){
+                    return ResultVo.error(ResultConstant.SYS_REQUIRED_FAILURE,ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+                }
+                String complainProofPic1 = houseComplain.getComplainProofPic1();
+                String complainProofPic2 = houseComplain.getComplainProofPic2();
+                String complainProofPic3 = houseComplain.getComplainProofPic3();
+                if(StringUtil.hasText(complainProofPic1)){
+                    houseComplain.setComplainProofPic1(ImageUtil.IMG_URL_PREFIX+complainProofPic1);
+                }
+                if(StringUtil.hasText(complainProofPic2)){
+                    houseComplain.setComplainProofPic2(ImageUtil.IMG_URL_PREFIX+complainProofPic2);
+                }
+                if(StringUtil.hasText(complainProofPic3)){
+                    houseComplain.setComplainProofPic3(ImageUtil.IMG_URL_PREFIX+complainProofPic3);
+                }
+            }
+        }catch (Exception e){
+            logger.error("remote procedure call getHouseComplainDetail is error" +e);
+            resultVo.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            resultVo.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return resultVo;
+    }
+
+    /**
+     * 房源投诉列表
+     * @param condition
+     * @return
+     */
+    @Override
+    public ResultVo getHouseEvaluationList(Map<Object, Object> condition) {
+        ResultVo resultVo = null;
+        try {
+            resultVo = housesService.selectList(new HsHouseEvaluation(),condition,1);
+            if(resultVo.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                List<HsHouseEvaluation> lists = (List<HsHouseEvaluation>) resultVo.getDataSet();
+                if(lists!=null && lists.size()>0){
+                    List<Integer> houseIds = Lists.newArrayListWithCapacity(lists.size());
+                    for (HsHouseEvaluation houseEvaluation : lists) {
+                        houseIds.add(houseEvaluation.getHouseId());
+                        String evaluationImg1 = houseEvaluation.getEvaluationImg1();
+                        String evaluationImg2 = houseEvaluation.getEvaluationImg2();
+                        String evaluationImg3 = houseEvaluation.getEvaluationImg3();
+                        if(StringUtil.hasText(evaluationImg1)){
+                            houseEvaluation.setEvaluationImg1(ImageUtil.IMG_URL_PREFIX+evaluationImg1);
+                        }
+                        if(StringUtil.hasText(evaluationImg2)){
+                            houseEvaluation.setEvaluationImg2(ImageUtil.IMG_URL_PREFIX+evaluationImg2);
+                        }
+                        if(StringUtil.hasText(evaluationImg3)){
+                            houseEvaluation.setEvaluationImg3(ImageUtil.IMG_URL_PREFIX+evaluationImg3);
+                        }
+                    }
+                }
+            }
+
+        }catch (Exception e){
+            logger.error("remote procedure call getHouseEvaluationList is error" +e);
+            resultVo.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            resultVo.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return resultVo;
+    }
+
+    /**
+     * 房源评价详情
+     * @param id
+     * @return
+     */
+    @Override
+    public ResultVo getHouseEvaluationDetail(Integer id) {
+        ResultVo resultVo = null;
+        try {
+            resultVo = housesService.select(id,new HsHouseEvaluation());
+            if(resultVo.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                HsHouseEvaluation houseEvaluation = (HsHouseEvaluation) resultVo.getDataSet();
+                if(houseEvaluation == null){
+                    return ResultVo.error(ResultConstant.SYS_REQUIRED_FAILURE,ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+                }
+                String evaluationImg1 = houseEvaluation.getEvaluationImg1();
+                String evaluationImg2 = houseEvaluation.getEvaluationImg2();
+                String evaluationImg3 = houseEvaluation.getEvaluationImg3();
+                if(StringUtil.hasText(evaluationImg1)){
+                    houseEvaluation.setEvaluationImg1(ImageUtil.IMG_URL_PREFIX+evaluationImg1);
+                }
+                if(StringUtil.hasText(evaluationImg2)){
+                    houseEvaluation.setEvaluationImg2(ImageUtil.IMG_URL_PREFIX+evaluationImg2);
+                }
+                if(StringUtil.hasText(evaluationImg3)){
+                    houseEvaluation.setEvaluationImg3(ImageUtil.IMG_URL_PREFIX+evaluationImg3);
+                }
+            }
+        }catch (Exception e){
+            logger.error("remote procedure call getHouseEvaluationDetail is error" +e);
+            resultVo.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            resultVo.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return resultVo;
+    }
+
+    /**
+     * 业主联系客服上传
+     * @param apply 业主申请表
+     * @param houseCredentialsData
+     * @param areaCode
+     * @param memberMobile
+     * @return
+     * @throws IllegalAccessException
+     */
+    @Override
+    public ResultVo addOwnerApply(HsOwnerHousingApplication apply, HsHouseCredentialsData houseCredentialsData, String areaCode, String memberMobile) {
+        ResultVo result = new ResultVo();
+        try {
+            Map<Object,Object> condition = Maps.newHashMap();
+
+            memberService.login(condition);
+
+            Date date = new Date();
+            apply.setCreateTime(date);
+            apply.setUpdateTime(date);
+            ResultVo insertVo = housesService.insert(apply);//保存业主提交的房源信息
+            if (insertVo.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS) {
+                HsOwnerHousingApplication dataSet = (HsOwnerHousingApplication) insertVo.getDataSet();
+                houseCredentialsData.setApplyId(dataSet.getId()); //申请ID
+                houseCredentialsData.setApplicantType(apply.getApplicantType());
+                houseCredentialsData.setLanguageVersion(apply.getLanguageVersion());
+                ResultVo credentialsResult = housesService.insert(houseCredentialsData);
+
+                System.out.println(houseCredentialsData.toString());
+                if (credentialsResult.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS) {
+                    HsOwnerHousingApplicationLog ownerHousingApplyLog = new HsOwnerHousingApplicationLog();
+                    //房源申请信息的ID
+                    ownerHousingApplyLog.setApplyId(dataSet.getId());
+                    ownerHousingApplyLog.setNodeType(0);
+                    //ownerHousingApplyLog.setIsDel(0);有默认值可不手动设置
+                    ownerHousingApplyLog.setCreateBy(apply.getCreateBy());
+                    ownerHousingApplyLog.setCreateTime(date);
+                    ownerHousingApplyLog.setPostTime(date);
+                    ResultVo logVo = housesService.insert(ownerHousingApplyLog);
+                    if (logVo.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS) {
+                        //记录房源进度
+                        //1.获取房源ID
+                        Integer houseId = houseCredentialsData.getHouseId();
+                        //2.封装进度信息
+                        HsHouseProgress hsHouseProgress = new HsHouseProgress();
+                        //房源ID
+                        hsHouseProgress.setHouseId(houseId);
+                        //创建人
+                        hsHouseProgress.setCreateBy(apply.getCreateBy());
+                        //进度
+                        hsHouseProgress.setProgressCode("101");
+                        //创建日期
+                        hsHouseProgress.setCreateTime(date);
+                        //3.插入数据
+                        ResultVo insert = housesService.insert(hsHouseProgress);
+                        if (insert.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS) {
+                            return insert;
+                        }
+                    }
+                }
+            }
+            return insertVo;
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.setResult(ResultConstant.HOUSES_DATA_EXCEPTION);
+            result.setMessage("addOwnerHousingApply Exception message:" + e.getMessage());
+        }
+        return result;
+    }
+
+    /**
+     * 获取房源自动应答
+     *
+     * @param condition
+     * @return
+     */
+    @Override
+    public ResultVo getAutoReplySetting(Map<Object, Object> condition) {
+        ResultVo result = new ResultVo();
+        Map<Object, Object> resultMap = new HashMap<>(4);
+        try {
+            int houseId = StringUtil.getAsInt(StringUtil.trim(condition.get("houseId"))); //房源ID
+            result = housesService.select(houseId, new HsMainHouse()); //根据房源ID查询房源信息
+            if (result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS) {
+                HsMainHouse mainHouse = (HsMainHouse) result.getDataSet();
+                if (mainHouse != null) {
+                    int leaseType = mainHouse.getLeaseType();
+                    //resultMap.put("isAutoAnswer",isAutoAnswer);
+                    resultMap.put("leaseType", leaseType);
+
+                    //根据房源ID查询自动应答设置信息
+                    condition.put("isDel", 0);
+                    ResultVo replyResult = housesService.selectList(new HsHouseAutoReplySetting(), condition, 0);
+                    if (replyResult.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS) {
+                        List<Map<Object, Object>> replyList = (List<Map<Object, Object>>) replyResult.getDataSet();
+                        if (replyList.size() > 0) {
+                            for (Map<Object, Object> map : replyList) {
+                                map.remove("isDel");
+                            }
+                            resultMap.put("autoAnswerList", replyList);
+                        }
+                    }
+                } else {
+                    resultMap.put("isAutoAnswer", null);
+                    resultMap.put("leaseType", null);
+                    resultMap.put("autoAnswerList", null);
+                }
+                result.setDataSet(resultMap);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.setDataSet(null);
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+
+        return result;
+    }
+
+    /**
+     * 设置自动应答
+     *
+     * @param houseAutoReplySetting
+     * @return
+     */
+    @Override
+    public ResultVo addAutoReplySetting(HsHouseAutoReplySetting houseAutoReplySetting) {
+        ResultVo result = new ResultVo();
+        try {
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+            if (houseAutoReplySetting != null) {
+                //自动应答ID
+                Integer id = houseAutoReplySetting.getId() == null ? 0 : houseAutoReplySetting.getId();
+                //房源ID
+                Integer houseId = houseAutoReplySetting.getHouseId() == null ? 0 : houseAutoReplySetting.getHouseId();
+                String startRentDate = StringUtil.trim(houseAutoReplySetting.getStartRentDate());
+                //当起租日期不为空时，设置起租日期格式
+                if (StringUtil.hasText(startRentDate)) {
+                    houseAutoReplySetting.setBeginRentDate(sdf.parse(startRentDate));
+                }
+                //根据自动应答ID查询自动应答设置信息
+                Map<Object, Object> condition = new HashMap<>(2);
+                condition.put("id", id);
+                condition.put("isDel", 0);
+                ResultVo replyResult = housesService.selectList(new HsHouseAutoReplySetting(), condition, 0);
+                if (replyResult.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS) {
+                    //自动应答信息结果集
+                    List<Map<Object, Object>> replyList = (List<Map<Object, Object>>) replyResult.getDataSet();
+                    if (replyList.size() > 0) {
+                        //数据库中是否存在当前房源信息
+                        boolean isExist = false;
+                        //遍历判断需要修改得房源信息是否存在数据库中
+                        for (Map<Object, Object> objectObjectMap : replyList) {
+                            String tId = StringUtil.trim(objectObjectMap.get("id"));
+                            if (tId.equals(id.toString())) {
+                                //为避免is_del为null设置is_del值
+                                String isDel = StringUtil.trim(objectObjectMap.get("isDel"));
+                                houseAutoReplySetting.setIsDel(Integer.parseInt(isDel));
+                                isExist = true;
+                                break;
+                            }
+                        }
+                        if (!isExist) {
+                            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+                            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE + ":未查询到房源信息！");
+                            return result;
+                        }
+                        //修改数据
+                        ResultVo updateSettingResult = housesService.update(houseAutoReplySetting);
+                        if (updateSettingResult.getResult() != ResultConstant.SYS_REQUIRED_SUCCESS) {
+                            result = updateSettingResult;
+                            return result;
+                        }
+                    } else {
+                        //根据房源ID查询自动应答设置信息
+                        condition.clear();
+                        condition.put("houseId", houseId);
+                        condition.put("isDel", 0);
+                        ResultVo resultVo = housesService.selectList(new HsHouseAutoReplySetting(), condition, 0);
+                        //房源信息结果集
+                        List<Map<Object, Object>> dataSet = (List<Map<Object, Object>>) resultVo.getDataSet();
+                        if (dataSet.size() > 2) {
+                            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+                            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE + ":自动应答最多只能设置3条！");
+                            return result;
+                        }
+                        // 新增
+                        ResultVo insertSettingResult = housesService.insert(houseAutoReplySetting);
+                        if (insertSettingResult.getResult() != ResultConstant.SYS_REQUIRED_SUCCESS) {
+                            result = insertSettingResult;
+                            return result;
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.setDataSet(null);
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return result;
+    }
+
+    /**
+     * 删除房源自动应答
+     * @param autoReplyId
+     * @return
+     */
+    @Override
+    public ResultVo deleteAutoReply(String autoReplyId) {
+        ResultVo result = new ResultVo();
+        Map<Object, Object> map = new HashMap<>(1);
+        List<HsHouseAutoReplySetting> list = new ArrayList<>();
+        HsHouseAutoReplySetting hsHouseAutoReplySetting = new HsHouseAutoReplySetting();
+        hsHouseAutoReplySetting.setId(Integer.parseInt(autoReplyId));
+        hsHouseAutoReplySetting.setIsDel(1);
+        list.add(hsHouseAutoReplySetting);
+        map.put("list", list);
+        result = housesService.batchUpdate(new HsHouseAutoReplySetting(), map);
+        return result;
+    }
+
+    /**
+     * 修改房源租金/预约看房时间
+     * @param condition
+     * @return
+     */
+    @Override
+    public ResultVo updateHousingInfo(Map<Object,Object> condition) {
+        ResultVo result = new ResultVo();
+        try {
+            int memberId = Integer.parseInt(StringUtil.trim(condition.get("memberId")));
+            int id = Integer.parseInt(StringUtil.trim(condition.get("id")));
+
+            ResultVo houseResult = housesService.select(id,new HsMainHouse());
+            if(houseResult.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                HsMainHouse mainHouse = (HsMainHouse) houseResult.getDataSet();
+                HsMainHouse hsMainHouse = new HsMainHouse();
+                HsHouseLog houseLog = new HsHouseLog();
+                hsMainHouse.setId(id);
+                if(StringUtil.hasText(StringUtil.trim(condition.get("houseRent")))){
+                    BigDecimal houseRent = new BigDecimal(condition.get("houseRent")+"");
+                    hsMainHouse.setHouseRent(houseRent);
+                    houseLog.setRemarks("修改价格");
+                }
+                //查询房源信息，如果发布价格为空，为第一次修改，设置租金/出售价为发布价格
+                if(!StringUtil.hasText(mainHouse.getStandby1())){
+                    hsMainHouse.setStandby1(mainHouse.getHouseRent()+"");
+                }
+                //是否客服联系
+                if(StringUtil.hasText(StringUtil.trim(condition.get("isCustomerServiceRelation")))){
+                    hsMainHouse.setAppointmentLookTime(StringUtil.trim(condition.get("appointmentLookTime"))); //预约时间
+                    hsMainHouse.setIsCustomerServiceRelation(StringUtil.getAsInt(StringUtil.trim(condition.get("isCustomerServiceRelation")))); //是否客服联系
+                    hsMainHouse.setAdvanceReservationDay(StringUtil.getAsInt(StringUtil.trim(condition.get("advanceReservationDay")))); //提前几天预约
+                    houseLog.setRemarks("修改预约看房时间");
+                }
+
+                hsMainHouse.setVersionNo(0);
+                result = housesService.update(hsMainHouse);
+
+                if(result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                    //记录操作日志
+                    Date date = new Date();
+                    houseLog.setNodeType(Constant.PASS_AUDIT_HOUSES_STATUS); //业主申请下架
+                    houseLog.setUpdateBy(memberId); //更新人为提交申请的人（当前登录用户）
+                    houseLog.setCreateBy(memberId);
+                    houseLog.setBid(0);
+                    houseLog.setHouseId(hsMainHouse.getId());
+                    houseLog.setOperatorUid(memberId);
+                    houseLog.setOperatorType(1); //1：普通会员，2：商家，3：系统管理员
+                    houseLog.setCreateTime(date);
+                    houseLog.setUpdateTime(date);
+                    houseLog.setPostTime(date);
+                    result = housesService.insert(houseLog);
+                }
+
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.setDataSet(null);
+            result.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            result.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return result;
+    }
+
+
+    /**
+     * 查询预约看房时间
+     * @param condition
+     * @return
+     */
+    @Override
+    public ResultVo getHouseSettingTime(Map<Object, Object> condition) {
+        ResultVo result = new ResultVo();
+        List<Map<Object, Object>> timeList = new ArrayList<>();
+        try {
+            int houseId = StringUtil.getAsInt(StringUtil.trim(condition.get("houseId"))); //房源ID
+            result = housesService.select(houseId, new HsMainHouse());
+            if (result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS) {
+                HsMainHouse mainHouse = (HsMainHouse) result.getDataSet();
+                if(null == mainHouse){
+                    return ResultVo.error(ResultConstant.SYS_REQUIRED_FAILURE,"房源数据异常");
+                }
+                String appointLookTime = mainHouse.getAppointmentLookTime();
+                if (StringUtil.hasText(appointLookTime)) {
+
+                    //时间格式 Mon 13:00,19:00,20:00;Tue 13:00,19:00,20:00;Wed 13:00,19:00,20:00;Thur ;Fri ;Sat ;Sun ;
+                    //获取每天设置的时间点
+                    String[] weeksArray = appointLookTime.split(";");
+                    List<String> weeks = Arrays.asList(weeksArray);
+                    if (weeks.size() > 0) {
+                        for (String week : weeks) {
+                            Map<Object, Object> weekMap = new HashMap<>();
+                            String[] timeSplit = week.split(" ");
+                            if(timeSplit!=null && timeSplit.length>0){
+                                if (timeSplit.length > 1) {
+                                    String[] times = timeSplit[1].split(",");
+                                    if (times.length > 0) {
+                                        List<String> timeArray = Arrays.asList(times);
+                                        weekMap.put("time", timeArray);
+                                    } else {
+                                        weekMap.put("time", null);
+                                    }
+                                } else {
+                                    weekMap.put("time", null);
+                                }
+                                weekMap.put("week", timeSplit[0]);
+                            }else{//
+                                weekMap.put("week",null);
+                                weekMap.put("time", null);
+                            }
+
+                            timeList.add(weekMap);
+                        }
+                    }
+                }
+
+                result.setDataSet(timeList);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResultVo.error(ResultConstant.SYS_REQUIRED_FAILURE, ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return result;
+    }
+
+    /**
+     * 处理图片路径返回值
+     * @param str
+     * @return
+     */
+    public String splice(String str){
+        if(StringUtil.hasText(str)){
+            String[] split = str.split(",");
+            String splice = "";
+            for (String s : split) {
+                splice += ImageUtil.IMG_URL_PREFIX + s + ",";
+            }
+            if(splice.endsWith(",")){
+                splice = splice.substring(0,splice.length() - 1);
+            }
+            str = splice;
+        }
+        return str;
+    }
+}

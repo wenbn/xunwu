@@ -1,0 +1,136 @@
+package www.ucforward.com.manager;
+
+import org.springframework.stereotype.Service;
+import www.ucforward.com.entity.HsHouseCredentialsData;
+import www.ucforward.com.entity.HsHouseNewBuilding;
+import www.ucforward.com.entity.HsHouseNewBuildingMemberApply;
+import www.ucforward.com.entity.HsOwnerHousingApplication;
+import www.ucforward.com.vo.ResultVo;
+
+import javax.servlet.http.HttpServletRequest;
+import java.util.Map;
+
+/**
+ * @Auther: lsq
+ * @Date: 2018/8/20 19:01
+ * @Description:
+ */
+@Service
+public interface IHousesManager {
+    /**
+     * lsq
+     * 获取业主预约获取房源申请
+     * @param condition
+     * @return
+     */
+    ResultVo getOwnerHousingApplication(Map<Object,Object> condition);
+
+    /**
+     * lsq
+     * 获取业主预约获取房源申请详情
+     * @param id 房源申请id
+     * @return
+     */
+    ResultVo getOwnerHousingApplicationById(Integer id);
+
+    /**
+     * 客服审核业主申请房源信息
+     * @param condition
+     * @return
+     */
+    ResultVo checkHousingApply(Map<Object, Object> condition);
+
+
+    /**
+     * 客服审核房源信息
+     * @param condition
+     * @return
+     */
+    ResultVo checkHouse(Map<Object, Object> condition);
+
+    /**
+     * 获取房源列表
+     * @param condition
+     * @return
+     */
+    ResultVo getMainHousingList(Map<Object, Object> condition);
+
+    /**
+     * 获取房源详情
+     * @param id
+     * @return
+     */
+    ResultVo getMainHousingInfo(Integer id);
+
+    /**
+     * 新增人员申购信息
+     * @param buildingMemberApply
+     * @return
+     */
+    ResultVo addPurchase(HsHouseNewBuildingMemberApply buildingMemberApply);
+
+    /**
+     * 新增直售楼盘信息
+     * @param hsHouseNewBuilding
+     * @return
+     */
+    ResultVo addDirectSalesProperty(HsHouseNewBuilding hsHouseNewBuilding);
+
+    /**
+     * 获取楼盘区域
+     * @return
+     */
+    ResultVo getPropertyArea();
+
+    /**
+     * 获取楼盘详情
+     * @param id
+     * @return
+     */
+    ResultVo getDirectSalesDetails(Integer id);
+
+    /**
+     * 获取直售楼盘列表
+     * @param condition
+     * @return
+     */
+    ResultVo getDirectSalesPropertyList(Map<Object, Object> condition);
+
+    /**
+     * 房源投诉列表
+     * @param condition
+     * @return
+     */
+    ResultVo getHouseComplainList(Map<Object, Object> condition);
+
+    /**
+     * 房源投诉详情
+     * @param id
+     * @return
+     */
+    ResultVo getHouseComplainDetail(Integer id);
+
+    /**
+     * 房源评价列表
+     * @param condition
+     * @return
+     */
+    ResultVo getHouseEvaluationList(Map<Object, Object> condition);
+
+    /**
+     * 房源评价详情
+     * @param id
+     * @return
+     */
+    ResultVo getHouseEvaluationDetail(Integer id);
+
+    /**
+     * 业主联系客服上传
+     * @param apply 业主申请表
+     * @param houseCredentialsData
+     * @param memberMobile
+     * @return
+     * @throws IllegalAccessException
+     */
+    ResultVo addOwnerApply(HsOwnerHousingApplication apply, HsHouseCredentialsData houseCredentialsData, String memberMobile);
+}

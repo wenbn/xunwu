@@ -1,0 +1,127 @@
+package www.ucforward.com.controller.city;
+
+import com.google.common.collect.Maps;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+import www.ucforward.com.constants.RedisConstant;
+import www.ucforward.com.constants.ResultConstant;
+import www.ucforward.com.controller.base.BaseController;
+import www.ucforward.com.entity.HsSupportCity;
+import www.ucforward.com.manager.ICommonManager;
+import www.ucforward.com.utils.JsonUtil;
+import www.ucforward.com.utils.RedisUtil;
+import www.ucforward.com.vo.ResultVo;
+
+import javax.annotation.Resource;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * @author wenbn
+ * @version 1.0
+ * @date 2018/9/5
+ */
+@Controller
+@ResponseBody
+public class CityController extends BaseController {
+
+    private static Logger logger = LoggerFactory.getLogger(CityController.class); // 日志记录
+
+    @Resource
+    private ICommonManager commonManager;
+
+    /**
+     * 获取支持的城市信息
+     * @return
+     */
+    @RequestMapping(value="/support/cities")
+    public String getCities(){
+        ResultVo result = null;
+        try {
+            Map<Object, Object> condition = Maps.newHashMap();
+            result = commonManager.getSupportCities(condition);
+            condition = null;
+        } catch (Exception e) {
+            logger.error("CityController controller: getSupportCities Exception message:" + e.getMessage());
+            result.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            result.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return JsonUtil.toJson(result);
+    }
+
+    /**
+     * 获取支持的城市信息详情
+     * @return
+     */
+    @RequestMapping(value="/city/detail/{id}")
+    public String getCityDetail(@PathVariable Integer id){
+        ResultVo result = null;
+        try {
+            result = commonManager.getCityDetail(id);
+        } catch (Exception e) {
+            logger.error("CityController controller: getSupportCities Exception message:" + e.getMessage());
+            result.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            result.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return JsonUtil.toJson(result);
+    }
+
+
+    /**
+     * 修改支持的城市信息
+     * @return
+     */
+    @RequestMapping(value="/city/update")
+    public String updateCity(HsSupportCity city){
+        ResultVo result = null;
+        try {
+            result = commonManager.updateCity(city);
+        } catch (Exception e) {
+            logger.error("CityController controller: getSupportCities Exception message:" + e.getMessage());
+            result.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            result.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return JsonUtil.toJson(result);
+    }
+
+    /**
+     * 添加支持的城市信息
+     * @return
+     */
+    @RequestMapping(value="/city/add")
+    public String addCity(HsSupportCity city){
+        ResultVo result = null;
+        try {
+            result = commonManager.addCity(city);
+        } catch (Exception e) {
+            logger.error("CityController controller: addCity Exception message:" + e.getMessage());
+            result.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            result.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return JsonUtil.toJson(result);
+    }
+
+    /**
+     * 获取支持的城市信息详情
+     * @return
+     */
+    @RequestMapping(value="/city/delete/{id}")
+    public String deleteCity(@PathVariable Integer id){
+        ResultVo result = null;
+        try {
+            result = commonManager.deleteCity(id);
+        } catch (Exception e) {
+            logger.error("CityController controller: deleteCity Exception message:" + e.getMessage());
+            result.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            result.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return JsonUtil.toJson(result);
+    }
+
+
+
+}

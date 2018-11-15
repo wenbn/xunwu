@@ -1,0 +1,87 @@
+package www.ucforward.com.controller.member;
+
+import org.apache.shiro.SecurityUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.utils.StringUtil;
+import www.ucforward.com.constants.ResultConstant;
+import www.ucforward.com.controller.user.UserController;
+import www.ucforward.com.entity.ActiveUser;
+import www.ucforward.com.entity.HsMemberFinancialLoansApply;
+import www.ucforward.com.manager.IHousesManager;
+import www.ucforward.com.manager.IMemberManager;
+import www.ucforward.com.utils.JsonUtil;
+import www.ucforward.com.utils.RequestUtil;
+import www.ucforward.com.vo.ResultVo;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * @Auther: lsq
+ * @Date: 2018/8/30 19:21
+ * @Description:
+ */
+@Controller
+@ResponseBody
+public class MemberController {
+    // 日志记录器
+    private static Logger logger = LoggerFactory.getLogger(MemberController.class);
+
+    @Resource
+    private IMemberManager memberManager;
+
+    /**
+     * 新增人员贷款信息
+     * @param request
+     * @param financialLoansApply
+     * @return
+     */
+    @RequestMapping(value="member/addLoansApply", method = RequestMethod.POST)
+    @ResponseBody
+    public String addLoansApply(HttpServletRequest request, HsMemberFinancialLoansApply financialLoansApply){
+        ResultVo result = new ResultVo();
+        try{
+            ActiveUser user = (ActiveUser) SecurityUtils.getSubject().getPrincipal();
+            Integer userid = user.getUserid();
+            financialLoansApply.setMemberId(userid);
+            financialLoansApply.setCreateBy(userid);
+            result = memberManager.addLoansApply(financialLoansApply);
+        }catch (Exception e){
+            logger.error("MemberController getOwnerHousingApplication Exception message:" + e.getMessage());
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return JsonUtil.toJson(result);
+    }
+
+    /**
+     * 获取人员贷款信息
+     * @param request
+     * @return
+     */
+    @RequestMapping(value="member/getLoansApply", method = RequestMethod.POST)
+    @ResponseBody
+    public String getLoansApply(HttpServletRequest request){
+        ResultVo result = new ResultVo();
+        Map<Object,Object> condition = new HashMap<>(1);
+        try{
+            ActiveUser user = (ActiveUser) SecurityUtils.getSubject().getPrincipal();
+            Integer userid = user.getUserid();
+            condition.put("isDel",0);
+            condition.put("memberId",userid);
+            result = memberManager.getLoansApply(condition);
+        }catch (Exception e){
+            logger.error("MemberController getLoansApply Exception message:" + e.getMessage());
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return JsonUtil.toJson(result);
+    }
+}

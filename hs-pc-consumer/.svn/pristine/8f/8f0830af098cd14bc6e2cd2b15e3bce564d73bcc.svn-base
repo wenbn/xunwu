@@ -1,0 +1,195 @@
+package www.ucforward.com.controller.operation;
+
+import com.google.common.collect.Maps;
+import org.apache.shiro.authz.annotation.RequiresPermissions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.utils.StringUtil;
+import www.ucforward.com.constants.AppRquestParamsConstant;
+import www.ucforward.com.constants.ResultConstant;
+import www.ucforward.com.controller.base.BaseController;
+import www.ucforward.com.entity.HsBooth;
+import www.ucforward.com.manager.ICommonManager;
+import www.ucforward.com.utils.JsonUtil;
+import www.ucforward.com.vo.ResultVo;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+/**
+ * 展位管理类
+ * @author wenbn
+ * @version 1.0
+ * @date 2018/8/20
+ */
+@Controller
+@ResponseBody
+public class BoothController extends BaseController {
+
+    // 日志记录器
+    private static Logger logger = LoggerFactory.getLogger(ChannelController.class);
+
+    @Resource
+    private ICommonManager commonManager;
+
+    /**
+     * 获取展位列表
+     * @return
+     */
+    @RequiresPermissions("booth:list")
+    @RequestMapping(value="/booth/list",method = RequestMethod.POST)
+    public String getBoothList(HttpServletRequest request) throws Exception {
+        ResultVo vo = null;
+        int pageIndex = StringUtil.getAsInt(request.getParameter("pageIndex"),0); //当前页
+        int languageVersion = StringUtil.getAsInt(request.getParameter("languageVersion"),0); //语言版本
+        Map<Object,Object> condition = Maps.newHashMap();
+        condition.put("languageVersion",languageVersion);
+        condition.put("pageIndex",pageIndex);
+        condition.put("pageSize", AppRquestParamsConstant.APP_PAGE_SIZE); //页显示条数
+        vo = commonManager.getBoothList(condition);
+        return JsonUtil.toJson(vo);
+    }
+
+
+    /**
+     * 通过展位D获取已绑定的文章或广告数据
+     * @return
+     */
+    @RequiresPermissions("booth:update")
+    @RequestMapping(value="/load/booth/bind/data/{boothId}",method = RequestMethod.POST)
+    public String getBoothBindingData(@PathVariable Integer boothId) throws Exception {
+        //通过展位D获取已绑定的文章或广告数据
+        ResultVo vo = commonManager.getBoothBindingData(boothId);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 获取该展位未绑定的数据
+     * @return
+     */
+    @RequiresPermissions("booth:update")
+    @RequestMapping(value="/load/booth/unbind/data/{boothId}",method = RequestMethod.POST)
+    public String getBoothUnBindData(@PathVariable Integer boothId) throws Exception {
+        //获取该展位未绑定的数据
+        ResultVo vo = commonManager.getBoothUnBindData(boothId);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 展位绑定数据
+     * @return
+     */
+    @RequiresPermissions("booth:update")
+    @RequestMapping(value="/booth/binding/data/{boothId}/{dataIds}",method = RequestMethod.POST)
+    public String bindingBoothData(@PathVariable Integer boothId,@PathVariable String dataIds) throws Exception {
+        ResultVo vo = null;
+        if(boothId<=0){
+            return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR,ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE));
+        }
+        if(!StringUtil.hasText(dataIds)){//绑定的数据为空时直接返回绑定失败
+            return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_FAILURE,ResultConstant.SYS_REQUIRED_FAILURE_VALUE));
+        }
+        List<Integer> dataList =Arrays.asList(dataIds.split(","))
+                .stream().map(s -> Integer.parseInt(s.trim()))
+                .collect(Collectors.toList());
+        //绑定展位数据
+        vo = commonManager.bindingBoothData(boothId,dataList);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 解除该展位下已经绑定的数据
+     * @return
+     */
+    @RequiresPermissions("booth:update")
+    @RequestMapping(value="/relieve/booth/bind/{boothId}/{dataIds}",method = RequestMethod.POST)
+    public String relieveBoothDataBind(@PathVariable Integer boothId,@PathVariable String dataIds) throws Exception {
+        if(boothId<=0){
+            return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR,ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE));
+        }
+        if(!StringUtil.hasText(dataIds)){//绑定的数据为空时直接返回绑定失败
+            return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR,ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE));
+        }
+        List<Integer> dataList = Arrays.asList(dataIds.split(","))
+                .stream().map(s -> Integer.parseInt(s.trim()))
+                .collect(Collectors.toList());
+        //解除该展位下已经绑定的数据
+        ResultVo vo = commonManager.relieveBoothDataBind(boothId,dataList);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 获取展位详情
+     * @return
+     */
+    @RequiresPermissions("booth:detail")
+    @RequestMapping(value="/booth/detail/{boothId}",method = RequestMethod.POST)
+    public String getBoothDetail(@PathVariable Integer boothId) throws Exception {
+        ResultVo vo = commonManager.getBoothDetail(boothId);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 修改展位
+     * @param booth
+     * @return
+     * @throws Exception
+     */
+    @RequiresPermissions("booth:update")
+    @RequestMapping(value="/booth/update",method = RequestMethod.POST)
+    public String updateBooth(HsBooth booth) throws Exception {
+        ResultVo vo = null;
+        Integer boothId = booth.getId();
+        if(boothId== null){
+            return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR,"展位ID不能为空"));
+        }
+        //修改展位
+        vo = commonManager.updateBooth(booth);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 新增展位
+     * @return
+     */
+    @RequiresPermissions("booth:add")
+    @RequestMapping(value="/booth/add",method = RequestMethod.POST)
+    public String addBooth(HsBooth booth) throws Exception {
+        ResultVo vo = null;
+        if(!StringUtil.hasText(booth.getBoothName())){//展位名称
+            return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR,"展位名称不能为空"));
+        }
+        if(!StringUtil.hasText(booth.getBoothAliasName())){//展位别名
+            return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR,"展位别名不能为空"));
+        }
+        //新增展位
+        vo = commonManager.addBooth(booth);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 删除展位
+     * @return
+     */
+    @RequiresPermissions("booth:delete")
+    @RequestMapping(value="/booth/delete/{boothId}",method = RequestMethod.POST)
+    public String deleteBooth(@PathVariable Integer boothId) throws Exception {
+        if(boothId == null){
+            return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR,"展位ID不能为空"));
+        }
+        HsBooth booth = new HsBooth();
+        booth.setId(boothId);
+        booth.setIsDel(1);
+        return JsonUtil.toJson(commonManager.updateBooth(booth));
+    }
+
+}

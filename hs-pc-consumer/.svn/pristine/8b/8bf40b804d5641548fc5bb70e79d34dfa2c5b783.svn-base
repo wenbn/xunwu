@@ -1,0 +1,134 @@
+package www.ucforward.com.realm;
+
+import org.apache.shiro.SecurityUtils;
+import org.apache.shiro.authc.*;
+import org.apache.shiro.authz.AuthorizationInfo;
+import org.apache.shiro.authz.SimpleAuthorizationInfo;
+import org.apache.shiro.realm.AuthorizingRealm;
+import org.apache.shiro.session.Session;
+import org.apache.shiro.subject.PrincipalCollection;
+import org.apache.shiro.util.ByteSource;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.StringUtils;
+import www.ucforward.com.constants.ResultConstant;
+import www.ucforward.com.entity.ActiveUser;
+import www.ucforward.com.entity.HsSysPermission;
+import www.ucforward.com.entity.HsSysUser;
+import www.ucforward.com.serviceInter.MemberService;
+import www.ucforward.com.vo.ResultVo;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * @author wenbn
+ * @version 1.0
+ * @date 2018/8/20
+ */
+public class HsPcRealm extends AuthorizingRealm {
+
+    @Autowired
+    private MemberService memberService;
+
+    @Override
+    public void setName(String name) {
+        super.setName("hsSysRealm");
+    }
+
+    /**
+     * 用户认证
+     * @param token
+     * @return
+     * @throws AuthenticationException
+     */
+    @Override
+    protected AuthenticationInfo doGetAuthenticationInfo(AuthenticationToken token) throws AuthenticationException {
+
+        //1. 把 AuthenticationToken 转换为 UsernamePasswordToken
+        UsernamePasswordToken _token = (UsernamePasswordToken) token;
+        Object principal = _token.getUsername();//认证的实体信息可以是 username
+        //3. 调用数据库的方法, 从数据库中查询 username 对应的用户记录
+        Map<Object,Object> condition = new HashMap<>();
+        //condition.put("username",principal);//用户名
+        condition.put("userCodeOrPhone",principal);//用户名或手机号
+        HsSysUser user = memberService.selectHsSysUserByCondition(condition);
+        if(user == null)return null;
+        if(user.getLocked()==null || 0!=user.getLocked()){
+            throw new LockedAccountException();//账号被锁定
+        }
+        if(user.getIsDel()==null || 0!=user.getIsDel()){
+            throw new DisabledAccountException();//账号被删除
+        }
+
+        condition.clear();
+        //查询用户角色
+        condition.put("isForbidden",0);
+        condition.put("isDel",0);
+        condition.put("userId",user.getId());
+        List<Map<Object,Object>> userRoles = null;
+//        ResultVo vo = memberService.selectUserRoles(condition);
+//        if(vo.getResult()== ResultConstant.SYS_REQUIRED_SUCCESS){
+//            userRoles = (List<Map<Object, Object>>) vo.getDataSet();
+//        }
+        //查询用户所能访问的资源名称
+        ResultVo permissionVo = memberService.showPermissions(condition);
+        if(permissionVo.getResult()== ResultConstant.SYS_REQUIRED_SUCCESS){
+            userRoles = (List<Map<Object, Object>>) permissionVo.getDataSet();
+        }
+        ActiveUser activeUser=new ActiveUser();
+        activeUser.setUsercode(user.getUsercode());
+        activeUser.setUserid(user.getId());
+        activeUser.setUsername(user.getUsername());
+        activeUser.setRoleList(userRoles);
+        SimpleAuthenticationInfo info = new SimpleAuthenticationInfo(activeUser, user.getPassword(), ByteSource.Util.bytes(user.getSalt()), getName());
+        return info;
+    }
+
+
+    /**
+     * 用户授权
+     * @return
+     * @throws AuthenticationException
+     */
+    @Override
+    protected AuthorizationInfo doGetAuthorizationInfo(PrincipalCollection principal) {
+        ActiveUser user = (ActiveUser) principal.getPrimaryPrincipal();
+        if(null==user)return null;
+        //获取session
+        Session session = SecurityUtils.getSubject().getSession();
+        //获取用户权限
+        Map<Object,Object> condition = new HashMap<>();
+        List<HsSysPermission> permissionList = (List<HsSysPermission>) session.getAttribute("USER_PRIVILEGES");
+        if(null==permissionList){
+            condition.put("userId",user.getUserid());
+            condition.put("isForbidden",0);//是否禁用
+            condition.put("isDel",0);//是否禁用
+            permissionList= memberService.selectPermissionListByUser(condition);
+            session.setAttribute("USER_PRIVILEGES",permissionList);
+        }
+        //查到权限数据，返回授权信息(要包括 上边的permissions)
+        List<String> permissions = null;
+        if(null!=permissionList){
+            permissions = new ArrayList<String>();
+            for (HsSysPermission permission:permissionList) {
+                if(StringUtils.hasText(permission.getPermissionCode())){
+                    permissions.add(permission.getPermissionCode());
+                }
+            }
+        }
+        SimpleAuthorizationInfo simpleAuthorizationInfo = new SimpleAuthorizationInfo();
+        //将上边查询到授权信息填充到simpleAuthorizationInfo对象中
+        simpleAuthorizationInfo.addStringPermissions(permissions);
+        return simpleAuthorizationInfo;
+    }
+
+    //清除缓存
+    public void clearCached() {
+        PrincipalCollection principals = SecurityUtils.getSubject().getPrincipals();
+        super.clearCache(principals);
+    }
+
+
+}

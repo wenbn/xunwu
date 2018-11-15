@@ -1,0 +1,38 @@
+package www.ucforward.com.manager;
+
+import www.ucforward.com.entity.HsChannel;
+import www.ucforward.com.vo.ResultVo;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * @author wenbn
+ * @version 1.0
+ * @date 2018/8/20
+ */
+public interface ICommonManager {
+
+    //获取频道列表
+    ResultVo getChannelList(Map<Object, Object> condition);
+
+    //获取展位列表
+    ResultVo getBoothList(Map<Object, Object> condition);
+
+    //获取展位详情
+    ResultVo getBoothDetail(Integer id);
+
+    //获取该频道下已经绑定的展位数据
+    ResultVo getChannelBindData(Integer channelId);
+
+    //获取该频道下未绑定的展位数据
+    ResultVo getChannelUnBindData(Integer id,Integer channelType);
+
+    //绑定展位数据
+    ResultVo bindingChannelData(Integer channelId, List<Integer> boothIdsList);
+
+    //新增频道
+    ResultVo addChannel(HsChannel channel);
+
+    //修改频道
+    ResultVo updateChannel(HsChannel channel);
+}

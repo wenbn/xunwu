@@ -1,0 +1,134 @@
+package www.ucforward.com.controller.customService;
+
+import com.google.common.collect.Maps;
+import org.apache.shiro.SecurityUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.*;
+import org.utils.StringUtil;
+import www.ucforward.com.constants.AppRquestParamsConstant;
+import www.ucforward.com.constants.ResultConstant;
+import www.ucforward.com.controller.city.CityController;
+import www.ucforward.com.entity.ActiveUser;
+import www.ucforward.com.entity.HsHouseCredentialsData;
+import www.ucforward.com.entity.HsOwnerHousingApplication;
+import www.ucforward.com.manager.ICommonManager;
+import www.ucforward.com.manager.IHousesManager;
+import www.ucforward.com.utils.JsonUtil;
+import www.ucforward.com.utils.RequestUtil;
+import www.ucforward.com.vo.ResultVo;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.util.Map;
+
+/**
+ * 客服管理
+ * @author wenbn
+ * @version 1.0
+ * @date 2018/9/10
+ */
+@Controller
+@ResponseBody
+public class CustomController {
+
+    private static Logger logger = LoggerFactory.getLogger(CustomController.class); // 日志记录
+
+    @Resource
+    private ICommonManager commonManager;
+    @Resource
+    private IHousesManager housesManager;
+
+    /**
+     * 房源投诉列表
+     * @return
+     */
+    @PostMapping(value="/house/complains")
+    public String getHouseComplainList(HttpServletRequest request){
+        ResultVo vo = null;
+        int pageIndex = StringUtil.getAsInt(request.getParameter("pageIndex"),0); //当前页
+        Map<Object,Object> condition = Maps.newHashMap();
+        condition.put("pageIndex",pageIndex);
+        condition.put("pageSize", AppRquestParamsConstant.APP_PAGE_SIZE); //页显示条数
+        vo = housesManager.getHouseComplainList(condition);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 房源投诉详情
+     * @return
+     */
+    @PostMapping(value="/house/complain/detail/{id}")
+    public String getHouseComplainDetail(@PathVariable Integer id){
+        ResultVo vo = null;
+        if(id == null || id ==0){
+            return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR,ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE));
+        }
+        vo = housesManager.getHouseComplainDetail(id);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 房源评价列表
+     * @return
+     */
+    @PostMapping(value="/house/evaluations")
+    public String getHouseEvaluationList(HttpServletRequest request){
+        ResultVo vo = null;
+        int pageIndex = StringUtil.getAsInt(request.getParameter("pageIndex"),0); //当前页
+        Map<Object,Object> condition = Maps.newHashMap();
+        condition.put("pageIndex",pageIndex);
+        condition.put("pageSize", AppRquestParamsConstant.APP_PAGE_SIZE); //页显示条数
+        vo = housesManager.getHouseEvaluationList(condition);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 房源投诉详情
+     * @return
+     */
+    @PostMapping(value="/house/evaluation/detail/{id}")
+    public String getHouseEvaluationDetail(@PathVariable Integer id){
+        ResultVo vo = null;
+        if(id == null || id ==0){
+            return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR,ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE));
+        }
+        vo = housesManager.getHouseEvaluationDetail(id);
+        return JsonUtil.toJson(vo);
+    }
+
+
+    /**
+     * 业主联系客服上传
+     * @param apply 业主申请表
+     * @param houseCredentialsData
+     * @param memberMobile
+     * @return
+     * @throws IllegalAccessException
+     */
+    @PostMapping(value = "add/owner/apply")
+    public String addOwnerApply(HsOwnerHousingApplication apply, HsHouseCredentialsData houseCredentialsData,String memberMobile ) throws IllegalAccessException {
+        ResultVo result = null;
+        try {
+            if(!StringUtil.hasText(memberMobile)){
+                return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR,ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE));
+            }
+            ActiveUser user = (ActiveUser) SecurityUtils.getSubject().getPrincipal();
+            Integer userid = user.getUserid();
+            apply.setApplyType(1);//申请类型（0：自主完善，1：联系客服上传，2：业务员上传）
+            apply.setIsCustomerServiceRelation(1);
+            apply.setMemberId(userid);
+            apply.setCreateBy(userid);
+            result = housesManager.addOwnerApply(apply, houseCredentialsData,memberMobile);
+        } catch (Exception e) {
+            logger.error("CustomController controller: addOwnerApply Exception message:" + e.getMessage());
+            System.out.println(e.getMessage());
+            result.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            result.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return JsonUtil.toJson(result);
+    }
+
+}

@@ -1,0 +1,75 @@
+package www.ucforward.com.controller.operation;
+
+import com.google.common.collect.Maps;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.utils.StringUtil;
+import www.ucforward.com.constants.AppRquestParamsConstant;
+import www.ucforward.com.manager.ICommonManager;
+import www.ucforward.com.utils.JsonUtil;
+import www.ucforward.com.vo.ResultVo;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import java.util.Map;
+
+/**
+ * 展位管理类
+ * @author wenbn
+ * @version 1.0
+ * @date 2018/8/20
+ */
+@Controller
+@ResponseBody
+public class BoothController {
+
+    // 日志记录器
+    private static Logger logger = LoggerFactory.getLogger(ChannelController.class);
+
+    @Resource
+    private ICommonManager commonManager;
+
+    /**
+     * 获取展位列表
+     * @return
+     */
+    @RequestMapping(value="/booth/list",method = RequestMethod.POST)
+    public String getBoothList(HttpServletRequest request) throws Exception {
+        ResultVo vo = null;
+        int pageIndex = StringUtil.getAsInt(request.getParameter("pageIndex"),0); //当前页
+        int languageVersion = StringUtil.getAsInt(request.getParameter("languageVersion"),0); //语言版本
+        Map<Object,Object> condition = Maps.newHashMap();
+        condition.put("languageVersion",languageVersion);
+        condition.put("pageIndex",pageIndex);
+        condition.put("pageSize", AppRquestParamsConstant.APP_PAGE_SIZE); //页显示条数
+        vo = commonManager.getBoothList(condition);
+        return JsonUtil.toJson(vo);
+    }
+
+
+    /**
+     * 展位绑定数据
+     * @return
+     */
+    @RequestMapping(value="/booth/binding/data",method = RequestMethod.POST)
+    public String getBoothData(HttpServletRequest request) throws Exception {
+        ResultVo vo = new ResultVo();
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 获取展位详情
+     * @return
+     */
+    @RequestMapping(value="/booth/detail/{boothId}",method = RequestMethod.POST)
+    public String getBoothDetail(@PathVariable Integer boothId) throws Exception {
+        ResultVo vo = commonManager.getBoothDetail(boothId);
+        return JsonUtil.toJson(vo);
+    }
+
+}

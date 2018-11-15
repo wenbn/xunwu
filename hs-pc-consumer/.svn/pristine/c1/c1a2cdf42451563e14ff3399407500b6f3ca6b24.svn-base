@@ -1,0 +1,28 @@
+package www.ucforward.com.manager;
+
+import org.springframework.stereotype.Service;
+import www.ucforward.com.vo.ResultVo;
+
+import java.util.Map;
+
+/**
+ * @Auther: lsq
+ * @Date: 2018/8/20 19:01
+ * @Description:
+ */
+@Service
+public interface HousesManager {
+    /**
+     * 获取业主预约获取房源申请
+     * @param condition
+     * @return
+     */
+    ResultVo getOwnerHousingApplication(Map<Object,Object> condition);
+
+    /**
+     * 获取业主预约获取房源申请详情
+     * @param id
+     * @return
+     */
+    ResultVo getOwnerHousingApplicationById(Integer id);
+}

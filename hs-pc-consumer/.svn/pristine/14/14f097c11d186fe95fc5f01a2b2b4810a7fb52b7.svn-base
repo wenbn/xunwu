@@ -1,0 +1,99 @@
+package www.ucforward.com.controller.customService;
+
+import com.google.common.collect.Maps;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.utils.StringUtil;
+import www.ucforward.com.constants.AppRquestParamsConstant;
+import www.ucforward.com.constants.ResultConstant;
+import www.ucforward.com.controller.city.CityController;
+import www.ucforward.com.manager.ICommonManager;
+import www.ucforward.com.manager.IHousesManager;
+import www.ucforward.com.utils.JsonUtil;
+import www.ucforward.com.vo.ResultVo;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import java.util.Map;
+
+/**
+ * 客服管理
+ * @author wenbn
+ * @version 1.0
+ * @date 2018/9/10
+ */
+@Controller
+@ResponseBody
+public class CustomController {
+
+    private static Logger logger = LoggerFactory.getLogger(CustomController.class); // 日志记录
+
+    @Resource
+    private ICommonManager commonManager;
+    @Resource
+    private IHousesManager housesManager;
+
+    /**
+     * 房源投诉列表
+     * @return
+     */
+    @PostMapping(value="/house/complains")
+    public String getHouseComplainList(HttpServletRequest request){
+        ResultVo vo = null;
+        int pageIndex = StringUtil.getAsInt(request.getParameter("pageIndex"),0); //当前页
+        Map<Object,Object> condition = Maps.newHashMap();
+        condition.put("pageIndex",pageIndex);
+        condition.put("pageSize", AppRquestParamsConstant.APP_PAGE_SIZE); //页显示条数
+        vo = housesManager.getHouseComplainList(condition);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 房源投诉详情
+     * @return
+     */
+    @PostMapping(value="/house/complain/detail/{id}")
+    public String getHouseComplainDetail(@PathVariable Integer id){
+        ResultVo vo = null;
+        if(id == null || id ==0){
+            return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR,ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE));
+        }
+        vo = housesManager.getHouseComplainDetail(id);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 房源评价列表
+     * @return
+     */
+    @PostMapping(value="/house/evaluations")
+    public String getHouseEvaluationList(HttpServletRequest request){
+        ResultVo vo = null;
+        int pageIndex = StringUtil.getAsInt(request.getParameter("pageIndex"),0); //当前页
+        Map<Object,Object> condition = Maps.newHashMap();
+        condition.put("pageIndex",pageIndex);
+        condition.put("pageSize", AppRquestParamsConstant.APP_PAGE_SIZE); //页显示条数
+        vo = housesManager.getHouseEvaluationList(condition);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 房源投诉详情
+     * @return
+     */
+    @PostMapping(value="/house/evaluation/detail/{id}")
+    public String getHouseEvaluationDetail(@PathVariable Integer id){
+        ResultVo vo = null;
+        if(id == null || id ==0){
+            return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR,ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE));
+        }
+        vo = housesManager.getHouseEvaluationDetail(id);
+        return JsonUtil.toJson(vo);
+    }
+
+}

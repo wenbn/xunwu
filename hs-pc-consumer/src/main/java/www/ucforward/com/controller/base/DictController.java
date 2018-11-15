@@ -1,0 +1,229 @@
+package www.ucforward.com.controller.base;
+
+import com.google.common.collect.Maps;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.utils.StringUtil;
+import www.ucforward.com.constants.AppRquestParamsConstant;
+import www.ucforward.com.constants.ResultConstant;
+import www.ucforward.com.controller.operation.AdvertController;
+import www.ucforward.com.entity.HsSysDictcodeGroup;
+import www.ucforward.com.entity.HsSysDictcodeItem;
+import www.ucforward.com.manager.ICommonManager;
+import www.ucforward.com.utils.JsonUtil;
+import www.ucforward.com.utils.RedisUtil;
+import www.ucforward.com.utils.RequestUtil;
+import www.ucforward.com.vo.ResultVo;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 数据字典配置
+ * @author wenbn
+ * @version 1.0
+ * @date 2018/8/23
+ */
+@Controller
+@ResponseBody
+public class DictController {
+
+
+    // 日志记录器
+    private static Logger logger = LoggerFactory.getLogger(AdvertController.class);
+
+    @Resource
+    private ICommonManager commonManager;
+
+    ///////////////////////////////数据字典组////////////////////////////////
+    /**
+     * 获取数据字典组列表
+     * @return
+     */
+    @RequestMapping(value="/dict/group/list",method = RequestMethod.POST)
+    public String getDictGroupList(HttpServletRequest request) throws Exception {
+        ResultVo vo = null;
+        int pageIndex = StringUtil.getAsInt(request.getParameter("pageIndex"),0); //当前页
+        Map<Object,Object> condition = Maps.newHashMap();
+        condition.put("pageIndex",pageIndex);
+        condition.put("pageSize", AppRquestParamsConstant.APP_PAGE_SIZE); //页显示条数
+        vo = commonManager.getDictGroupList(condition);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 修改数据字典组
+     * @return
+     */
+    @RequestMapping(value="/dict/group/update",method = RequestMethod.POST)
+    public String updateDictGroup(HsSysDictcodeGroup dictcodeGroup) throws Exception {
+        ResultVo vo = commonManager.updateDictGroup(dictcodeGroup);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 修改数据字典组
+     * @return
+     */
+    @RequestMapping(value="/dict/group/delete/{dictcodeGroupId}",method = RequestMethod.POST)
+    public String updateDictGroup(@PathVariable Integer dictcodeGroupId) throws Exception {
+        HsSysDictcodeGroup dictcodeGroup = new HsSysDictcodeGroup();
+        dictcodeGroup.setId(dictcodeGroupId);
+        dictcodeGroup.setIsDel(1);
+        ResultVo vo = commonManager.updateDictGroup(dictcodeGroup);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 新增数据字典组
+     * @return
+     */
+    @RequestMapping(value="/dict/group/add",method = RequestMethod.POST)
+    public String addDictGroup(HsSysDictcodeGroup dictcodeGroup) throws Exception {
+        ResultVo vo = commonManager.addDictGroup(dictcodeGroup);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 获取数据字典组详情
+     * @return
+     */
+    @RequestMapping(value="/dict/group/detail/{dictcodeGroupId}",method = RequestMethod.POST)
+    public String getDictGroupDetail(@PathVariable Integer dictcodeGroupId) throws Exception {
+        ResultVo vo = commonManager.getDictGroupDetail(dictcodeGroupId);
+        return JsonUtil.toJson(vo);
+    }
+
+    ///////////////////////////////数据字典项////////////////////////////////
+
+    /**
+     * 获取数据字典项列表
+     * @return
+     */
+    @RequestMapping(value="/dict/item/list",method = RequestMethod.POST)
+    public String getDictItemList(HttpServletRequest request) throws Exception {
+        ResultVo vo = null;
+        int pageIndex = StringUtil.getAsInt(request.getParameter("pageIndex"),0); //当前页
+        Map<Object,Object> condition = Maps.newHashMap();
+        condition.put("pageIndex",pageIndex);
+        condition.put("pageSize", AppRquestParamsConstant.APP_PAGE_SIZE); //页显示条数
+        vo = commonManager.getDictItemList(condition);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 修改数据字典项
+     * @return
+     */
+    @RequestMapping(value="/dict/item/update",method = RequestMethod.POST)
+    public String updateDictItem(HsSysDictcodeItem dictcodeItem) throws Exception {
+        ResultVo vo = null;
+        if(dictcodeItem.getId()==null){
+            return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_FAILURE,"ID不能为空"));
+        }
+        vo = commonManager.updateDictItem(dictcodeItem);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 修改数据字典组
+     * @return
+     */
+    @RequestMapping(value="/dict/item/delete/{itemId}",method = RequestMethod.POST)
+    public String updateDictItem(@PathVariable Integer itemId) throws Exception {
+        HsSysDictcodeItem dictcodeItem = new HsSysDictcodeItem();
+        dictcodeItem.setId(itemId);
+        dictcodeItem.setIsDel(1);
+        ResultVo vo = commonManager.updateDictItem(dictcodeItem);
+        return JsonUtil.toJson(vo);
+    }
+
+
+    /**
+     * 新增数据字典项
+     * @return
+     */
+    @RequestMapping(value="/dict/item/add",method = RequestMethod.POST)
+    public String addDictItem(HsSysDictcodeItem dictcodeItem) throws Exception {
+        ResultVo vo = commonManager.addDictItem(dictcodeItem);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 获取数据字典组详情
+     * @return
+     */
+    @RequestMapping(value="/dict/item/detail/{itemId}",method = RequestMethod.POST)
+    public String getDictItemDetail(@PathVariable Integer itemId) throws Exception {
+        ResultVo vo = commonManager.getDictGroupDetail(itemId);
+        return JsonUtil.toJson(vo);
+    }
+
+
+    /**
+     * 获取数据字典
+     * @return
+     */
+    @RequestMapping(value="/dict/get/{type}",method = RequestMethod.POST)
+    public String getDictList(@PathVariable Integer type) throws Exception {
+        ResultVo vo = new ResultVo();
+        String cacheKey ="";
+        if(type==0){//获取房源配置
+            cacheKey ="SYS_HOUSE_CONFIG_DICTCODE";
+        }else if(type==1){//获取房屋类型
+            cacheKey ="SYS_HOUSING_TYPE_DICTCODE";
+        }else if(type==2){//房屋状态
+            cacheKey ="SYS_HOUSE_STATE_DICTCODE";
+        }else if(type==3){//房屋配套
+            cacheKey ="SYS_HOUSE_SELF_CONTAINED_DICTCODE";
+        }
+        if(RedisUtil.existKey(cacheKey)) {
+            Map<Object, Object> list = RedisUtil.safeGet(cacheKey);
+//            Map<Object, Object> list = JsonUtil.parseJSON2Map(RedisUtil.safeGet(cacheKey));
+            vo.setDataSet(list);
+        }
+        return JsonUtil.toJson(vo);
+    }
+
+
+    /**
+     * 获取进度流程
+     *
+     * @param request
+     * @return
+     */
+    @RequestMapping(value = "get/progress/list", method = RequestMethod.POST)
+    @ResponseBody
+    public String findProgressList(HttpServletRequest request) {
+        ResultVo result = new ResultVo();
+        try {
+            Map map = RequestUtil.getParameterMap(request);
+            //人员类型 10业主(出租)；11业主(出售)；2 租客 3 买家
+            String type = StringUtil.trim(map.get("type"));
+            if (!StringUtil.hasText(type)) {
+                result.setResult(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR);
+                result.setMessage(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE);
+                return JsonUtil.toJson(result);
+            }
+            List<Map<String, Object>> progressList = commonManager.findProgressList(type);
+            result.setDataSet(progressList);
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            result.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return JsonUtil.toJson(result);
+    }
+
+
+
+
+}

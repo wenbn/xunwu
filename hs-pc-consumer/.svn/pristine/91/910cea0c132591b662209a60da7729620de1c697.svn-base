@@ -1,0 +1,200 @@
+package www.ucforward.com.manager.impl;
+
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import org.springframework.stereotype.Service;
+import org.utils.StringUtil;
+import www.ucforward.com.constants.ResultConstant;
+import www.ucforward.com.entity.HsHouseCredentialsData;
+import www.ucforward.com.entity.HsMember;
+import www.ucforward.com.entity.HsOwnerHousingApplication;
+import www.ucforward.com.manager.HousesManager;
+import www.ucforward.com.serviceInter.HousesService;
+import www.ucforward.com.serviceInter.MemberService;
+import www.ucforward.com.vo.ResultVo;
+
+import javax.annotation.Resource;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * @Auther: lsq
+ * @Date: 2018/8/20 19:02
+ * @Description:
+ */
+@Service("housesManager")
+public class HousesManagerImpl implements HousesManager {
+    /**
+     * 房源相关
+     */
+    @Resource
+    private HousesService housesService;
+    /**
+     * 人员相关
+     */
+    @Resource
+    private MemberService memberService;
+
+    @Override
+    public ResultVo getOwnerHousingApplication(Map<Object, Object> condition) {
+        ResultVo result = new ResultVo();
+        List<Map<Object,Object>> dataSet = new ArrayList<>();
+        try {
+            //1.获取申请信息
+            result = housesService.selectList(new HsOwnerHousingApplication(),condition,0);
+
+            if(result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                //2.根据房源申请信息获取，房源所属人员memberIds
+                List<Integer> memberIds = new ArrayList<>();
+                //房源申请ids
+                List<Integer> applyIds = new ArrayList<>();
+                List<Map<Object,Object>> list = (List<Map<Object,Object>>)result.getDataSet();
+                list.forEach(map->{
+                    int memberId = Integer.parseInt(StringUtil.trim(map.get("memberId")));
+                    int id = Integer.parseInt(StringUtil.trim(map.get("id")));
+                    memberIds.add(memberId);
+                    applyIds.add(id);
+                });
+                //3.根据获取到的memberIds获取人员手机号map
+                //人员手机号map key 人员id value 人员手机号
+                Map<Integer,String> mobileMap = new HashMap<>(10);
+                condition.clear();
+                //自定义查询列名
+                List<String> queryColumn = new ArrayList<>();
+                //主键ID
+                queryColumn.add("ID id");
+                //手机号
+                queryColumn.add("MEMBER_MOBLE memberMoble");
+                condition.put("queryColumn",queryColumn);
+                condition.put("memberIds",memberIds);
+                ResultVo memberResultVo = memberService.selectList(new HsMember(), condition, 0);
+                if(result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS && memberResultVo.getDataSet() != null){
+                    List<HsMember> memberList = (List<HsMember>) memberResultVo.getDataSet();
+                    memberList.forEach(hsMember->{
+                        Integer id = Integer.parseInt(StringUtil.trim(hsMember.getId()));
+                        String memberMoble = StringUtil.trim(hsMember.getMemberMoble());
+                        mobileMap.put(id,memberMoble);
+                    });
+                }
+
+                //根据房源申请id获取房产证照片
+                Map<String,Map<String,String>> pocImgMap = new HashMap<>(10);
+                queryColumn.clear();
+                queryColumn.add("POC_IMG1 pocImg1");
+                queryColumn.add("POC_IMG2 pocImg2");
+                queryColumn.add("POC_IMG3 pocImg3");
+                condition.clear();
+                condition.put("queryColumn",queryColumn);
+                condition.put("applyIds",applyIds);
+                ResultVo resultVo = housesService.selectCustomColumnNamesList(HsHouseCredentialsData.class, condition);
+                if(resultVo != null && resultVo.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS && resultVo.getDataSet() != null){
+                    List<Map<Object, Object>> credentialsList = (List<Map<Object, Object>>) resultVo.getDataSet();
+                    credentialsList.forEach(credentials ->{
+                        //封装房产证信息
+                        Map<String,String> imgMap = new HashMap<>(3);
+                        String applyId = StringUtil.trim(credentials.get("applyId"));
+                        String pocImg1 = StringUtil.trim(credentials.get("pocImg1"));
+                        String pocImg2 = StringUtil.trim(credentials.get("pocImg2"));
+                        String pocImg3 = StringUtil.trim(credentials.get("pocImg3"));
+                        imgMap.put("pocImg1",pocImg1);
+                        imgMap.put("pocImg2",pocImg2);
+                        imgMap.put("pocImg3",pocImg3);
+                        pocImgMap.put(applyId,imgMap);
+                    });
+                }
+                //封装人员手机号及房产证信息
+                list.forEach(map->{
+                    String memberIdStr = StringUtil.trim(map.get("memberId"));
+                    String applyId = StringUtil.trim(map.get("applyId"));
+                    String memberMobile = "";
+                    String pocImg1 = "";
+                    String pocImg2 = "";
+                    String pocImg3 = "";
+                    //封装手机号
+                    if(StringUtil.hasText(memberIdStr)){
+                        Integer memberId = Integer.parseInt(memberIdStr);
+                        memberMobile = StringUtil.trim(mobileMap.get(memberId));
+                    }
+                    //获取房产证信息
+                    if(StringUtil.hasText(applyId)){
+                        Map<String, String> stringStringMap = pocImgMap.get(applyId);
+                        pocImg1 = stringStringMap.get("pocImg1");
+                        pocImg2 = stringStringMap.get("pocImg2");
+                        pocImg3 = stringStringMap.get("pocImg3");
+                    }
+                    map.put("memberMobile",memberMobile);
+                    map.put("pocImg1",pocImg1);
+                    map.put("pocImg2",pocImg2);
+                    map.put("pocImg3",pocImg3);
+                    dataSet.add(map);
+                });
+            }
+            result.setDataSet(dataSet);
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.setDataSet(null);
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return result;
+    }
+
+    @Override
+    public ResultVo getOwnerHousingApplicationById(Integer id) {
+        ResultVo result = new ResultVo();
+        try {
+            Map resultMap = new HashMap(2);
+            Map housingApplication = null;
+            HsHouseCredentialsData houseCredentials = null;
+            //1.获取申请信息
+            ResultVo appResult = housesService.select(id,new HsOwnerHousingApplication());
+            if(appResult != null && appResult.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS && appResult.getDataSet() != null){
+                //2.根据房源申请信息获取，房源所属人员memberId
+                HsOwnerHousingApplication hsOwnerHousingApplication = (HsOwnerHousingApplication) appResult.getDataSet();
+                //3.根据获取到的memberId获取人员手机号map
+                Integer memberId = hsOwnerHousingApplication.getMemberId();
+                //4.根据上面获取到的人员手机号map,对房源申请信息结果集进行重新封装，将人员手机号封装进去
+                HsMember member = null;
+                ResultVo memberResultVo = memberService.select(memberId, new HsMember());
+                if(memberResultVo != null && memberResultVo.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                    member = (HsMember) memberResultVo.getDataSet();
+                }
+                String memberMobile = "";
+                if(member != null){
+                    Integer mId = member.getId();
+                    String memberMoble = member.getMemberMoble();
+                    if(memberId.equals(mId)){
+                        memberMobile = memberMoble;
+                        //将房源申请信息hsOwnerHousingApplication转换为map，然后将人员手机号加入进map,再将返回结果集替换为增加了人员手机号的map
+                        JSONObject jsonObject = JSON.parseObject(JSON.toJSONString(hsOwnerHousingApplication));
+                        housingApplication = JSON.toJavaObject(jsonObject, Map.class);
+                        housingApplication.put("memberMobile",memberMobile);
+                    }
+                }
+
+                //2.获取业主预约获取房源申请信息
+
+                Map<Object,Object> condition = new HashMap<>(16);
+                condition.put("applyId",id);
+                ResultVo resultVo = housesService.selectDataByCondition(new HsHouseCredentialsData(), condition);
+                if(resultVo != null && resultVo.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS && resultVo.getDataSet() != null){
+                    houseCredentials = (HsHouseCredentialsData) resultVo.getDataSet();
+                    resultMap.put("houseCredentials",houseCredentials);
+
+                }
+
+            }
+            resultMap.put("housingApplication",housingApplication);
+            resultMap.put("houseCredentials",houseCredentials);
+            result.setDataSet(resultMap);
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.setDataSet(null);
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return result;
+    }
+}

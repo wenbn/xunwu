@@ -1,0 +1,123 @@
+package www.ucforward.com.controller.permission;
+
+import com.google.common.collect.Maps;
+import org.apache.shiro.authz.annotation.RequiresPermissions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.*;
+import org.utils.StringUtil;
+import www.ucforward.com.constants.AppRquestParamsConstant;
+import www.ucforward.com.constants.ResultConstant;
+import www.ucforward.com.controller.user.UserController;
+import www.ucforward.com.entity.HsSysPermission;
+import www.ucforward.com.manager.IMemberManager;
+import www.ucforward.com.utils.JsonUtil;
+import www.ucforward.com.vo.ResultVo;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+/**
+ * @author wenbn
+ * @version 1.0
+ * @date 2018/8/22
+ */
+@Controller
+@ResponseBody
+public class PermissionController {
+
+    // 日志记录器
+    private static Logger logger = LoggerFactory.getLogger(PermissionController.class);
+
+    @Resource
+    private IMemberManager memberManager;
+
+    /**
+     * 获取权限列表
+     * @return
+     */
+    @RequestMapping(value="/permission/list",method = RequestMethod.POST)
+    public String getPermissionList(HttpServletRequest request) throws Exception {
+        ResultVo vo = null;
+        int pageIndex = StringUtil.getAsInt(request.getParameter("pageIndex"),0); //当前页
+        int languageVersion = StringUtil.getAsInt(request.getParameter("languageVersion"),0); //语言版本
+        Map<Object,Object> condition = Maps.newHashMap();
+        condition.put("languageVersion",languageVersion);
+        condition.put("pageIndex",pageIndex);
+        condition.put("pageSize", AppRquestParamsConstant.APP_PAGE_SIZE); //页显示条数
+        vo = memberManager.getPermissionList(condition);
+        return JsonUtil.toJson(vo);
+    }
+
+
+    /**
+     * 递归查询所有子节点
+     * @param permMap
+     * @param pid
+     * @return
+     */
+    private List<Map<String, Object>> generateOrgMapToTree(List<Map<String, Object>> permMap, Integer pid) {
+        if (null == permMap || permMap.size() == 0) {
+           // permMap = memberManager.findPermission();
+        }
+        List<Map<String, Object>> orgList = new ArrayList<>();
+        if (permMap != null && permMap.size() > 0) {
+            for (Map<String, Object> item : permMap) {
+                //比较传入pid与当前对象pid是否相等
+                if (pid.equals(item.get("pid"))) {
+                    //将当前对象id做为pid递归调用当前方法，获取下级结果
+                    List<Map<String, Object>> children = generateOrgMapToTree(permMap, Integer.valueOf(item.get("id").toString()));
+                    //将子结果集存入当前对象的children字段中
+                    item.put("children", children);
+                    //添加当前对象到主结果集中
+                    orgList.add(item);
+                }
+            }
+        }
+        return orgList;
+    }
+
+
+    /**
+     * 新增权限
+     * @return
+     */
+    @RequestMapping(value="/permission/add",method = RequestMethod.POST)
+    public String addPermission(HsSysPermission hsSysPermission) throws Exception {
+        ResultVo vo = memberManager.addPermission(hsSysPermission);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 修改权限
+     * @return
+     */
+    @RequestMapping(value="/permission/update",method = RequestMethod.POST)
+    public String updatePermission(HsSysPermission hsSysPermission) throws Exception {
+        ResultVo vo = memberManager.updatePermission(hsSysPermission);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 角色分配权限
+     * @return
+     */
+    @PostMapping("/permission/grant/{pids}/{roleId}")
+    public String grantPermission(@PathVariable String pids, @PathVariable String roleId){
+        if(!StringUtil.hasText(pids)){//绑定的数据为空时直接返回绑定失败
+            return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_FAILURE,ResultConstant.SYS_REQUIRED_FAILURE_VALUE));
+        }
+        List<Integer> pidsList = Arrays.asList(pids.split(","))
+                .stream().map(s -> Integer.parseInt(s.trim()))
+                .collect(Collectors.toList());
+        ResultVo vo = memberManager.grantPermission(pidsList,roleId);
+        return JsonUtil.toJson(vo);
+    }
+
+}

@@ -1,0 +1,436 @@
+package www.ucforward.com.controller.internal;
+
+import com.google.common.collect.Maps;
+import org.apache.shiro.SecurityUtils;
+import org.apache.shiro.subject.Subject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.utils.DateUtils;
+import org.utils.StringUtil;
+import www.ucforward.com.constants.AppRquestParamsConstant;
+import www.ucforward.com.constants.ResultConstant;
+import www.ucforward.com.controller.base.BaseController;
+import www.ucforward.com.entity.ActiveUser;
+import www.ucforward.com.entity.HsHouseNewBuilding;
+import www.ucforward.com.entity.HsHouseNewBuildingMemberApply;
+import www.ucforward.com.manager.IHousesManager;
+import www.ucforward.com.manager.IOrderManager;
+import www.ucforward.com.utils.JsonUtil;
+import www.ucforward.com.utils.RequestUtil;
+import www.ucforward.com.vo.ResultVo;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
+/**
+ * 内勤端管理
+ * @author wenbn
+ * @version 1.0
+ * @date 2018/8/30
+ */
+@Controller
+@ResponseBody
+public class InternalController extends BaseController {
+
+
+    // 日志记录器
+    private static Logger logger = LoggerFactory.getLogger(InternalController.class);
+
+    @Resource
+    private IOrderManager orderManager;
+    @Resource
+    private IHousesManager housesManager;
+
+
+    /**
+     * 内勤查看出租/出售订单列表
+     * @return
+     */
+    @PostMapping(value="internal/order/list")
+    public String getRentOrSaleOrderList(HttpServletRequest request) throws Exception {
+        ResultVo vo = null;
+        int pageIndex = StringUtil.getAsInt(request.getParameter("pageIndex"),1); //当前页
+        int orderType = StringUtil.getAsInt(request.getParameter("orderType"),0); //订单类型 0-租房->1-买房
+        Map<Object,Object> condition = Maps.newHashMap();
+        condition.put("pageIndex",pageIndex);
+        condition.put("pageSize", AppRquestParamsConstant.APP_PAGE_SIZE); //页显示条数
+        condition.put("orderType",orderType); //订单类型 0-租房->1-买房
+        condition.put("payStatus",0); //支付状态 0-未付款 1- 已支付
+        vo = orderManager.getRentOrSaleOrderList(condition);
+        return JsonUtil.toJson(vo);
+    }
+
+
+    /**
+     * 新增人员申购信息
+     * @param request
+     * @param buildingMemberApply
+     * @return
+     */
+    @RequestMapping(value="house/addPurchase", method = RequestMethod.POST)
+    @ResponseBody
+    public String addPurchase(HttpServletRequest request, HsHouseNewBuildingMemberApply buildingMemberApply){
+        ResultVo result = new ResultVo();
+        try{
+            ActiveUser user = (ActiveUser) SecurityUtils.getSubject().getPrincipal();
+            Integer userid = user.getUserid();
+            buildingMemberApply.setMemberId(userid);
+            buildingMemberApply.setCreateBy(userid);
+            result = housesManager.addPurchase(buildingMemberApply);
+        }catch (Exception e){
+            logger.error("HousesController addPurchase Exception message:" + e.getMessage());
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return JsonUtil.toJson(result);
+    }
+
+    /**
+     * 新增直售楼盘信息
+     * @param request
+     * @param hsHouseNewBuilding
+     * @return
+     */
+    @RequestMapping(value="house/addDirectSalesProperty", method = RequestMethod.POST)
+    @ResponseBody
+    public String addDirectSalesProperty(HttpServletRequest request, HsHouseNewBuilding hsHouseNewBuilding){
+        ResultVo result = new ResultVo();
+        try{
+            ActiveUser user = (ActiveUser) SecurityUtils.getSubject().getPrincipal();
+            Integer userid = user.getUserid();
+            hsHouseNewBuilding.setProjectCode(UUID.randomUUID().toString());
+            hsHouseNewBuilding.setCreateBy(userid);
+            result = housesManager.addDirectSalesProperty(hsHouseNewBuilding);
+        }catch (Exception e){
+            logger.error("HousesController addDirectSalesProperty Exception message:" + e.getMessage());
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return JsonUtil.toJson(result);
+    }
+
+
+    /**
+     * 获取楼盘区域
+     * @return
+     */
+    @RequestMapping(value="house/getPropertyArea", method = RequestMethod.POST)
+    @ResponseBody
+    public String getPropertyArea(){
+        ResultVo result = new ResultVo();
+        try{
+            result = housesManager.getPropertyArea();
+        }catch (Exception e){
+            logger.error("HousesController getPropertyArea Exception message:" + e.getMessage());
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return JsonUtil.toJson(result);
+    }
+
+    /**
+     * 获取直售楼盘信息
+     * @param request
+     * @return
+     */
+    @RequestMapping(value="house/getDirectSalesDetails", method = RequestMethod.POST)
+    @ResponseBody
+    public String getDirectSalesDetails(HttpServletRequest request){
+        ResultVo result = new ResultVo();
+        try{
+            String id = request.getParameter("id");
+
+            result = housesManager.getDirectSalesDetails(StringUtil.getAsInt(id));
+        }catch (Exception e){
+            logger.error("HousesController getDirectSalesDetails Exception message:" + e.getMessage());
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return JsonUtil.toJson(result);
+    }
+
+    /**
+     * 获取直售楼盘列表
+     * @param request
+     * @return
+     */
+    @RequestMapping(value="house/getDirectSalesPropertyList", method = RequestMethod.POST)
+    @ResponseBody
+    public String getDirectSalesPropertyList(HttpServletRequest request){
+        ResultVo result = new ResultVo();
+        Map<Object,Object> condition = new HashMap<>(16);
+        try{
+            Map map = RequestUtil.getParameterMap(request);
+            //当前页
+            int pageIndex = StringUtil.getAsInt(request.getParameter("pageIndex"), 1);
+            //开发商
+            String developers = StringUtil.trim(map.get("developers"));
+            //区域 城市-社区-子社区
+            String area = StringUtil.trim(map.get("area"));
+            if(StringUtil.hasText(area)){
+                String[] split = area.split("-");
+                if(split.length != 3){
+                    result.setResult(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR);
+                    result.setMessage(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE);
+                    return JsonUtil.toJson(result);
+                }
+                condition.put("city",split[0]);
+                condition.put("community",split[1]);
+                condition.put("subCommunity",split[2]);
+            }
+            if(StringUtil.hasText(developers)){
+                condition.put("developers",developers);
+            }
+            condition.put("pageIndex", pageIndex);
+            //页显示条数
+            condition.put("pageSize", AppRquestParamsConstant.APP_PAGE_SIZE);
+            condition.put("isDel",0);
+            result = housesManager.getDirectSalesPropertyList(condition);
+        }catch (Exception e){
+            logger.error("HousesController getDirectSalesPropertyList Exception message:" + e.getMessage());
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return JsonUtil.toJson(result);
+    }
+
+
+    /**
+     * 1。内勤已确认正式合同
+     * @param request
+     * @return
+     */
+    @PostMapping(value="/confirmed/online/contract")
+    public String confirmedOnlineContract(HttpServletRequest request){
+        ResultVo vo =null;
+        try {
+            Map map = RequestUtil.getParameterMap(request);
+            String orderCode = StringUtil.trim(map.get("orderCode"));//订单编码
+            if(!StringUtil.hasText(orderCode)){
+                vo = ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR,ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE);
+                return JsonUtil.toJson(vo);
+            }
+            Map<Object ,Object> condition = Maps.newHashMap();
+            condition.put("orderCode",orderCode);
+            Subject subject = SecurityUtils.getSubject();
+            ActiveUser user = (ActiveUser) subject.getPrincipal();
+            condition.put("updateId",user.getUserid());//保存修改人ID
+            vo = orderManager.confirmedOnlineContract(condition);
+        } catch (Exception e) {
+            logger.error("FinanceController confirmedOnlineContract: offlineOrderPay Exception message:" + e.getMessage());
+            vo = ResultVo.error(
+                    ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR,
+                    ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE
+            );
+        }
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 2。内勤分配业务员派线下合同单
+     * @param request
+     * @return
+     */
+    @PostMapping(value="/send/offline/contract")
+    public String sendOfflineContract(HttpServletRequest request){
+        ResultVo vo =null;
+        try {
+            String orderCode = request.getParameter("orderCode");//订单编码
+            String appointmentDoorTime = request.getParameter("appointmentDoorTime");//见面时间
+            String appointmentMeetPlace = request.getParameter("appointmentMeetPlace");//见面地点
+            if(!StringUtil.hasText(orderCode) || !StringUtil.hasText(appointmentDoorTime) || !StringUtil.hasText(appointmentMeetPlace)){
+                vo = ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR,ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE);
+                return JsonUtil.toJson(vo);
+            }
+            Map<Object ,Object> condition = Maps.newHashMap();
+            condition.put("orderCode",orderCode);
+            Subject subject = SecurityUtils.getSubject();
+            ActiveUser user = (ActiveUser) subject.getPrincipal();
+            condition.put("updateId",user.getUserid());//保存修改人ID
+
+            Date _appointmentDoorTime = DateUtils.reverse2Date(appointmentDoorTime);
+            long close = 120*60*1000;//2个小时
+            Date appointmentDoorTimeDate = new Date(_appointmentDoorTime.getTime() - close);//见面时间
+            Date nowDate = new Date();//当前时间
+            if(appointmentDoorTimeDate.getTime()<nowDate.getTime()){
+                return JsonUtil.toJson(ResultVo.error(
+                        ResultConstant.SYS_REQUIRED_FAILURE,
+                        "见面时间必须大于当前时间+2小时"
+                ));
+            }
+            condition.put("appointmentDoorTime", _appointmentDoorTime);//见面时间
+            condition.put("appointmentMeetPlace", appointmentMeetPlace);//见面地点
+            vo = orderManager.sendOfflineContract(condition);
+        } catch (Exception e) {
+            logger.error("FinanceController confirmedOnlineContract: sendOfflineContract Exception message:" + e.getMessage());
+            vo = ResultVo.error(
+                    ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR,
+                    ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE
+            );
+        }
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 3。内勤确认已签署合同
+     * @param request
+     * @return
+     */
+    @PostMapping(value="/confirm/signed/contract")
+    public String confirmSignedContract(HttpServletRequest request){
+        ResultVo vo =null;
+        try {
+            String orderCode = request.getParameter("orderCode");//订单编码
+            if(!StringUtil.hasText(orderCode)){
+                vo = ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR,ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE);
+                return JsonUtil.toJson(vo);
+            }
+            Map<Object ,Object> condition = Maps.newHashMap();
+            condition.put("orderCode",orderCode);
+            Subject subject = SecurityUtils.getSubject();
+            ActiveUser user = (ActiveUser) subject.getPrincipal();
+            condition.put("updateId",user.getUserid());//保存修改人ID
+            vo = orderManager.confirmSignedContract(condition);
+        } catch (Exception e) {
+            logger.error("FinanceController confirmedOnlineContract: sendOfflineContract Exception message:" + e.getMessage());
+            vo = ResultVo.error(
+                    ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR,
+                    ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE
+            );
+        }
+        return JsonUtil.toJson(vo);
+    }
+
+
+    /**
+     * 4。确认Ejari注册完成
+     * @param request
+     * @return
+     */
+    @PostMapping(value="/confirm/ejari/register")
+    public String confirmEjariRegister(HttpServletRequest request){
+        ResultVo vo =null;
+        try {
+            String orderCode = request.getParameter("orderCode");//订单编码
+            if(!StringUtil.hasText(orderCode)){
+                vo = ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR,ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE);
+                return JsonUtil.toJson(vo);
+            }
+            Map<Object ,Object> condition = Maps.newHashMap();
+            condition.put("orderCode",orderCode);
+            Subject subject = SecurityUtils.getSubject();
+            ActiveUser user = (ActiveUser) subject.getPrincipal();
+            condition.put("updateId",user.getUserid());//保存修改人ID
+            vo = orderManager.confirmEjariRegister(condition);
+        } catch (Exception e) {
+            logger.error("FinanceController confirmedOnlineContract: sendOfflineContract Exception message:" + e.getMessage());
+            vo = ResultVo.error(
+                    ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR,
+                    ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE
+            );
+        }
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 4。卖家NOC / 买家贷款
+     * @param request
+     * @return
+     */
+    @PostMapping(value="/noc/or/loans")
+    public String nocOrLoans(HttpServletRequest request){
+        ResultVo vo =null;
+        try {
+            String orderCode = request.getParameter("orderCode");//订单编码
+            if(!StringUtil.hasText(orderCode)){
+                vo = ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR,ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE);
+                return JsonUtil.toJson(vo);
+            }
+            Map<Object ,Object> condition = Maps.newHashMap();
+            condition.put("orderCode",orderCode);
+            Subject subject = SecurityUtils.getSubject();
+            ActiveUser user = (ActiveUser) subject.getPrincipal();
+            condition.put("updateId",user.getUserid());//保存修改人ID
+            vo = orderManager.nocOrLoans(condition);
+        } catch (Exception e) {
+            logger.error("FinanceController confirmedOnlineContract: sendOfflineContract Exception message:" + e.getMessage());
+            vo = ResultVo.error(
+                    ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR,
+                    ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE
+            );
+        }
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 5。完成产权变更
+     * @param request
+     * @return
+     */
+    @PostMapping(value="/registration/alteration")
+    public String registrationAlteration(HttpServletRequest request){
+        ResultVo vo =null;
+        try {
+            String orderCode = request.getParameter("orderCode");//订单编码
+            if(!StringUtil.hasText(orderCode)){
+                vo = ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR,ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE);
+                return JsonUtil.toJson(vo);
+            }
+            Map<Object ,Object> condition = Maps.newHashMap();
+            condition.put("orderCode",orderCode);
+            Subject subject = SecurityUtils.getSubject();
+            ActiveUser user = (ActiveUser) subject.getPrincipal();
+            condition.put("updateId",user.getUserid());//保存修改人ID
+            vo = orderManager.registrationAlteration(condition);//完成产权变更
+        } catch (Exception e) {
+            logger.error("FinanceController registrationAlteration  Exception message:" + e.getMessage());
+            vo = ResultVo.error(
+                    ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR,
+                    ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE
+            );
+        }
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 业主或买家拒绝签订正式合同
+     * @param request
+     * @return
+     */
+    @PostMapping(value="/reject/formal/contract")
+    public String rejectFormalContract(HttpServletRequest request){
+        ResultVo vo =null;
+        try {
+            String orderCode = request.getParameter("orderCode");//订单编码
+            String identityType = request.getParameter("identityType");//身份类型 0：业主 1：买家
+            if(!StringUtil.hasText(orderCode) || !StringUtil.hasText(identityType)){
+                vo = ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR,ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE);
+                return JsonUtil.toJson(vo);
+            }
+            Map<Object ,Object> condition = Maps.newHashMap();
+            condition.put("orderCode",orderCode);
+            Subject subject = SecurityUtils.getSubject();
+            ActiveUser user = (ActiveUser) subject.getPrincipal();
+            condition.put("updateId",user.getUserid());//保存修改人ID
+            condition.put("identityType",identityType);//身份类型 0：业主 1：买家
+            vo = orderManager.rejectFormalContract(condition);//完成产权变更
+        } catch (Exception e) {
+            logger.error("FinanceController registrationAlteration  Exception message:" + e.getMessage());
+            vo = ResultVo.error(
+                    ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR,
+                    ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE
+            );
+        }
+        return JsonUtil.toJson(vo);
+    }
+
+}

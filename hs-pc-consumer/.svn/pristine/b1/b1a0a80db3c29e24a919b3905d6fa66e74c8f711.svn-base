@@ -1,0 +1,313 @@
+package www.ucforward.com.controller.customService;
+
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
+import com.google.common.collect.Maps;
+import org.apache.shiro.SecurityUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.*;
+import org.utils.StringUtil;
+import www.ucforward.com.constants.AppRquestParamsConstant;
+import www.ucforward.com.constants.ResultConstant;
+import www.ucforward.com.controller.city.CityController;
+import www.ucforward.com.entity.ActiveUser;
+import www.ucforward.com.entity.HsHouseCredentialsData;
+import www.ucforward.com.entity.HsOwnerHousingApplication;
+import www.ucforward.com.manager.ICommonManager;
+import www.ucforward.com.manager.IHousesManager;
+import www.ucforward.com.manager.IOrderManager;
+import www.ucforward.com.utils.JsonUtil;
+import www.ucforward.com.utils.RequestUtil;
+import www.ucforward.com.vo.ResultVo;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 客服管理
+ * @author wenbn
+ * @version 1.0
+ * @date 2018/9/10
+ */
+@Controller
+@ResponseBody
+public class CustomController {
+
+    private static Logger logger = LoggerFactory.getLogger(CustomController.class); // 日志记录
+
+    @Resource
+    private ICommonManager commonManager;
+    @Resource
+    private IHousesManager housesManager;
+    @Resource
+    private IOrderManager orderManager;
+
+    /**
+     * 房源投诉列表
+     * @return
+     */
+    @PostMapping(value="/house/complains")
+    public String getHouseComplainList(HttpServletRequest request){
+        ResultVo vo;
+        Map<Object,Object> condition = Maps.newHashMap();
+        //当前页（默认1）
+        Integer pageIndex = StringUtil.getAsInt(StringUtil.trim(request.getParameter("pageIndex")),1);
+        //每页显示数量（默认10）
+        Integer pageSize = StringUtil.getAsInt(StringUtil.trim(request.getParameter("pageSize")),AppRquestParamsConstant.APP_PAGE_SIZE );
+        /**
+         * 筛选条件 预约类型、投诉编号
+         */
+        //预约类型（0：出租，1：出售）
+        int leaseType = StringUtil.getAsInt(StringUtil.trim(request.getParameter("leaseType")),-1);
+        if(leaseType != -1){
+            condition.put("leaseType",leaseType);
+        }
+        //投诉编号
+        String complainCode = StringUtil.trim(request.getParameter("complainCode"));
+        if(StringUtil.hasText(complainCode)){
+            condition.put("complainCode",complainCode);
+        }
+        condition.put("pageIndex",pageIndex);
+        condition.put("pageSize", pageSize);
+        vo = housesManager.getHouseComplainList(condition);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 房源投诉详情
+     * @return
+     */
+    @PostMapping(value="/house/complain/detail/{id}")
+    public String getHouseComplainDetail(@PathVariable Integer id){
+        ResultVo vo = null;
+        if(id == null || id ==0){
+            return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR,ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE));
+        }
+        vo = housesManager.getHouseComplainDetail(id);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 房源评价列表
+     * @return
+     */
+    @PostMapping(value="/house/evaluations")
+    public String getHouseEvaluationList(HttpServletRequest request){
+        ResultVo vo = null;
+        int pageIndex = StringUtil.getAsInt(request.getParameter("pageIndex"),0); //当前页
+        Map<Object,Object> condition = Maps.newHashMap();
+        condition.put("pageIndex",pageIndex);
+        condition.put("pageSize", AppRquestParamsConstant.APP_PAGE_SIZE); //页显示条数
+        vo = housesManager.getHouseEvaluationList(condition);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 房源评价详情
+     * @return
+     */
+    @PostMapping(value="/house/evaluation/detail/{id}")
+    public String getHouseEvaluationDetail(@PathVariable Integer id){
+        ResultVo vo = null;
+        if(id == null || id ==0){
+            return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR,ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE));
+        }
+        vo = housesManager.getHouseEvaluationDetail(id);
+        return JsonUtil.toJson(vo);
+    }
+
+
+    /**
+     * 业主联系客服上传
+     * @param apply 业主申请表
+     * @param houseCredentialsData
+     * @param memberMobile
+     * @return
+     * @throws IllegalAccessException
+     */
+    @PostMapping(value = "add/owner/apply")
+    public String addOwnerApply(HsOwnerHousingApplication apply, HsHouseCredentialsData houseCredentialsData,String areaCode, String memberMobile ) throws IllegalAccessException {
+        ResultVo result = null;
+        try {
+            if(!StringUtil.hasText(memberMobile)){
+                return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR,ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE));
+            }
+            ActiveUser user = (ActiveUser) SecurityUtils.getSubject().getPrincipal();
+            Integer userid = user.getUserid();
+            apply.setApplyType(1);//申请类型（0：自主完善，1：联系客服上传，2：业务员上传）
+            apply.setIsCustomerServiceRelation(1);
+            apply.setMemberId(userid);
+            apply.setCreateBy(userid);
+            result = housesManager.addOwnerApply(apply, houseCredentialsData,areaCode,memberMobile);
+        } catch (Exception e) {
+            logger.error("CustomController controller: addOwnerApply Exception message:" + e.getMessage());
+            System.out.println(e.getMessage());
+            result.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            result.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return JsonUtil.toJson(result);
+    }
+
+    /**
+     * 意见反馈列表
+     * @param request
+     * @return
+     */
+    @PostMapping(value = "get/feedback/list")
+    public String getFeedbackList(HttpServletRequest request){
+        ResultVo resultVo;
+        Map<Object,Object> condition = new HashMap<>(16);
+        //当前页（默认1）
+        Integer pageIndex = StringUtil.getAsInt(StringUtil.trim(request.getParameter("pageIndex")),1);
+        //每页显示数量（默认10）
+        Integer pageSize = StringUtil.getAsInt(StringUtil.trim(request.getParameter("pageSize")),AppRquestParamsConstant.APP_PAGE_SIZE );
+        /**
+         * 筛选条件 反馈编号
+         */
+        //反馈编号
+        String feedbackCode = StringUtil.trim(request.getParameter("feedbackCode"));
+        if(StringUtil.hasText(feedbackCode)){
+            condition.put("feedbackCode",feedbackCode);
+        }
+        condition.put("status",0);
+        condition.put("pageIndex",pageIndex);
+        condition.put("pageSize", pageSize);
+        resultVo = housesManager.getFeedbackList(condition);
+        return JsonUtil.toJson(resultVo);
+    }
+
+    /**
+     * 意见反馈详情
+     * @param id 意见反馈id
+     * @return
+     */
+    @PostMapping(value="/get/feedback/detail/{id}")
+    public String getFeedbackDetail(@PathVariable Integer id){
+        ResultVo vo = null;
+        if(id == null || id ==0){
+            return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR,ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE));
+        }
+        vo = housesManager.getFeedbackDetail(id);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 获取合同列表
+     * @param request
+     * @return
+     */
+    @RequestMapping(value = "/contract/list",method = RequestMethod.POST)
+    @ResponseBody
+    public String getContractList(HttpServletRequest request){
+        ResultVo result = new ResultVo();
+        Map<Object,Object> condition = new HashMap<>(16);
+        try {
+            //当前页
+            Integer pageIndex = StringUtil.getAsInt(request.getParameter("pageIndex"),1);
+            //每页显示数量
+            Integer pageSize = StringUtil.getAsInt(request.getParameter("pageSize"), AppRquestParamsConstant.APP_PAGE_SIZE);
+            //订单类型 0-租房->1-买房
+            String orderType = request.getParameter("orderType");
+            //订单编号
+            String orderCode = request.getParameter("orderCode");
+            //当前页
+            condition.put("pageIndex", pageIndex);
+            //每页显示数量
+            condition.put("pageSize", pageSize);
+            //订单状态 0-议价成功->1-客户完善租房/买房信息->2-确认线上合同->3-待支付->4-支付完成
+            condition.put("orderStatus",1);
+            condition.put("isDel",0);
+            if(StringUtil.hasText(orderType)){
+                condition.put("orderType",orderType);
+            }
+            if(StringUtil.hasText(orderCode)){
+                condition.put("orderCode",orderCode);
+            }
+            result = orderManager.getContractList(condition);
+        }catch (Exception e){
+            logger.error("OrderController getContractList Exception message:"+e.getMessage());
+            result.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            result.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return JsonUtil.toJson(result);
+    }
+
+    /**
+     * 获取合同信息
+     * @param request
+     * @return
+     */
+    @RequestMapping(value = "/contract/detail",method = RequestMethod.POST)
+    @ResponseBody
+    public String getContract(HttpServletRequest request){
+        ResultVo result = new ResultVo();
+        try {
+            String orderIdStr = request.getParameter("orderId");
+            if(!StringUtil.hasText(orderIdStr)){
+                result.setResult(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR);
+                result.setMessage(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE);
+                return JsonUtil.toJson(result);
+            }
+            int orderId = StringUtil.getAsInt(orderIdStr);
+            result = orderManager.getContract(orderId);
+        }catch (Exception e){
+            logger.error("OrderController getContract Exception message:"+e.getMessage());
+            result.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            result.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return JsonUtil.toJson(result);
+    }
+
+    /**
+     * 修改合同内容（增加附加条款）
+     * @param request
+     * @return
+     */
+    @RequestMapping(value = "/contract/update",method = RequestMethod.POST)
+    @ResponseBody
+    public String updateContract(HttpServletRequest request){
+        ResultVo result = new ResultVo();
+        try {
+            ActiveUser user = (ActiveUser) SecurityUtils.getSubject().getPrincipal();
+            //用户id
+            Integer userId = user.getUserid();
+            //附加条款 json格式数组 最多只能添加8条
+            String additionalTermsStr = request.getParameter("additionalTerms");
+            //订单id
+            String orderIdStr = request.getParameter("orderId");
+            if(!StringUtil.hasText(additionalTermsStr) || !StringUtil.hasText(orderIdStr)){
+                result.setResult(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR);
+                result.setMessage(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE);
+                return JsonUtil.toJson(result);
+            }
+            List<String> additionalTermsList;
+            try {
+                JSONArray additionalTerms = JSON.parseArray(additionalTermsStr);
+                additionalTermsList = additionalTerms.toJavaList(String.class);
+                if(additionalTermsList.size() > 8){
+                    result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+                    result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE + "附加条款不能超过8条");
+                    return JsonUtil.toJson(result);
+                }
+            }catch (Exception e){
+                e.printStackTrace();
+                result.setResult(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR);
+                result.setMessage(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE + "参数不满足json格式");
+                return JsonUtil.toJson(result);
+            }
+            int orderId = StringUtil.getAsInt(orderIdStr);
+            result = orderManager.updateContract(additionalTermsList,orderId,userId);
+        }catch (Exception e){
+            logger.error("OrderController updateContract Exception message:"+e.getMessage());
+            result.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            result.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return JsonUtil.toJson(result);
+    }
+}

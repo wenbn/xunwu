@@ -1,0 +1,14 @@
+package www.ucforward.com.manager;
+
+import www.ucforward.com.vo.ResultVo;
+
+import java.util.Map; /**
+ * @author wenbn
+ * @version 1.0
+ * @date 2018/8/20
+ */
+public interface ICommonManager {
+
+    //获取所有展位信息
+    ResultVo getChannels(Map<Object, Object> condition);
+}

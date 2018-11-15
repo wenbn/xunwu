@@ -1,0 +1,144 @@
+package www.ucforward.com.controller.role;
+
+import com.google.common.collect.Maps;
+import org.apache.shiro.authz.annotation.RequiresPermissions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.*;
+import org.utils.StringUtil;
+import www.ucforward.com.constants.AppRquestParamsConstant;
+import www.ucforward.com.constants.ResultConstant;
+import www.ucforward.com.controller.user.UserController;
+import www.ucforward.com.entity.HsSysRole;
+import www.ucforward.com.entity.HsSysUser;
+import www.ucforward.com.manager.IMemberManager;
+import www.ucforward.com.utils.JsonUtil;
+import www.ucforward.com.vo.ResultVo;
+
+import javax.annotation.Resource;
+import javax.management.relation.Role;
+import javax.servlet.http.HttpServletRequest;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+/**
+ * @author wenbn
+ * @version 1.0
+ * @date 2018/8/21
+ */
+@Controller
+@ResponseBody
+public class RoleController {
+
+    // 日志记录器
+    private static Logger logger = LoggerFactory.getLogger(UserController.class);
+
+    @Resource
+    private IMemberManager memberManager;
+
+    /**
+     * 获取角色列表
+     * @return
+     */
+    @RequiresPermissions("role:list")
+    @PostMapping(value="/role/list")
+    public String getRolelList(HttpServletRequest request) throws Exception {
+        ResultVo vo = null;
+        int pageIndex = StringUtil.getAsInt(request.getParameter("pageIndex"),0); //当前页
+        int languageVersion = StringUtil.getAsInt(request.getParameter("languageVersion"),0); //语言版本
+        Map<Object,Object> condition = Maps.newHashMap();
+        condition.put("languageVersion",languageVersion);
+        condition.put("pageIndex",pageIndex);
+        condition.put("pageSize", AppRquestParamsConstant.APP_PAGE_SIZE); //页显示条数
+        vo = memberManager.getRoleList(condition);
+        return JsonUtil.toJson(vo);
+    }
+
+
+    /**
+     * 获取角色详情
+     * @return
+     */
+    @RequiresPermissions("role:detail")
+    @PostMapping(value="/role/detail/{roleId}")
+    public String getRoleDetail(@PathVariable String roleId) throws Exception {
+        ResultVo vo = memberManager.getRoleDetail(roleId);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 修改角色信息
+     * @return
+     */
+    @RequiresPermissions("role:update")
+    @PostMapping(value="/role/update")
+    public String getRoleDetail(HsSysRole role) throws Exception {
+        //修改角色信息
+        if(!StringUtil.hasText(role.getId())){//修改角色信息
+            return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR,"角色名称ID不能为空"));
+        }
+        ResultVo vo = memberManager.updateRole(role);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 删除角色信息
+     * @return
+     */
+    @RequiresPermissions("role:delete")
+    @PostMapping(value="/role/delete/{roleId}")
+    public String deleteRole(@PathVariable String roleId) throws Exception {
+        //修改角色信息
+        if(!StringUtil.hasText(roleId)){//删除角色信息
+            return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR,"角色名称ID不能为空"));
+        }
+        HsSysRole role = new HsSysRole();
+        role.setId(roleId);
+        role.setIsDel(1);
+        ResultVo vo = memberManager.updateRole(role);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 新增角色信息
+     * @return
+     */
+    @RequiresPermissions("role:add")
+    @PostMapping(value="/role/add")
+    public String addRole(HsSysRole role) throws Exception {
+        if(!StringUtil.hasText(role.getRoleName())){//角色名称
+            return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR,"角色名称不能为空"));
+        }
+        //修改角色信息
+        ResultVo vo = memberManager.addRole(role);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 角色分配权限
+     * @return
+     */
+    @RequiresPermissions("role:update")
+    @PostMapping("/role/grant/{roleIds}/{userId}")
+    public String grantRoleByUser(@PathVariable String roleIds, @PathVariable Integer userId){
+
+        if(!StringUtil.hasText(roleIds)){//绑定的数据为空时直接返回绑定失败
+            return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_FAILURE,ResultConstant.SYS_REQUIRED_FAILURE_VALUE));
+        }
+        if(!StringUtil.hasText(StringUtil.trim(userId))){
+            return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR,ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE));
+        }
+        if(userId<=0){
+            return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR,ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE));
+        }
+        List<String> roleIdsList = Arrays.asList(roleIds.split(","))
+                .stream().map(s -> s.trim())
+                .collect(Collectors.toList());
+        ResultVo vo = memberManager.grantRole(roleIdsList,userId);
+        return JsonUtil.toJson(vo);
+    }
+
+}

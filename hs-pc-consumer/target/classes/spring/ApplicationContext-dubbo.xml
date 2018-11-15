@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:dubbo="http://code.alibabatech.com/schema/dubbo"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.5.xsd
+	http://code.alibabatech.com/schema/dubbo http://code.alibabatech.com/schema/dubbo/dubbo.xsd">
+	<!-- 消费方应用名，用于计算依赖关系，不是匹配条件，不要与提供方一样 -->
+    <dubbo:application name="interior_consumer" />
+    <!-- 使用zookeeper注册中心暴露服务地址 -->
+     <dubbo:registry address="zookeeper://127.0.0.1:2181" />
+    <!-- 组播注册 -->
+    <!-- <dubbo:registry address="multicast://224.5.6.7:1234" /> -->
+    <!-- 生成远程服务代理，可以像使用本地bean一样使用demoService -->
+    <dubbo:reference id="jobService" interface="www.ucforward.com.serviceInter.JobService" group="job" check="false" retries="0" timeout="12000"/>
+    <dubbo:reference id="memberService" interface="www.ucforward.com.serviceInter.MemberService" group="member" check="false" retries="0" timeout="12000"/>
+    <dubbo:reference id="commonService" interface="www.ucforward.com.serviceInter.CommonService" group="common" check="false" retries="0" timeout="12000"/>
+    <dubbo:reference id="housesService" interface="www.ucforward.com.serviceInter.HousesService" group="houses" check="false" retries="0" timeout="12000"/>
+    <dubbo:reference id="orderService" interface="www.ucforward.com.serviceInter.OrderService" group="order" check="false" retries="0" timeout="12000"/>
+    <dubbo:reference id="searchService" interface="www.ucforward.com.serviceInter.SearchService" group="search" check="false" retries="0" timeout="12000"/>
+    <dubbo:reference id="payService" interface="www.ucforward.com.serviceInter.PayService" group="pay" check="false" retries="0" timeout="12000"/>
+    <!-- 关闭所有服务的启动时检查 -->
+    <dubbo:consumer check="false" />
+</beans>

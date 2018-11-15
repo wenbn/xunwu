@@ -1,0 +1,239 @@
+package www.ucforward.com.controller.personalCenter;
+
+import com.google.common.collect.Maps;
+import org.apache.shiro.SecurityUtils;
+import org.apache.shiro.crypto.hash.SimpleHash;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.*;
+import org.utils.StringUtil;
+import www.ucforward.com.constants.AppRquestParamsConstant;
+import www.ucforward.com.constants.ResultConstant;
+import www.ucforward.com.controller.base.BaseController;
+import www.ucforward.com.controller.user.UserController;
+import www.ucforward.com.entity.ActiveUser;
+import www.ucforward.com.entity.HsSysUser;
+import www.ucforward.com.manager.IHousesManager;
+import www.ucforward.com.manager.IMemberManager;
+import www.ucforward.com.utils.JsonUtil;
+import www.ucforward.com.utils.RequestUtil;
+import www.ucforward.com.vo.ResultVo;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 个人中心管理类
+ * @author wenbn
+ * @version 1.0
+ * @date 2018/9/14
+ */
+@Controller
+@ResponseBody
+public class PersonalCenterController extends BaseController {
+
+
+    // 日志记录器
+    private static Logger logger = LoggerFactory.getLogger(PersonalCenterController.class);
+
+    @Resource
+    private IMemberManager memberManager;
+    @Resource
+    private IHousesManager housesManager;
+
+    /**
+     *获取会员信息
+     * @return
+     * @throws Exception
+     */
+    @PostMapping(value="center/user/info")
+    public String getUserInfo() throws Exception {
+        ActiveUser user = (ActiveUser) SecurityUtils.getSubject().getPrincipal();
+        ResultVo vo = memberManager.getUserDetail(user.getUserid());
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 修改密码
+     * @return
+     * @throws Exception
+     */
+    @PostMapping(value="center/pwd/update")
+    public String updatePwd(HttpServletRequest request) throws Exception {
+        ResultVo vo = null;
+        try{
+            ActiveUser user = (ActiveUser) SecurityUtils.getSubject().getPrincipal();
+            String oldPassword = request.getParameter("oldPassword");//旧密码
+            String password = request.getParameter("password");//新密码
+            if(!StringUtil.hasText(oldPassword) || !StringUtil.hasText(password)){
+                vo = ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR,ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE);
+                return JsonUtil.toJson(vo);
+            }
+            if(oldPassword == password){//如果新密码和旧密码一致
+                vo = ResultVo.error(ResultConstant.SYS_REQUIRED_FAILURE,"新密码和旧密码一致");
+                return JsonUtil.toJson(vo);
+            }
+            //修改密码
+            vo = memberManager.updatePwd(user.getUserid(),oldPassword,password);
+        }catch (Exception e){
+            logger.error("error PersonalCenterController updatePwd method for "+e.getMessage());
+        }
+        return JsonUtil.toJson(vo);
+    }
+
+
+    /**
+     * 校验密码
+     * @param password
+     * @return
+     */
+    @PostMapping(value = "center/pwd/check")
+    public String checkPwd(String password) {
+        ResultVo result = null;
+        try {
+            ActiveUser user = (ActiveUser) SecurityUtils.getSubject().getPrincipal();
+            if(!StringUtil.hasText(password)){
+                JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR,ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE));
+            }
+            //校验密码
+            result = memberManager.checkPwd(user.getUserid(),password);
+        } catch (Exception e) {
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return JsonUtil.toJson(result);
+    }
+
+    /**
+     * 发送短信验证码
+     * @param request
+     * @return
+     */
+    @PostMapping(value = "send/sms/code")
+    public String sendSmsValidateCode(HttpServletRequest request) {
+        ResultVo result = null;
+        Map<Object, Object> condition = new HashMap<>();
+        try {
+            String mobile = request.getParameter("mobile");
+            if (!StringUtil.hasText(mobile)) {
+                result.setResult(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR);
+                result.setMessage(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE);
+                return JsonUtil.toJson(result);
+            }
+            condition.put("mobile", mobile);
+            condition.put("ip", RequestUtil.getIpAddress(request));
+            result = memberManager.sendSmsValidateCode(condition);
+        } catch (Exception e) {
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return JsonUtil.toJson(result);
+    }
+
+    /**
+     * 修改手机号
+     * @return
+     * @throws Exception
+     */
+    @PostMapping(value="center/phone/update")
+    public String updatePhone(HttpServletRequest request) throws Exception {
+        ResultVo vo = null;
+        try{
+            ActiveUser user = (ActiveUser) SecurityUtils.getSubject().getPrincipal();
+            String phone = request.getParameter("phone");//新手机
+            String validateCode = request.getParameter("validateCode");//验证码
+            if(!StringUtil.hasText(phone) || !StringUtil.hasText(validateCode)){
+                vo = ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR,ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE);
+                return JsonUtil.toJson(vo);
+            }
+            Map<Object, Object> condition = Maps.newHashMap();
+            condition.put("phone", phone);
+            condition.put("validateCode", validateCode);
+            condition.put("ip", RequestUtil.getIpAddress(request));
+            condition.put("userId", user.getUserid());
+            vo = memberManager.updatePhone(condition);
+        }catch (Exception e){
+            logger.error("error PersonalCenterController updatePhone method for "+e.getMessage());
+        }
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 获取我的关单记录
+     * @return
+     * @throws Exception
+     */
+    @PostMapping(value="center/order/closes")
+    public String getUserCloseOrderRecordList(HttpServletRequest request) throws Exception {
+        ResultVo vo;
+        Map<Object,Object> condition = Maps.newHashMap();
+        //当前页（默认1）
+        Integer pageIndex = StringUtil.getAsInt(StringUtil.trim(request.getParameter("pageIndex")),1);
+        //每页显示数量（默认10）
+        Integer pageSize = StringUtil.getAsInt(StringUtil.trim(request.getParameter("pageSize")),AppRquestParamsConstant.APP_PAGE_SIZE );
+        ActiveUser user = (ActiveUser) SecurityUtils.getSubject().getPrincipal();
+        /**
+         * 筛选条件 预约类型、投诉编号
+         */
+        //预约类型（0：出租，1：出售）
+        int leaseType = StringUtil.getAsInt(StringUtil.trim(request.getParameter("leaseType")),-1);
+        if(leaseType != -1){
+            condition.put("leaseType",leaseType);
+        }
+        //投诉编号
+        String complainCode = StringUtil.trim(request.getParameter("complainCode"));
+        if(StringUtil.hasText(complainCode)){
+            condition.put("complainCode",complainCode);
+        }
+        condition.put("pageIndex",pageIndex);
+        condition.put("pageSize", pageSize);
+        condition.put("closeBy",user.getUserid());
+        vo = housesManager.getHouseComplainList(condition);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 获取我的关单记录
+     * @return
+     * @throws Exception
+     */
+    @PostMapping(value="center/order/closes/detail/{id}")
+    public String getUserCloseOrderRecordDetail(@PathVariable Integer id) throws Exception {
+        ResultVo vo;
+        if(id == null || id ==0){
+            return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR,ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE));
+        }
+        vo = housesManager.getHouseComplainDetail(id);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 获取我的考勤
+     * @return
+     * @throws Exception
+     */
+    @PostMapping(value="center/query/attendance")
+    public String queryAttendanceList() throws Exception {
+        ResultVo result = new ResultVo();
+        Map<Object,Object> condition = new HashMap<>();
+        try {
+            ActiveUser user = (ActiveUser) SecurityUtils.getSubject().getPrincipal();
+            condition.put("userId",user.getUserid()); //业务员ID
+//            condition.put("queryMonthsAgo",1);//查询前几个月的数据,
+            condition.put("queryCurrentMonth",1);//非空即为查当月的数据
+            result = memberManager.queryUserAttendances(condition);
+        } catch (Exception e) {
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+
+        return JsonUtil.toJson(result);
+    }
+
+
+}

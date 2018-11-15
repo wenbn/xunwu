@@ -1,0 +1,136 @@
+package www.ucforward.com.manager;
+
+import org.springframework.stereotype.Service;
+import www.ucforward.com.entity.*;
+import www.ucforward.com.vo.ResultVo;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 系统及业务员相关管理
+ * @author wenbn
+ * @version 1.0
+ * @date 2018/6/20
+ */
+@Service
+public interface IMemberManager {
+
+    //获取会员列表
+    ResultVo getMemberList(Map<Object, Object> condition);
+
+    //获取会员详情
+    ResultVo getMemberDetail(Integer memberId);
+
+    //修改会员
+    ResultVo updateMember(HsMember member);
+
+    //新增会员
+    ResultVo addMember(HsMember member);
+
+    //获取内部用户列表
+    ResultVo getUserlList(Map<Object, Object> condition);
+
+    //获取内部用户详情
+    ResultVo getUserDetail(Integer userId);
+
+    //修改内部用户
+    ResultVo updateUser(HsSysUser user);
+
+    //修改密码
+    ResultVo updatePwd(Integer userid, String oldPassword, String password);
+
+    //校验密码
+    ResultVo checkPwd(Integer userid, String password);
+    /**
+     * 发送短信验证码
+     * @param condition
+     * @return
+     */
+    ResultVo sendSmsValidateCode(Map<Object,Object> condition);
+
+    //修改手机号
+    ResultVo updatePhone(Map<Object, Object> condition);
+
+    //新增内部用户
+    ResultVo addUser(HsSysUser user);
+
+    //获取角色列表
+    ResultVo getRoleList(Map<Object, Object> condition);
+
+    //获取角色详情
+    ResultVo getRoleDetail(String roleId);
+
+    //修改角色信息
+    ResultVo updateRole(HsSysRole role);
+
+    //新增角色信息
+    ResultVo addRole(HsSysRole role);
+
+    //获取用户对应的资源
+    ResultVo getUserPermissions(Map<Object, Object> condition);
+
+    //获取权限列表
+    ResultVo getPermissionList(Map<Object, Object> condition);
+
+    //获取权限详情
+    ResultVo getPermissionDetail(Integer id);
+
+    //新增权限
+    ResultVo addPermission(HsSysPermission hsSysPermission);
+
+    //修改权限
+    ResultVo updatePermission(HsSysPermission hsSysPermission);
+
+    //删除权限
+    ResultVo deletePermission(HsSysPermission permission);
+
+    //为角色添加权限
+    ResultVo grantPermission(List<Integer> pids, String roleId);
+
+    //为用户添加角色
+    ResultVo grantRole(List<String> roleIdsList, Integer userId);
+
+    /**
+     * 新增人员贷款信息
+     * @param financialLoansApply
+     * @return
+     */
+    ResultVo addLoansApply(HsMemberFinancialLoansApply financialLoansApply);
+
+    /**
+     * 获取人员贷款信息
+     * @param condition
+     * @return
+     */
+    ResultVo getLoansApply(Map<Object,Object> condition);
+
+    /**
+     * 获取
+     * @param condition
+     * @return
+     */
+    ResultVo getPurchaseApplyList(Map<Object,Object> condition);
+
+    ResultVo getPurchaseApplyDetails(Integer id);
+
+    //获取会员关单记录
+    ResultVo getUserCloseOrderRecordList(Map<Object,Object> condition);
+
+    //获取会员关单详情
+    ResultVo getUserCloseOrderRecordDetail(Integer taskId);
+
+    //查询考勤
+    ResultVo queryUserAttendances(Map<Object, Object> condition);
+
+    /**
+     * 是否新用户
+     * @param condition
+     * @return
+     */
+    ResultVo isNewUser(Map<Object, Object> condition);
+
+
+
+}

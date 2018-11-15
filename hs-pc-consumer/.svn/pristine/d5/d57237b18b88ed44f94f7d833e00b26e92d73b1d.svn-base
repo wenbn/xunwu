@@ -1,0 +1,426 @@
+package www.ucforward.com.controller.house;
+
+import org.apache.shiro.SecurityUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.propertyeditors.CustomDateEditor;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.WebDataBinder;
+import org.springframework.web.bind.annotation.*;
+import org.utils.StringUtil;
+import www.ucforward.com.constants.AppRquestParamsConstant;
+import www.ucforward.com.constants.ResultConstant;
+import www.ucforward.com.controller.base.BaseController;
+import www.ucforward.com.entity.ActiveUser;
+import www.ucforward.com.entity.HsHouseAutoReplySetting;
+import www.ucforward.com.entity.HsHouseNewBuilding;
+import www.ucforward.com.entity.HsHouseNewBuildingMemberApply;
+import www.ucforward.com.manager.IHousesManager;
+import www.ucforward.com.utils.JsonUtil;
+import www.ucforward.com.utils.RequestUtil;
+import www.ucforward.com.vo.ResultVo;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.text.SimpleDateFormat;
+import java.util.*;
+
+/**
+ * 房源管理类
+ * @Auther: lsq
+ * @Date: 2018/8/20 18:59
+ * @Description:
+ */
+@Controller
+@ResponseBody
+public class HousesController extends BaseController {
+    // 日志记录器
+    private static Logger logger = LoggerFactory.getLogger(HousesController.class);
+
+    @Resource
+    private IHousesManager housesManager;
+
+    /**
+     * 处理字符串 日期参数转换异常
+     * @param binder
+     */
+    @InitBinder
+    public void initBinder(WebDataBinder binder) {
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        dateFormat.setLenient(false);
+        binder.registerCustomEditor(Date.class, new CustomDateEditor(dateFormat, true));
+
+    }
+
+    /**
+     * lsq
+     * 获取业主预约获取房源申请（初审）
+     * @param request
+     * @return
+     */
+    @RequestMapping(value = "/owner/apply/list", method = RequestMethod.POST)
+    public String getOwnerHousingApplication(HttpServletRequest request){
+        ResultVo result = new ResultVo();
+        Map<Object, Object> condition = new HashMap<>(7);
+        try{
+            Map map = RequestUtil.getParameterMap(request);
+            //当前页
+            Integer pageIndex = StringUtil.getAsInt(StringUtil.trim(map.get("pageIndex")),1);
+            //每页显示数量
+            Integer pageSize = StringUtil.getAsInt(StringUtil.trim(map.get("pageSize")),AppRquestParamsConstant.APP_PAGE_SIZE );
+            condition.put("isDel", 0);
+            //当前页
+            condition.put("pageIndex", pageIndex);
+            //每页显示数量
+            condition.put("pageSize", pageSize);
+            //预约类型（0：出租，1：出售）
+            int leaseType = StringUtil.getAsInt(StringUtil.trim(map.get("leaseType")),-1);
+            if(leaseType != -1){
+                condition.put("leaseType",leaseType);
+            }
+            //申请类型（0：自主完善，1：联系客服上传，2：业务员上传），多个用逗号分隔，上传房源列表传入（1,2）；房源核实列表传入（0）
+            String applyTypesStr = StringUtil.trim(map.get("applyTypes"));
+            if(!StringUtil.hasText(applyTypesStr)){
+                result.setResult(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR);
+                result.setMessage(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE);
+                return JsonUtil.toJson(result);
+            }
+            String[] split = applyTypesStr.split(",");
+            List<String> applyTypes = Arrays.asList(split);
+            if(applyTypes.size() > 0){
+                condition.put("applyTypes", applyTypes);
+            }
+            //申请编号
+            String applyCode = StringUtil.trim(map.get("applyCode"));
+            if(StringUtil.hasText(applyCode)){
+                condition.put("applyCode",applyCode);
+            }
+            //状态（1：待审核，2：审核通过，3：审核不通过）
+            condition.put("isCheck", StringUtil.getAsInt(StringUtil.trim(map.get("isCheck")),1));
+            result = housesManager.getOwnerHousingApplication(condition);
+        }catch (Exception e){
+            logger.error("HousesController getOwnerHousingApplication Exception message:" + e.getMessage());
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return JsonUtil.toJson(result);
+    }
+
+    /**
+     * lsq
+     * 获取业主预约获取房源申请详情（初审）
+     * @return
+     */
+    @RequestMapping(value = "/owner/apply/detail/{id}", method = RequestMethod.POST)
+    @ResponseBody
+    public String getOwnerHousingApplicationById(@PathVariable Integer id){
+        ResultVo result = new ResultVo();
+        try{
+            if(id == null){
+                result.setResult(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR);
+                result.setMessage(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE);
+                return JsonUtil.toJson(result);
+            }
+            result = housesManager.getOwnerHousingApplicationById(id);
+        }catch (Exception e){
+            logger.error("HousesController getOwnerHousingApplicationById Exception message:" + e.getMessage());
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return JsonUtil.toJson(result);
+    }
+
+    /**
+     * 获取房源列表（终审）
+     * @param request
+     * @return
+     */
+    @RequestMapping(value="house/list", method = RequestMethod.POST)
+    public String getMainHousingList(HttpServletRequest request){
+        ResultVo result = new ResultVo();
+        Map<Object, Object> condition = new HashMap<>(16);
+        try{
+            Map map = RequestUtil.getParameterMap(request);
+            //当前页
+            Integer pageIndex = StringUtil.getAsInt(StringUtil.trim(map.get("pageIndex")),1);
+            //每页显示数量
+            Integer pageSize = StringUtil.getAsInt(StringUtil.trim(map.get("pageSize")),AppRquestParamsConstant.APP_PAGE_SIZE );
+            //当前页
+            condition.put("pageIndex", pageIndex);
+            //每页显示条数
+            condition.put("pageSize", pageSize);
+            //是否删除 0：未删除 1：已删除
+            condition.put("isDel", 0);
+            //审核状态：0>待审核，1>审核通过，2>审核不通过，3>暂存
+            condition.put("isCheck", 0);
+
+            //预约类型（0：出租，1：出售）
+            int leaseType = StringUtil.getAsInt(StringUtil.trim(map.get("leaseType")),-1);
+            if(leaseType != -1){
+                condition.put("leaseType",leaseType);
+            }
+            //房源编号
+            String houseCode = StringUtil.trim(map.get("houseCode"));
+            if(StringUtil.hasText(houseCode)){
+                condition.put("houseCode",houseCode);
+            }
+            //申请人类型：0业主 1 poa
+            String applicantType = StringUtil.trim(map.get("applicantType"));
+            if(StringUtil.hasText(applicantType)){
+                condition.put("applicantType",applicantType);
+            }
+            result = housesManager.getMainHousingList(condition);
+        }catch (Exception e){
+            e.printStackTrace();
+            logger.error("IHousesController getMainHousingList Exception message:" + e.getMessage());
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return JsonUtil.toJson(result);
+    }
+
+    /**
+     * 获取房源详情（终审）
+     * @param id
+     * @return
+     */
+    @RequestMapping(value="house/detail/{id}", method = RequestMethod.POST)
+    public String getMainHousingInfo(@PathVariable Integer id){
+        ResultVo result = new ResultVo();
+        try{
+            if(id==null){
+                result.setResult(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR);
+                result.setMessage(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE);
+                return JsonUtil.toJson(result);
+            }
+            result = housesManager.getMainHousingInfo(id);
+        }catch (Exception e){
+            logger.error("IHousesController getMainHousingInfo Exception message:" + e.getMessage());
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return JsonUtil.toJson(result);
+    }
+
+
+    /**
+     * 客服初审
+     * 客服审核业主申请房源信息
+     * @return
+     */
+    @RequestMapping(value="house/apply/check/{applyId}", method = RequestMethod.POST)
+    public  String checkHousingApply(@PathVariable Integer applyId) throws  IllegalAccessException{
+        ResultVo vo = new ResultVo();
+        Map<Object,Object> condition = new HashMap<Object, Object>();
+        try {
+            if(!StringUtil.hasText(StringUtil.trim(applyId))){
+                vo = ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR,ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE);
+                return JsonUtil.toJson(vo);
+            }
+            if(applyId<=0){
+                vo = ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR,ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE);
+                return JsonUtil.toJson(vo);
+            }
+            condition.put("id",applyId);//房源申请ID
+            vo = housesManager.checkHousingApply(condition);
+        } catch (Exception e) {
+            logger.error("HousesController controller checkHousingApply  Method Exception :——》:" + e.getMessage());
+            vo = ResultVo.error(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR,ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+
+        }
+        return JsonUtil.toJson(vo);
+    }
+
+
+    /**
+     * 客服终审
+     * 客服审核房源信息
+     * @return
+     */
+    @RequestMapping(value="house/check/{houseId}", method = RequestMethod.POST)
+    public String checkHouse(@PathVariable Integer houseId) throws Exception{
+        ResultVo vo = null;
+        try {
+            ActiveUser user = (ActiveUser) SecurityUtils.getSubject().getPrincipal();
+            if(!StringUtil.hasText(StringUtil.trim(houseId))){
+                vo = ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR,ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE);
+                return JsonUtil.toJson(vo);
+            }
+            if(houseId<=0){//房源ID
+                vo = ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR,ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE);
+                return JsonUtil.toJson(vo);
+            }
+            Map<Object,Object> condition = new HashMap<Object, Object>();
+            condition.put("houseId",houseId);//房源ID
+            condition.put("userId",user.getUserid());//业务员ID
+            vo = housesManager.checkHouse(condition);
+        } catch (Exception e) {
+            logger.error("HousesController controller checkHouse  Method Exception :——》:" + e.getMessage());
+            vo = ResultVo.error(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR,ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return JsonUtil.toJson(vo);
+    }
+
+
+
+    /**
+     * 获取自动应答设置信息
+     *
+     * @param request
+     * @param response
+     * @return
+     */
+    @RequestMapping(value = "/house/getAutoReplySetting", method = RequestMethod.POST)
+    @ResponseBody
+    public String getAutoReplySetting(HttpServletRequest request, HttpServletResponse response) {
+        ResultVo result = new ResultVo();
+        Map<Object, Object> condition = new HashMap<>();
+        try {
+            Map map = RequestUtil.getParameterMap(request);
+            String houseId = StringUtil.trim(map.get("houseId"));
+            String applyId = StringUtil.trim(map.get("applyId"));
+            if(StringUtil.hasText(houseId)){
+                condition.put("houseId",houseId);
+            }else if(StringUtil.hasText(applyId)){
+                condition.put("applyId",applyId);
+            }else{
+                result.setResult(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR);
+                result.setMessage(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE);
+                return JsonUtil.toJson(result);
+            }
+            result = housesManager.getAutoReplySetting(condition);
+        } catch (Exception e) {
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return JsonUtil.toJson(result);
+    }
+
+    /**
+     * 新增、设置自动应答
+     *
+     * @param request
+     * @return
+     */
+    @RequestMapping(value = "/house/addAutoReplySetting", method = RequestMethod.POST)
+    @ResponseBody
+    public String addAutoReplySetting(HttpServletRequest request, HsHouseAutoReplySetting hsHouseAutoReplySetting) {
+        ResultVo result = new ResultVo();
+        try {
+            Object beanData = RequestUtil.handleRequestBeanData(hsHouseAutoReplySetting);
+            HsHouseAutoReplySetting autoReplySetting = (HsHouseAutoReplySetting) beanData;
+            //id为0时表示新增，将id置为null
+            Integer id = autoReplySetting.getId() == null ? 0 : autoReplySetting.getId();
+            if (id == 0) {
+                autoReplySetting.setId(null);
+            }
+            //是否预审批
+            Integer hasExpectApprove = autoReplySetting.getHasExpectApprove() == null ? -1 : autoReplySetting.getHasExpectApprove();
+            //
+            if (hasExpectApprove == -1) {
+                autoReplySetting.setHasExpectApprove(null);
+            }
+            result = housesManager.addAutoReplySetting(autoReplySetting);
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+
+        return JsonUtil.toJson(result);
+    }
+
+    /**
+     * 删除自动应答
+     *
+     * @param request
+     * @return
+     */
+    @RequestMapping(value = "/house/deleteAutoReply", method = RequestMethod.POST)
+    @ResponseBody
+    public String deleteAutoReply(HttpServletRequest request) {
+        ResultVo result = new ResultVo();
+        try {
+            Map map = RequestUtil.getParameterMap(request);
+            //自动应答ID
+            String autoReplyId = StringUtil.trim(map.get("autoReplyId"));
+            if (!StringUtil.hasText(autoReplyId)) {
+                result.setResult(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR);
+                result.setMessage(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE);
+                return JsonUtil.toJson(result);
+            }
+            result = housesManager.deleteAutoReply(autoReplyId);
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return JsonUtil.toJson(result);
+    }
+
+    /**
+     * 修改房源租金/看房时间
+     *
+     * @param request
+     * @param response
+     * @return
+     */
+    @RequestMapping(value = "/house/updateHousingLookTime", method = RequestMethod.POST)
+    public String updateHousingLookTime(HttpServletRequest request, HttpServletResponse response) {
+        ResultVo result = new ResultVo();
+        Map<Object, Object> condition = new HashMap<>();
+        try {
+            Map map = RequestUtil.getParameterMap(request);
+            //房源ID
+            String id = StringUtil.trim(map.get("id"));
+            ActiveUser user = (ActiveUser) SecurityUtils.getSubject().getPrincipal();
+            Integer memberId = user.getUserid();
+            if (!StringUtil.hasText(id)) {
+                result.setResult(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR);
+                result.setMessage(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE);
+                return JsonUtil.toJson(result);
+            }
+            condition.putAll(map);
+            condition.put("memberId", memberId);
+            result = housesManager.updateHousingInfo(condition);
+        } catch (Exception e) {
+            logger.error("HousesController updateHousingLookTime Exception message:" + e.getMessage());
+            result.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            result.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return JsonUtil.toJson(result);
+    }
+
+
+    /**
+     * 查询预约看房时间
+     *
+     * @param request
+     * @param response
+     * @return
+     */
+    @RequestMapping(value = "/house/getHouseSettingTime", method = RequestMethod.POST)
+    @ResponseBody
+    public String getHouseSettingTime(HttpServletRequest request, HttpServletResponse response) {
+        ResultVo result = new ResultVo();
+        Map<Object, Object> condition = new HashMap<>(1);
+        try {
+            Map map = RequestUtil.getParameterMap(request);
+            String houseId = StringUtil.trim(map.get("houseId")); //房源ID
+            if (!StringUtil.hasText(houseId)) {
+                result.setResult(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR);
+                result.setMessage(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE);
+                return JsonUtil.toJson(result);
+            }
+
+            condition.put("houseId", houseId);
+            result = housesManager.getHouseSettingTime(condition);
+        } catch (Exception e) {
+            logger.error("HousesController getHouseSettingTime Exception message:" + e.getMessage());
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return JsonUtil.toJson(result);
+    }
+}

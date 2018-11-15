@@ -1,0 +1,101 @@
+package www.ucforward.com.controller.finance;
+
+import com.google.common.collect.Maps;
+import org.apache.shiro.SecurityUtils;
+import org.apache.shiro.subject.Subject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.utils.StringUtil;
+import www.ucforward.com.constants.ResultConstant;
+import www.ucforward.com.controller.base.BaseController;
+import www.ucforward.com.entity.ActiveUser;
+import www.ucforward.com.manager.IPayManager;
+import www.ucforward.com.utils.JsonUtil;
+import www.ucforward.com.utils.RequestUtil;
+import www.ucforward.com.vo.ResultVo;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import java.util.Map;
+
+/**
+ * @author wenbn
+ * @version 1.0
+ * @date 2018/8/30
+ */
+@Controller
+@ResponseBody
+public class FinanceController  extends BaseController {
+
+    // 日志记录器
+    private static Logger logger = LoggerFactory.getLogger(FinanceController.class);
+
+    @Resource
+    private IPayManager payManager;
+
+    /**
+     * 线下订单支付
+     * @param request
+     * @return
+     */
+    @PostMapping(value="/offline/order/pay")
+    public String offlineOrderPay(HttpServletRequest request){
+        ResultVo vo =null;
+        try {
+            Map map = RequestUtil.getParameterMap(request);
+            String orderCode = StringUtil.trim(map.get("orderCode"));//订单编码
+            if(!StringUtil.hasText(orderCode)){
+                vo = ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR,ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE);
+                return JsonUtil.toJson(vo);
+            }
+            Map<Object ,Object> condition = Maps.newHashMap();
+            condition.put("orderCode",orderCode);
+            Subject subject = SecurityUtils.getSubject();
+            ActiveUser user = (ActiveUser) subject.getPrincipal();
+            condition.put("updateId",user.getUserid());//保存修改人ID
+            vo = payManager.offlineOrderPay(condition);
+        } catch (Exception e) {
+            logger.error("FinanceController controller: offlineOrderPay Exception message:" + e.getMessage());
+            vo = ResultVo.error(
+                    ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR,
+                    ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE
+            );
+        }
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 审核订单支付
+     * @param request
+     * @return
+     */
+    @PostMapping(value="/check/order/pay")
+    public String checkOrderPay(HttpServletRequest request){
+        ResultVo vo =null;
+        try {
+            Map map = RequestUtil.getParameterMap(request);
+            String orderCode = StringUtil.trim(map.get("orderCode"));//订单编码
+            if(!StringUtil.hasText(orderCode)){
+                vo = ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR,ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE);
+                return JsonUtil.toJson(vo);
+            }
+            Map<Object ,Object> condition = Maps.newHashMap();
+            condition.put("orderCode",orderCode);
+            Subject subject = SecurityUtils.getSubject();
+            ActiveUser user = (ActiveUser) subject.getPrincipal();
+            condition.put("updateId",user.getUserid());//保存修改人ID
+            vo = payManager.checkOrderPay(condition);
+        } catch (Exception e) {
+            logger.error("FinanceController controller: offlineOrderPay Exception message:" + e.getMessage());
+            vo = ResultVo.error(
+                    ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR,
+                    ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE
+            );
+        }
+        return JsonUtil.toJson(vo);
+    }
+
+}

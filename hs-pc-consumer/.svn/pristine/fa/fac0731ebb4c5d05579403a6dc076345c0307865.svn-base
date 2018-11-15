@@ -1,0 +1,146 @@
+package www.ucforward.com.controller.operation;
+
+import com.google.common.collect.Maps;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.*;
+import org.utils.StringUtil;
+import www.ucforward.com.constants.AppRquestParamsConstant;
+import www.ucforward.com.constants.ResultConstant;
+import www.ucforward.com.entity.HsAdvertData;
+import www.ucforward.com.manager.ICommonManager;
+import www.ucforward.com.utils.JsonUtil;
+import www.ucforward.com.vo.ResultVo;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import java.util.Map;
+
+/**
+ * 广告管理类
+ * @author wenbn
+ * @version 1.0
+ * @date 2018/8/22
+ */
+@Controller
+@ResponseBody
+public class AdvertController {
+
+    // 日志记录器
+    private static Logger logger = LoggerFactory.getLogger(AdvertController.class);
+
+    @Resource
+    private ICommonManager commonManager;
+
+
+    /**
+     * 添加广告
+     * @return
+     */
+    @PostMapping("/advert/add")
+    public String addAdvert(HsAdvertData advertData) throws Exception {
+        ResultVo vo = null;
+        Integer adType = advertData.getAdType();
+        String adFullTitle = advertData.getAdFullTitle();//广告长标题
+        String adShortTitle = advertData.getAdShortTitle();//广告短标题
+        String adImgUrl = advertData.getAdImgUrl();//广告图片上传名称(当ad_type=1有效)
+        String adContent = advertData.getAdContent();//广告文字内容(当ad_type=2有效)
+        if (!StringUtil.hasText(adFullTitle)) {
+            return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR, "广告长标题不能为空"));
+        }
+        if (!StringUtil.hasText(adShortTitle)) {
+            return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR, "广告短标题不能为空"));
+        }
+        if (adType == 1) {//广告类型(1:图片类型, 2:文字类型)
+            if (!StringUtil.hasText(adImgUrl)) {
+                return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR, "广告图片上传名称"));
+            }
+        } else if (adType == 2) {
+            if (!StringUtil.hasText(adContent)) {
+                return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR, "广告图片上传名称"));
+            }
+        }
+        vo = commonManager.addAdvert(advertData);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 删除广告
+     * @return
+     */
+    @PostMapping("/advert/delete/{advertId}")
+    public String deleteAdvertById (@PathVariable Integer advertId) throws Exception {
+        if(advertId<=0){
+            return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR, "广告ID不能为空"));
+        }
+        ResultVo vo = commonManager.deleteAdvert(advertId);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 修改广告
+     * @return
+     */
+    @PostMapping("/advert/update")
+    public String updateAdvert(HsAdvertData advertData) throws Exception {
+        ResultVo vo = null;
+        Integer id = advertData.getId();
+        if(id == null){
+            return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR, "广告ID不能为空"));
+        }
+        Integer adType = advertData.getAdType();
+        String adFullTitle = advertData.getAdFullTitle();//广告长标题
+        String adShortTitle = advertData.getAdShortTitle();//广告短标题
+        String adImgUrl = advertData.getAdImgUrl();//广告图片上传名称(当ad_type=1有效)
+        String adContent = advertData.getAdContent();//广告文字内容(当ad_type=2有效)
+        if (!StringUtil.hasText(adFullTitle)) {
+            return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR, "广告长标题不能为空"));
+        }
+        if (!StringUtil.hasText(adShortTitle)) {
+            return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR, "广告短标题不能为空"));
+        }
+        if (adType == 1) {//广告类型(1:图片类型, 2:文字类型)
+            if (!StringUtil.hasText(adImgUrl)) {
+                return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR, "广告图片上传名称"));
+            }
+        } else if (adType == 2) {
+            if (!StringUtil.hasText(adContent)) {
+                return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR, "广告图片上传名称"));
+            }
+        }
+        vo = commonManager.updateAdvert(advertData);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 获取广告列表
+     * @return
+     */
+    @PostMapping("/advert/list")
+    public String getAdvertList (HttpServletRequest request) throws Exception {
+        ResultVo vo = null;
+        int pageIndex = StringUtil.getAsInt(request.getParameter("pageIndex"), 0); //当前页
+        int languageVersion = StringUtil.getAsInt(request.getParameter("languageVersion"), 0); //语言版本
+        Map<Object, Object> condition = Maps.newHashMap();
+        condition.put("languageVersion", languageVersion);
+        condition.put("pageIndex", pageIndex);
+        condition.put("pageSize", AppRquestParamsConstant.APP_PAGE_SIZE); //页显示条数
+        vo = commonManager.getAdvertList(condition);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 获取广告详情
+     * @return
+     */
+    @PostMapping("/advert/detail/{advertId}")
+    public String getAdvertDetail (@PathVariable Integer advertId) throws Exception {
+        if(advertId==null){
+            return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR, "广告ID不能为空"));
+        }
+        ResultVo vo = commonManager.getAdvertDetail(advertId);
+        return JsonUtil.toJson(vo);
+    }
+
+}

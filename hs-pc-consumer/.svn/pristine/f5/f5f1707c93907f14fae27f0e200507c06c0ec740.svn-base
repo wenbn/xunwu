@@ -1,0 +1,170 @@
+package www.ucforward.com.controller.house;
+
+import org.apache.shiro.SecurityUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.utils.StringUtil;
+import www.ucforward.com.constants.AppRquestParamsConstant;
+import www.ucforward.com.constants.ResultConstant;
+import www.ucforward.com.entity.ActiveUser;
+import www.ucforward.com.manager.IHousesManager;
+import www.ucforward.com.utils.JsonUtil;
+import www.ucforward.com.utils.RequestUtil;
+import www.ucforward.com.vo.ResultVo;
+
+import javax.annotation.Resource;
+import javax.security.auth.Subject;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * @Auther: lsq
+ * @Date: 2018/8/20 18:59
+ * @Description:
+ */
+@Controller
+@RequestMapping("houses")
+public class IHousesController {
+    // 日志记录器
+    private static Logger logger = LoggerFactory.getLogger(IHousesController.class);
+
+    @Resource
+    private IHousesManager housesManager;
+
+    /**
+     * lsq
+     * 获取业主预约获取房源申请
+     * @param request
+     * @return
+     */
+    @RequestMapping(value = "getOwnerHousingApplication", method = RequestMethod.POST)
+    @ResponseBody
+    public String getOwnerHousingApplication(HttpServletRequest request){
+        ResultVo result = new ResultVo();
+        Map<Object, Object> condition = new HashMap<>();
+        try{
+            Map map = RequestUtil.getParameterMap(request);
+            //当前页
+            Integer pageIndex = map.get("pageIndex") == null ? 1 : Integer.parseInt(map.get("pageIndex").toString());
+            //每页显示数量
+            Integer pageSize = map.get("pageSize") == null ? AppRquestParamsConstant.APP_PAGE_SIZE : Integer.parseInt(map.get("pageSize").toString());
+            condition.put("isDel", 0);
+            //当前页
+            condition.put("pageIndex", pageIndex);
+            //每页显示数量
+            condition.put("pageSize", pageSize);
+            //预约类型（0：出租，1：出售）
+            Object leaseType = map.get("leaseType");
+            if(leaseType != null){
+                condition.put("leaseType", Integer.parseInt(StringUtil.trim(leaseType)));
+            }
+            //申请类型（0：自主完善，1：联系客服上传，2：业务员上传）
+            Object applyType = map.get("applyType");
+            if(applyType != null){
+                condition.put("applyType", Integer.parseInt(StringUtil.trim(applyType)));
+            }
+            //状态（1：待审核，2：审核通过，3：审核不通过）
+            Object isCheck = map.get("isCheck");
+            if(isCheck != null){
+                condition.put("isCheck", Integer.parseInt(StringUtil.trim(isCheck)));
+            }
+            result = housesManager.getOwnerHousingApplication(condition);
+        }catch (Exception e){
+            logger.error("HousesController getOwnerHousingApplication Exception message:" + e.getMessage());
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return JsonUtil.toJson(result);
+    }
+
+    /**
+     * lsq
+     * 获取业主预约获取房源申请详情
+     * @param request
+     * @return
+     */
+    @RequestMapping(value = "getOwnerHousingApplicationById", method = RequestMethod.POST)
+    @ResponseBody
+    public String getOwnerHousingApplicationById(HttpServletRequest request){
+        ResultVo result = new ResultVo();
+        try{
+            Map map = RequestUtil.getParameterMap(request);
+            String idStr = StringUtil.trim(map.get("id"));
+            if(!StringUtil.hasText(idStr)){
+                result.setResult(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR);
+                result.setMessage(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE);
+                return JsonUtil.toJson(result);
+            }
+            int id = StringUtil.getAsInt(idStr);
+            result = housesManager.getOwnerHousingApplicationById(id);
+        }catch (Exception e){
+            logger.error("HousesController getOwnerHousingApplication Exception message:" + e.getMessage());
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return JsonUtil.toJson(result);
+    }
+
+
+    /**
+     * 客服审核业主申请房源信息
+     * @return
+     */
+    @RequestMapping(value="housing/apply/check/{applyId}", method = RequestMethod.POST)
+    @ResponseBody
+    public  String checkHousingApply(@PathVariable Integer applyId) throws  IllegalAccessException{
+        ResultVo vo = new ResultVo();
+        Map<Object,Object> condition = new HashMap<Object, Object>();
+        try {
+
+            if(!StringUtil.hasText(StringUtil.trim(applyId))){
+                vo = ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR,ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE);
+                return JsonUtil.toJson(vo);
+            }
+            if(applyId<=0){
+                vo = ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR,ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE);
+                return JsonUtil.toJson(vo);
+            }
+            condition.put("id",applyId);//房源申请ID
+            vo = housesManager.checkHousingApply(condition);
+        } catch (Exception e) {
+            logger.error("HousesController controller checkHousingApply  Method Exception :——》:" + e.getMessage());
+            vo = ResultVo.error(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR,ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+
+        }
+        return JsonUtil.toJson(vo);
+    }
+
+
+    /**
+     * 客服审核房源信息
+     * @return
+     */
+    @RequestMapping(value="house/check/{houseId}", method = RequestMethod.POST)
+    @ResponseBody
+    public  String checkHouse(@PathVariable Integer houseId) throws Exception{
+        ResultVo vo = null;
+        Map<Object,Object> condition = new HashMap<Object, Object>();
+        try {
+            ActiveUser user = (ActiveUser) SecurityUtils.getSubject().getPrincipal();
+            if(houseId<=0){//房源ID
+                vo = ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR,ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE);
+                return JsonUtil.toJson(vo);
+            }
+            condition.put("houseId",houseId);//房源ID
+            condition.put("userId",user.getUserid());//业务员ID
+            vo = housesManager.checkHouse(condition);
+        } catch (Exception e) {
+            logger.error("HousesController controller checkHouse  Method Exception :——》:" + e.getMessage());
+            vo = ResultVo.error(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR,ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return JsonUtil.toJson(vo);
+    }
+}

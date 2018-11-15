@@ -1,0 +1,256 @@
+package www.ucforward.com.controller.member;
+
+import com.google.common.collect.Maps;
+import org.apache.shiro.SecurityUtils;
+import org.apache.shiro.authz.annotation.RequiresPermissions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.propertyeditors.CustomDateEditor;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.WebDataBinder;
+import org.springframework.web.bind.annotation.*;
+import org.utils.StringUtil;
+import www.ucforward.com.constants.AppRquestParamsConstant;
+import www.ucforward.com.constants.ResultConstant;
+import www.ucforward.com.controller.user.UserController;
+import www.ucforward.com.entity.ActiveUser;
+import www.ucforward.com.entity.HsMember;
+import www.ucforward.com.entity.HsMemberFinancialLoansApply;
+import www.ucforward.com.entity.HsSysUser;
+import www.ucforward.com.manager.IHousesManager;
+import www.ucforward.com.manager.IMemberManager;
+import www.ucforward.com.utils.JsonUtil;
+import www.ucforward.com.utils.RequestUtil;
+import www.ucforward.com.vo.ResultVo;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * 会员管理类
+ * @Auther: lsq
+ * @Date: 2018/8/30 19:21
+ * @Description:
+ */
+@Controller
+@ResponseBody
+public class MemberController {
+    // 日志记录器
+    private static Logger logger = LoggerFactory.getLogger(MemberController.class);
+
+    @Resource
+    private IMemberManager memberManager;
+
+    /**
+     * 处理字符串 日期参数转换异常
+     * @param binder
+     */
+    @InitBinder
+    public void initBinder(WebDataBinder binder) {
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        dateFormat.setLenient(false);
+        binder.registerCustomEditor(Date.class, new CustomDateEditor(dateFormat, true));
+
+    }
+
+    /**
+     * 获取会员列表
+     * @return
+     */
+    @PostMapping(value="/member/list")
+    public String getMemberList(HttpServletRequest request) throws Exception {
+        ResultVo vo = null;
+        int pageIndex = StringUtil.getAsInt(request.getParameter("pageIndex"),0); //当前页
+        int pageSize = StringUtil.getAsInt(request.getParameter("pageSize"),-1); //当前页
+        String keyword = request.getParameter("keyword"); //当前页
+        int languageVersion = StringUtil.getAsInt(request.getParameter("languageVersion"),0); //语言版本
+        Map<Object,Object> condition = Maps.newHashMap();
+        condition.put("languageVersion",languageVersion);
+        condition.put("pageIndex",pageIndex);
+        condition.put("pageSize", pageSize == -1 ? AppRquestParamsConstant.APP_PAGE_SIZE : pageSize); //页显示条数
+        if(StringUtil.hasText(keyword)){
+            condition.put("keyword", keyword); //页显示条数
+        }
+        vo = memberManager.getMemberList(condition);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 获取会员详情
+     * @return
+     */
+    @PostMapping(value="/member/detail/{memberId}")
+    public String getMemberDetail(@PathVariable Integer memberId) throws Exception {
+        ResultVo vo = memberManager.getMemberDetail(memberId);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 修改会员
+     * @return
+     */
+    @PostMapping(value="/member/update")
+    public String updateMember(HsMember member) throws Exception {
+        //修改会员信息
+        if(member.getId()== null || member.getId().intValue()<=0){//会员ID
+            return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR,"会员ID不能为空"));
+        }
+        ResultVo vo = memberManager.updateMember(member);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 新增会员
+     * @return
+     */
+    @PostMapping(value="/member/add")
+    public String addMember(HsMember member) throws Exception {
+        //修改用户信息
+        if(!StringUtil.hasText(member.getMemberMoble())){//手机号
+            return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR,"手机号不能为空"));
+        }
+        if(!StringUtil.hasText(member.getAreaCode())){//电话地区号
+            return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR,"电话地区号不能为空"));
+        }
+        ResultVo vo = memberManager.addMember(member);
+        return JsonUtil.toJson(vo);
+    }
+
+
+    /**
+     * 新增人员贷款信息
+     * @param request
+     * @param financialLoansApply
+     * @return
+     */
+    @RequestMapping(value="member/addLoansApply", method = RequestMethod.POST)
+    public String addLoansApply(HttpServletRequest request ,HsMemberFinancialLoansApply financialLoansApply){
+        ResultVo result = new ResultVo();
+        try{
+            ActiveUser user = (ActiveUser) SecurityUtils.getSubject().getPrincipal();
+            Integer userid = user.getUserid();
+            financialLoansApply.setMemberId(userid);
+            financialLoansApply.setCreateBy(userid);
+            financialLoansApply.setCreateTime(new Date());
+            result = memberManager.addLoansApply(financialLoansApply);
+        }catch (Exception e){
+            logger.error("MemberController getOwnerHousingApplication Exception message:" + e.getMessage());
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return JsonUtil.toJson(result);
+    }
+
+    /**
+     * 获取人员贷款信息
+     * @param request
+     * @return
+     */
+    @RequestMapping(value="member/getLoansApply", method = RequestMethod.POST)
+    public String getLoansApply(HttpServletRequest request){
+        ResultVo result = new ResultVo();
+        Map<Object,Object> condition = new HashMap<>(1);
+        try{
+            ActiveUser user = (ActiveUser) SecurityUtils.getSubject().getPrincipal();
+            Integer userid = user.getUserid();
+            condition.put("isDel",0);
+            condition.put("memberId",userid);
+            result = memberManager.getLoansApply(condition);
+        }catch (Exception e){
+            logger.error("MemberController getLoansApply Exception message:" + e.getMessage());
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return JsonUtil.toJson(result);
+    }
+
+    /**
+     *  获取人员申购预约列表
+     * @param request
+     * @return
+     */
+    @RequestMapping(value="member/getPurchaseApplyList", method = RequestMethod.POST)
+    @ResponseBody
+    public String getPurchaseApplyList(HttpServletRequest request){
+        ResultVo result = new ResultVo();
+        Map<Object,Object> condition = new HashMap<>(1);
+        try{
+            //当前页
+            int pageIndex = StringUtil.getAsInt(request.getParameter("pageIndex"), 1);
+            ActiveUser user = (ActiveUser) SecurityUtils.getSubject().getPrincipal();
+            Integer userid = user.getUserid();
+            condition.put("pageIndex", pageIndex);
+            //页显示条数
+            condition.put("pageSize", AppRquestParamsConstant.APP_PAGE_SIZE);
+            condition.put("isDel",0);
+            condition.put("memberId",userid);
+            result = memberManager.getPurchaseApplyList(condition);
+        }catch (Exception e){
+            logger.error("MemberController getPurchaseApplyList Exception message:" + e.getMessage());
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return JsonUtil.toJson(result);
+    }
+
+    /**
+     * 获取人员申购预约详情
+     * @param request
+     * @return
+     */
+    @RequestMapping(value="member/getPurchaseApplyDetails", method = RequestMethod.POST)
+    public String getPurchaseApplyDetails(HttpServletRequest request){
+        ResultVo result = new ResultVo();
+        try{
+            //当前页
+            int id = StringUtil.getAsInt(request.getParameter("id"));
+            result = memberManager.getPurchaseApplyDetails(id);
+        }catch (Exception e){
+            logger.error("MemberController getPurchaseApplyDetails Exception message:" + e.getMessage());
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return JsonUtil.toJson(result);
+    }
+
+    /**
+     * 是否新用户
+     * @param request
+     * @return
+     */
+    @RequestMapping("member/isNewUser")
+    public String isNewUser(HttpServletRequest request){
+        ResultVo resultVo = new ResultVo();
+        //ip地址
+        String ip = RequestUtil.getIpAddress(request);
+        //手机号码
+        String mobile = request.getParameter("mobile");
+        //电话地区号
+        String areaCode = StringUtil.trim(request.getParameter("areaCode"), "971");
+        //验证码
+        String validateCode = request.getParameter("validateCode");
+        //是否测试登录
+        String isTest = StringUtil.trim(request.getParameter("isTest"));
+        if(!StringUtil.hasText(mobile) || !StringUtil.hasText(validateCode)){
+            resultVo.setResult(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR);
+            resultVo.setMessage(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE);
+            return JsonUtil.toJson(resultVo);
+        }
+
+        Map<Object, Object> condition = new HashMap<>(5);
+        condition.put("memberMoble", mobile);
+        condition.put("areaCode", areaCode);
+        condition.put("validateCode", validateCode);
+        condition.put("isTest", isTest);
+        condition.put("ip", RequestUtil.getIpAddress(request));
+        ResultVo newUser = memberManager.isNewUser(condition);
+        return JsonUtil.toJson(newUser);
+    }
+
+
+}

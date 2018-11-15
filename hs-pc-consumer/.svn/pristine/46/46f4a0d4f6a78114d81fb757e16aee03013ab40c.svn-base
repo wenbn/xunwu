@@ -1,0 +1,124 @@
+package www.ucforward.com.controller.operation;
+
+import com.google.common.collect.Maps;
+import org.apache.shiro.authz.annotation.RequiresPermissions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.utils.StringUtil;
+import www.ucforward.com.constants.AppRquestParamsConstant;
+import www.ucforward.com.constants.ResultConstant;
+import www.ucforward.com.controller.base.BaseController;
+import www.ucforward.com.entity.HsArticleData;
+import www.ucforward.com.manager.ICommonManager;
+import www.ucforward.com.utils.JsonUtil;
+import www.ucforward.com.vo.ResultVo;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import java.util.Map;
+
+/**
+ * @author wenbn
+ * @version 1.0
+ * @date 2018/8/22
+ */
+@Controller
+@ResponseBody
+public class ArticleController extends BaseController {
+
+    // 日志记录器
+    private static Logger logger = LoggerFactory.getLogger(AdvertController.class);
+
+    @Resource
+    private ICommonManager commonManager;
+
+
+    /**
+     * 添加广告
+     * @return
+     */
+    @RequiresPermissions("article:add")
+    @PostMapping("/article/add")
+    public String addArticle(HsArticleData articleData) throws Exception {
+        ResultVo vo = null;
+        String articleName = articleData.getArticleName();//文章名称
+        String articleDesc = articleData.getArticleDesc();//文章描述
+
+        if (!StringUtil.hasText(articleName)) {
+            return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR, "文章名称不能为空"));
+        }
+        if (!StringUtil.hasText(articleDesc)) {
+            return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR, "文章描述不能为空"));
+        }
+
+        vo = commonManager.addArticle(articleData);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 删除广告
+     * @return
+     */
+    @RequiresPermissions("article:delete")
+    @PostMapping("/article/delete/{articleId}")
+    public String deleteArticleById (@PathVariable Integer articleId) throws Exception {
+        if(articleId<=0){
+            return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR, "文章ID不能为空"));
+        }
+        ResultVo vo = commonManager.deleteArticle(articleId);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 修改广告
+     * @return
+     */
+    @RequiresPermissions("article:update")
+    @PostMapping("/article/update")
+    public String updateArticle(HsArticleData articleData) throws Exception {
+        ResultVo vo = null;
+        Integer id = articleData.getId();
+        if(id == null){
+            return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR, "广告ID不能为空"));
+        }
+        vo = commonManager.updateArticle(articleData);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 获取广告列表
+     * @return
+     */
+    @RequiresPermissions("article:list")
+    @PostMapping("/article/list")
+    public String getArticleList (HttpServletRequest request) throws Exception {
+        ResultVo vo = null;
+        int pageIndex = StringUtil.getAsInt(request.getParameter("pageIndex"), 0); //当前页
+        int languageVersion = StringUtil.getAsInt(request.getParameter("languageVersion"), 0); //语言版本
+        Map<Object, Object> condition = Maps.newHashMap();
+        condition.put("languageVersion", languageVersion);
+        condition.put("pageIndex", pageIndex);
+        condition.put("pageSize", AppRquestParamsConstant.APP_PAGE_SIZE); //页显示条数
+        vo = commonManager.getArticleList(condition);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 获取广告详情
+     * @return
+     */
+    @RequiresPermissions("article:detail")
+    @PostMapping("/article/detail/{articleId}")
+    public String getArticleDetail (@PathVariable Integer articleId) throws Exception {
+        if(articleId==null){
+            return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR, "文章ID不能为空"));
+        }
+        ResultVo vo = commonManager.getArticleDetail(articleId);
+        return JsonUtil.toJson(vo);
+    }
+
+}

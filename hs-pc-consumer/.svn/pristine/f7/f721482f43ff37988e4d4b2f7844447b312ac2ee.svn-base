@@ -1,0 +1,63 @@
+package www.ucforward.com.manager;
+
+import www.ucforward.com.vo.ResultVo;
+
+import java.util.List;
+import java.util.Map; /**
+ * @author wenbn
+ * @version 1.0
+ * @date 2018/8/30
+ */
+public interface IOrderManager {
+
+    //内勤已确认正式合同
+    ResultVo confirmedOnlineContract(Map<Object, Object> condition);
+
+    //内勤分配业务员派线下合同单
+    ResultVo sendOfflineContract(Map<Object, Object> condition);
+
+    //内勤已确认签署合同
+    ResultVo confirmSignedContract(Map<Object, Object> condition);
+
+    //出租场景，确认Ejari注册
+    ResultVo confirmEjariRegister(Map<Object, Object> condition);
+
+    //卖家NOC / 买家贷款
+    ResultVo nocOrLoans(Map<Object, Object> condition);
+
+    //完成产权变更
+    ResultVo registrationAlteration(Map<Object, Object> condition);
+
+    //业主或买家拒绝签订正式合同
+    ResultVo rejectFormalContract(Map<Object, Object> condition);
+
+    /**
+     * 获取合同列表
+     * @param condition
+     * @return
+     */
+    ResultVo getContractList(Map<Object, Object> condition);
+
+    /**
+     * 获取合同信息
+     * @param orderId
+     * @return
+     */
+    ResultVo getContract(int orderId);
+
+    /**
+     * 修改合同内容（增加附加条款）
+     * @param additionalTermsList 附加条款
+     * @param orderId             订单id
+     * @param userId              用户id
+     * @return
+     */
+    ResultVo updateContract(List<String> additionalTermsList,Integer orderId,Integer userId);
+
+    //获取房源订单列表
+    ResultVo getOrderList(Map<Object, Object> condition);
+
+    //获取房源订单详情
+    ResultVo getOrderDetail(Integer id);
+
+}

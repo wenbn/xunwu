@@ -1,0 +1,113 @@
+package www.ucforward.com.manager.impl;
+
+import com.google.common.collect.Maps;
+import org.apache.shiro.crypto.hash.SimpleHash;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.utils.StringUtil;
+import www.ucforward.com.constants.ResultConstant;
+import www.ucforward.com.entity.HsChannel;
+import www.ucforward.com.entity.HsSysUser;
+import www.ucforward.com.manager.IUserManager;
+import www.ucforward.com.serviceInter.MemberService;
+import www.ucforward.com.vo.ResultVo;
+
+import javax.annotation.Resource;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * @author wenbn
+ * @version 1.0
+ * @date 2018/8/21
+ */
+@Service
+public class IUserManagerImpl implements IUserManager {
+
+    @Value("${PASSWORD_HASHITERATIONS}")
+    private String PASSWORD_HASHITERATIONS;
+
+    // 日志记录器
+    private static Logger logger = LoggerFactory.getLogger(ICommonManagerImpl.class);
+
+    @Resource
+    private MemberService memberService;
+
+    /**
+     * 获取内部用户列表
+     * @param condition
+     * @return
+     */
+    @Override
+    public ResultVo getUserlList(Map<Object, Object> condition) {
+        ResultVo vo = null;
+        //自定义查询列名
+        List<String> queryColumn = new ArrayList<>();
+        queryColumn.add("ID userId");//主键ID
+        queryColumn.add("USERCODE usercode");//账号
+        queryColumn.add("USERNAME username");//姓名
+        queryColumn.add("USER_LOGO userLogo");//个人头像
+        queryColumn.add("MOBILE mobile");//手机号
+        queryColumn.add("LOCKED locked");//账号是否锁( 0未锁定 , 1：锁定)
+        queryColumn.add("CITY city");//城市
+        queryColumn.add("COMMUNITY community");//社区
+        queryColumn.add("SUB_COMMUNITY subCommunity");//子社区
+        queryColumn.add("GOLD gold");//积分帐户,默认为0
+        queryColumn.add("IS_DEL isDel");//是否删除0:不删除，1：删除
+        queryColumn.add("CREATE_TIME createTime");//创建时间
+        condition.put("queryColumn",queryColumn);
+        try {
+            vo = memberService.selectCustomColumnNamesList(HsSysUser.class,condition);
+        } catch (Exception e) {
+            logger.warn("Remote call to getUserlList fails"+e);
+            vo = ResultVo.error(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR,ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        condition = null;
+        return vo;
+    }
+
+    /**
+     * 获取内部用户详情
+     * @param userId
+     * @return
+     */
+    @Override
+    public ResultVo getUserDetail(Integer userId) {
+        ResultVo vo = null;
+        try {
+            vo = memberService.select(userId,new HsSysUser());
+        } catch (Exception e) {
+            logger.warn("Remote call to getUserDetail fails"+e);
+            vo = ResultVo.error(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR,ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return vo;
+    }
+
+    /**
+     * 修改内部用户
+     * @param user
+     * @return
+     */
+    @Override
+    public ResultVo updateUser(HsSysUser user) {
+        ResultVo vo = null;
+        try {
+            String password = user.getPassword();//判断密码是否为空
+            if(!StringUtil.hasText(password)){//修改密码,默认6个1
+                int salt= (int) ((Math.random()*9+1)*10000);
+                SimpleHash md5 = new SimpleHash("MD5", 111111, salt+"", Integer.parseInt(PASSWORD_HASHITERATIONS));
+                //SimpleHash md5 = new SimpleHash("MD5", password, salt+"", Integer.parseInt(PASSWORD_HASHITERATIONS));
+                user.setPassword(md5.toString());//密码
+                user.setSalt(StringUtil.trim(salt));
+            }
+            vo = memberService.update(user);
+        } catch (Exception e) {
+            logger.warn("Remote call to updateUser fails"+e);
+            vo = ResultVo.error(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR,ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return vo;
+    }
+}

@@ -1,0 +1,118 @@
+package www.ucforward.com.controller.permission;
+
+import com.google.common.collect.Maps;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.*;
+import org.utils.StringUtil;
+import www.ucforward.com.constants.ResultConstant;
+import www.ucforward.com.controller.base.BaseController;
+import www.ucforward.com.entity.HsSysPermission;
+import www.ucforward.com.manager.IMemberManager;
+import www.ucforward.com.utils.JsonUtil;
+import www.ucforward.com.vo.ResultVo;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+/**
+ * @author wenbn
+ * @version 1.0
+ * @date 2018/8/22
+ */
+@Controller
+@ResponseBody
+public class PermissionController extends BaseController {
+
+    // 日志记录器
+    private static Logger logger = LoggerFactory.getLogger(PermissionController.class);
+
+    @Resource
+    private IMemberManager memberManager;
+
+    /**
+     * 获取权限列表
+     * @return
+     */
+    @RequestMapping(value="/permission/list",method = RequestMethod.POST)
+    public String getPermissionList(HttpServletRequest request) throws Exception {
+        ResultVo vo = null;
+        Map<Object,Object> condition = Maps.newHashMap();
+        vo = memberManager.getPermissionList(condition);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 查询权限详情
+     * @return
+     */
+    @RequestMapping(value="/permission/detail/{id}",method = RequestMethod.POST)
+    public String getPermissionDetail(@PathVariable Integer id) throws Exception {
+        if(id == null){
+            return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR,"权限ID不能为空"));
+        }
+        ResultVo vo = memberManager.getPermissionDetail(id);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 新增权限
+     * @return
+     */
+    @RequestMapping(value="/permission/add",method = RequestMethod.POST)
+    public String addPermission(HsSysPermission hsSysPermission) throws Exception {
+        ResultVo vo = memberManager.addPermission(hsSysPermission);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 修改权限
+     * @return
+     */
+    @RequestMapping(value="/permission/update",method = RequestMethod.POST)
+    public String updatePermission(HsSysPermission hsSysPermission) throws Exception {
+        ResultVo vo = memberManager.updatePermission(hsSysPermission);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 角色分配权限
+     * @return
+     */
+    @PostMapping("/permission/grant/{pids}/{roleId}")
+    public String grantPermission(@PathVariable String pids, @PathVariable String roleId){
+        if(!StringUtil.hasText(pids)){//绑定的数据为空时直接返回绑定失败
+            return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_FAILURE,ResultConstant.SYS_REQUIRED_FAILURE_VALUE));
+        }
+        List<Integer> pidsList = Arrays.asList(pids.split(","))
+                .stream().map(s -> Integer.parseInt(s.trim()))
+                .collect(Collectors.toList());
+        ResultVo vo = memberManager.grantPermission(pidsList,roleId);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 删除权限
+     * @return
+     */
+    @RequestMapping(value="/permission/delete/{id}",method = RequestMethod.POST)
+    public String deletePermission(@PathVariable Integer id) throws Exception {
+        if(id == null){
+            return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR,"权限ID不能为空"));
+        }
+        HsSysPermission permission = new HsSysPermission();
+        permission.setId(id);
+        permission.setIsDel(1);
+        ResultVo vo = memberManager.deletePermission(permission);
+        return JsonUtil.toJson(vo);
+    }
+
+
+
+
+}

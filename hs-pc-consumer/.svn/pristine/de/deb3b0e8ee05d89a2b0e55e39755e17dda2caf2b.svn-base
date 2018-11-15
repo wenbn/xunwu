@@ -1,0 +1,21 @@
+package www.ucforward.com.manager;
+
+import www.ucforward.com.vo.ResultVo;
+import java.util.Map;
+
+/**
+ * @author wenbn
+ * @version 1.0
+ * @date 2018/8/20
+ */
+public interface ICommonManager {
+
+    //获取频道列表
+    ResultVo getChannelList(Map<Object, Object> condition);
+
+    //获取展位列表
+    ResultVo getBoothList(Map<Object, Object> condition);
+
+    //获取展位详情
+    ResultVo getBoothDetail(Integer id);
+}

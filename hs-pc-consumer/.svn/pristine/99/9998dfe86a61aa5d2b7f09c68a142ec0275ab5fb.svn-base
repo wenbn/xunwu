@@ -1,0 +1,268 @@
+package www.ucforward.com.manager.impl;
+
+import org.apache.shiro.SecurityUtils;
+import org.apache.shiro.subject.Subject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.stereotype.Service;
+import org.utils.StringUtil;
+import www.ucforward.com.constants.MessageConstant;
+import www.ucforward.com.constants.ResultConstant;
+import www.ucforward.com.entity.*;
+import www.ucforward.com.index.message.HouseIndexMessage;
+import www.ucforward.com.manager.IPayManager;
+import www.ucforward.com.serviceInter.*;
+import www.ucforward.com.utils.JsonUtil;
+import www.ucforward.com.vo.ResultVo;
+
+import javax.annotation.Resource;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 支付管理类
+ * @author wenbn
+ * @version 1.0
+ * @date 2018/8/30
+ */
+@Service
+public class IPayManagerImpl implements IPayManager {
+
+    // 日志记录器
+    private static Logger logger = LoggerFactory.getLogger(IPayManagerImpl.class);
+
+    @Resource
+    private HousesService housesService;
+    @Resource
+    private OrderService orderService;
+    @Resource
+    private PayService payService;
+    @Resource
+    private SearchService searchService;
+
+    @Autowired
+    private KafkaTemplate<String, String> kafkaTemplate;
+
+    /**
+     * 线下订单支付
+     * @param condition
+     * @return
+     */
+    @Override
+    public ResultVo offlineOrderPay(Map<Object, Object> condition) {
+        ResultVo vo = null;
+        try {
+            String orderCode = StringUtil.trim(condition.get("orderCode"));//订单编码
+            int updateId = StringUtil.getAsInt(StringUtil.trim(condition.get("updateId")));//保存修改人ID
+
+            //自定义查询列名
+            List<String> queryColumn = new ArrayList<>();
+            queryColumn.add("ID orderId");//主键ID
+            queryColumn.add("HOUSE_ID houseId");//房源id
+            queryColumn.add("MEMBER_ID memberId");//买家id
+            queryColumn.add("OWNER_ID ownerId");//业主id
+            queryColumn.add("BARGAIN_ID bargainId");//议价id
+            queryColumn.add("ORDER_AMOUNT orderAmount");//订单金额
+            queryColumn.add("ORDER_STATUS orderStatus");//订单状态 0-待付款->1-已支付->2-财务已审核（待确认线上合同）->3-已确认线上合同->4-线下合同派单->5-已签署合同->6-已完成->7账务审核不通过
+            queryColumn.add("PAY_STATUS payStatus");//支付状态 0-未付款 1- 已支付
+            queryColumn.add("ORDER_TYPE orderType");//订单类型 0-租房->1-买房
+            queryColumn.add("IS_DEL isDel");//是否删除0:不删除，1：删除
+            queryColumn.add("CREATE_TIME createTime");//创建时间
+            queryColumn.add("VERSION_NO versionNo");//当前版本
+            condition.put("queryColumn", queryColumn);
+            vo = orderService.selectCustomColumnNamesList(HsHousingOrder.class, condition);
+            if(ResultConstant.SYS_REQUIRED_SUCCESS == vo.getResult()){//请求成功
+                List<Map<Object,Object>> orderList = (List<Map<Object, Object>>) vo.getDataSet();
+                if(orderList==null || orderList.size()==0){//订单为空时
+                    return ResultVo.error(ResultConstant.SYS_REQUIRED_FAILURE,"订单数据异常");
+                }
+                Map<Object, Object> orderMap = orderList.get(0);
+                //判断订单状态是否是待支付
+                int orderStatus = StringUtil.getAsInt(StringUtil.trim(orderMap.get("orderStatus")));
+                int payStatus = StringUtil.getAsInt(StringUtil.trim(orderMap.get("payStatus")));
+                if(orderStatus > 0 && payStatus > 0){
+                    return ResultVo.error(ResultConstant.SYS_REQUIRED_FAILURE,"订单已支付");
+                }
+                //订单ID
+                int orderId = StringUtil.getAsInt(StringUtil.trim(orderMap.get("orderId")));
+                Date nowTime = new Date();
+
+                //检查房源状态
+                int houseId = StringUtil.getAsInt(StringUtil.trim(orderMap.get("houseId")));
+                condition.clear();
+                queryColumn.clear();
+                queryColumn.add("ID houseId");//房源id
+                queryColumn.add("HOUSE_STATUS houseStatus");//买家id
+                queryColumn.add("IS_DEL isDel");//是否删除0:不删除，1：删除
+                queryColumn.add("VERSION_NO versionNo");//当前版本
+                condition.put("queryColumn", queryColumn);
+                condition.put("houseId", houseId);
+                ResultVo houseVo = housesService.selectCustomColumnNamesList(HsMainHouse.class, condition);
+                if(ResultConstant.SYS_REQUIRED_SUCCESS != houseVo.getResult()){
+                    return houseVo;
+                }
+                List<Map<Object,Object>> houseList = (List<Map<Object, Object>>) houseVo.getDataSet();
+                if(houseList==null || houseList.size()==0){
+                    houseVo.setResult(ResultConstant.HOUSES_DATA_EXCEPTION);
+                    houseVo.setMessage(ResultConstant.HOUSES_DATA_EXCEPTION_VALUE);
+                    return houseVo;
+                }
+                Map<Object, Object> houseMap = houseList.get(0);
+                int houseStatus = StringUtil.getAsInt(StringUtil.trim(houseMap.get("houseStatus")));
+                int isDel = StringUtil.getAsInt(StringUtil.trim(houseMap.get("isDel")));
+                if(houseStatus != 1 || isDel != 0){
+                    houseVo.setDataSet(null);
+                    houseVo.setResult(ResultConstant.HOUSES_DATA_EXCEPTION);
+                    houseVo.setMessage(ResultConstant.HOUSES_DATA_EXCEPTION_VALUE);
+                    return houseVo;
+                }
+
+                //插入支付记录
+                HsHousingOrderPaymentRecord payment = new HsHousingOrderPaymentRecord();
+                payment.setOrderSerialCode("test_pay");//订单线上支付流水号
+                payment.setPayWay(2);//支付方式 1-线上支付 2-线下支付 3-钱包支付
+                payment.setProceedsAmout((BigDecimal) orderMap.get("orderAmount"));//付款金额
+                payment.setOrderId(orderId);
+                payment.setCreateTime(nowTime);
+                payment.setCreateBy(updateId);
+                payment.setUpdateTime(nowTime);
+                payment.setRemarks("线下支付成功");
+
+                vo = payService.insert(payment);
+                if(ResultConstant.SYS_REQUIRED_SUCCESS == vo.getResult()){
+                    //修改订单状态
+                    HsHousingOrder orderUpdate = new HsHousingOrder();
+                    orderUpdate.setId(orderId);
+                    orderUpdate.setOrderStatus(1);
+                    orderUpdate.setOrderStatusTitle("线下支付成功");
+                    orderUpdate.setPayStatusTitle("支付成功");
+                    orderUpdate.setPayWay(2);
+                    orderUpdate.setPayStatus(1);
+                    orderUpdate.setUpdateBy(updateId);
+                    orderUpdate.setUpdateTime(nowTime);
+                    orderUpdate.setVersionNo(StringUtil.getAsInt(StringUtil.trim(orderMap.get("versionNo"))));
+                    vo = orderService.update(orderUpdate);
+                    if(ResultConstant.SYS_REQUIRED_SUCCESS == vo.getResult()){
+
+                        //修改房源数据
+                        HsMainHouse house =  new HsMainHouse();
+                        house.setId(houseId);
+                        house.setUpdateTime(nowTime);
+                        house.setIsLock(1);
+                        house.setRemark("房源已完成支付，正常下架");
+                        house.setVersionNo(StringUtil.getAsInt(StringUtil.trim(houseMap.get("versionNo"))));
+                        housesService.update(house);
+
+                        //创建索引
+                        HouseIndexMessage message = new HouseIndexMessage(houseId, HouseIndexMessage.REMOVE, 0);
+                        kafkaTemplate.send(MessageConstant.BUILD_HOUSE_INDEX_TOPIC_MESSAGE, JsonUtil.toJson(message));
+                        //searchService.remove(houseId);
+
+                    }
+                }
+            }
+        } catch (Exception e) {
+            logger.warn("Remote call to offlineOrderPay fails" + e);
+            vo = ResultVo.error(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR, ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        condition = null;
+        return vo;
+    }
+
+    /**
+     *  审核订单支付
+     * @param condition
+     * @return
+     */
+    @Override
+    public ResultVo checkOrderPay(Map<Object, Object> condition) {
+        ResultVo vo = null;
+        try {
+            int updateId = StringUtil.getAsInt(StringUtil.trim(condition.get("updateId")));//保存修改人ID
+            //自定义查询列名
+            List<String> queryColumn = new ArrayList<>();
+            queryColumn.add("ID orderId");//主键ID
+            queryColumn.add("HOUSE_ID houseId");//房源id
+            queryColumn.add("MEMBER_ID memberId");//买家id
+            queryColumn.add("OWNER_ID ownerId");//业主id
+            queryColumn.add("BARGAIN_ID bargainId");//议价id
+            queryColumn.add("ORDER_AMOUNT orderAmount");//订单金额
+            queryColumn.add("ORDER_STATUS orderStatus");//订单状态 0-待付款->1-已支付->2-财务已审核（待确认线上合同）->3-已确认线上合同->4-线下合同派单->5-已签署合同->6-已完成->7账务审核不通过
+            queryColumn.add("PAY_STATUS payStatus");//支付状态 0-未付款 1- 已支付
+            queryColumn.add("ORDER_TYPE orderType");//订单类型 0-租房->1-买房
+            queryColumn.add("IS_DEL isDel");//是否删除0:不删除，1：删除
+            queryColumn.add("CREATE_TIME createTime");//创建时间
+            queryColumn.add("VERSION_NO versionNo");//当前版本
+            condition.put("queryColumn", queryColumn);
+            vo = orderService.selectCustomColumnNamesList(HsHousingOrder.class, condition);
+            if(ResultConstant.SYS_REQUIRED_SUCCESS == vo.getResult()){//请求成功
+                List<Map<Object,Object>> orderList = (List<Map<Object, Object>>) vo.getDataSet();
+                if(orderList==null || orderList.size()==0){//订单为空时
+                    return ResultVo.error(ResultConstant.SYS_REQUIRED_FAILURE,"订单数据异常");
+                }
+                Map<Object, Object> orderMap = orderList.get(0);
+                //判断订单状态是否是待支付
+                int orderStatus = StringUtil.getAsInt(StringUtil.trim(orderMap.get("orderStatus")));
+                int payStatus = StringUtil.getAsInt(StringUtil.trim(orderMap.get("payStatus")));
+                if(orderStatus == 0 && payStatus == 0){
+                    return ResultVo.error(ResultConstant.SYS_REQUIRED_FAILURE,"订单未支付");
+                }
+                if(orderStatus > 1 ){
+                    return ResultVo.error(ResultConstant.SYS_REQUIRED_FAILURE,"订单数据异常");
+                }
+                //订单ID
+                int orderId = StringUtil.getAsInt(StringUtil.trim(orderMap.get("orderId")));
+                int houseId = StringUtil.getAsInt(StringUtil.trim(orderMap.get("houseId")));
+                Date nowTime = new Date();
+
+                //修改订单状态
+                HsHousingOrder orderUpdate = new HsHousingOrder();
+                orderUpdate.setId(orderId);
+                orderUpdate.setOrderStatus(2);
+                orderUpdate.setOrderStatusTitle("财务审核完毕");
+                orderUpdate.setUpdateBy(updateId);
+                orderUpdate.setUpdateTime(nowTime);
+                orderUpdate.setVersionNo(StringUtil.getAsInt(StringUtil.trim(orderMap.get("versionNo"))));
+                vo = orderService.update(orderUpdate);
+
+                if(ResultConstant.SYS_REQUIRED_SUCCESS == vo.getResult()){//请求成功
+                    /*插入订单日志*/
+                    HsHousingOrderLog log = new HsHousingOrderLog();
+                    log.setOrderId(orderId);
+                    log.setNodeType(2);
+                    log.setRemarks("财务审核完毕");
+                    log.setCreateTime(nowTime);
+                    log.setPostTime(nowTime);
+                    log.setCreateBy(updateId);
+                    log.setOperatorUid(updateId);
+                    //操作人类型1:普通会员 2:商家 3:系统管理员
+                    log.setOperatorType(3);
+                    ResultVo insert = orderService.insert(log);
+                    //下架房源
+                    HsMainHouse mainHouse = new HsMainHouse();
+                    mainHouse.setId(houseId);
+                    mainHouse.setIsLock(1);//是否锁定：0:未锁定，1：锁定（议价成功后，锁定房源）
+                    mainHouse.setHouseStatus(4);//房源状态：0>已提交 1审核通过 2商家申请下架 3下架 4已出售或出租
+                    mainHouse.setUpdateTime(nowTime);
+                    housesService.update(mainHouse);
+
+                    //创建索引
+                    HouseIndexMessage message = new HouseIndexMessage(houseId, HouseIndexMessage.REMOVE, 0);
+                    kafkaTemplate.send(MessageConstant.BUILD_HOUSE_INDEX_TOPIC_MESSAGE, JsonUtil.toJson(message));
+                    return ResultVo.success();
+                }
+
+            }
+        } catch (Exception e) {
+            logger.warn("Remote call to checkOrderPay fails" + e);
+            vo = ResultVo.error(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR, ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        condition = null;
+        return vo;
+    }
+}

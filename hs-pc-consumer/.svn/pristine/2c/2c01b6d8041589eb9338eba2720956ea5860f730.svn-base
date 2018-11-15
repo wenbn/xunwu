@@ -1,0 +1,169 @@
+package www.ucforward.com.manager;
+
+import www.ucforward.com.entity.*;
+import www.ucforward.com.vo.ResultVo;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * @author wenbn
+ * @version 1.0
+ * @date 2018/8/20
+ */
+public interface ICommonManager {
+
+    //获取频道列表
+    ResultVo getChannelList(Map<Object, Object> condition);
+
+    //获取展位列表
+    ResultVo getBoothList(Map<Object, Object> condition);
+
+    //获取该展位已经绑定的数据
+    ResultVo getBoothBindingData(Integer boothId);
+
+    //获取该展位未绑定的数据
+    ResultVo getBoothUnBindData(Integer boothId);
+
+    //展位绑定数据
+    ResultVo bindingBoothData(Integer boothId, List<Integer> dataList);
+
+    //解除该展位下已经绑定的数据
+    ResultVo relieveBoothDataBind(Integer boothId, List<Integer> dataList);
+
+    //获取展位详情
+    ResultVo getBoothDetail(Integer id);
+
+    //修改展位
+    ResultVo updateBooth(HsBooth booth);
+
+    //新增展位
+    ResultVo addBooth(HsBooth booth);
+
+    //获取该频道下已经绑定的展位数据
+    ResultVo getChannelBindData(Integer channelId);
+
+    //解除该频道下已经绑定的展位数据
+    ResultVo relieveChannelBind(Integer channelId, List<Integer> boothIdsList);
+
+    //获取该频道下未绑定的展位数据
+    ResultVo getChannelUnBindData(Integer id,Integer channelType);
+
+    //频道绑定展位数据
+    ResultVo bindingChannelData(Integer channelId, List<Integer> boothIdsList);
+
+    //新增频道
+    ResultVo addChannel(HsChannel channel);
+
+    //修改频道
+    ResultVo updateChannel(HsChannel channel);
+
+    //添加广告
+    ResultVo addAdvert(HsAdvertData advertData);
+
+    //删除广告
+    ResultVo deleteAdvert(Integer advertId);
+
+    //修改广告
+    ResultVo updateAdvert(HsAdvertData advertData);
+
+    //查看广告列表
+    ResultVo getAdvertList(Map<Object, Object> condition);
+
+    //获取广告详情
+    ResultVo getAdvertDetail(Integer advertId);
+
+    //添加文章
+    ResultVo addArticle(HsArticleData articleData);
+
+    //删除文章
+    ResultVo deleteArticle(Integer articleId);
+
+    //修改文章
+    ResultVo updateArticle(HsArticleData articleData);
+
+    //查看文章列表
+    ResultVo getArticleList(Map<Object, Object> condition);
+
+    //获取文章详情
+    ResultVo getArticleDetail(Integer articleId);
+
+    //获取数据字典组列表
+    ResultVo getDictGroupList(Map<Object, Object> condition);
+
+    //修改数据字典组
+    ResultVo updateDictGroup(HsSysDictcodeGroup dictcodeGroup);
+
+    //新增数据字典组
+    ResultVo addDictGroup(HsSysDictcodeGroup dictcodeGroup);
+
+    //获取数据字典组详情
+    ResultVo getDictGroupDetail(Integer dictcodeGroupId);
+
+    //获取数据字典项列表
+    ResultVo getDictItemList(Map<Object, Object> condition);
+
+    //修改数据字典项
+    ResultVo updateDictItem(HsSysDictcodeItem dictcodeItem);
+
+    //新增数据字典项
+    ResultVo addDictItem(HsSysDictcodeItem dictcodeItem);
+
+    //获取支持的城市信息
+    ResultVo getSupportCities(Map<Object, Object> condition);
+
+    //获取支持的城市信息详情
+    ResultVo getCityDetail(Integer id);
+
+    //修改支持的城市信息
+    ResultVo updateCity(HsSupportCity city);
+
+    //新增支持的城市信息
+    ResultVo addCity(HsSupportCity city);
+
+    //删除城市信息
+    ResultVo deleteCity(Integer id);
+
+    //获取积分计算列表
+    ResultVo getGoldRuleList(Map<Object, Object> condition);
+
+    //获取积分计算详情
+    ResultVo getGoldRuleDetail(Integer id);
+
+    //新增积分计算详情
+    ResultVo addGoldRule(HsGoldRule hsGoldRule);
+
+    //修改积分规则
+    ResultVo updateGoldRule(HsGoldRule hsGoldRule);
+
+    //获取平台设置列表
+    ResultVo getPlatformSettingList(Map<Object, Object> condition);
+
+    //获取平台设置详情
+    ResultVo getPlatformSettingDetail(Integer id);
+
+    //修改平台设置
+    ResultVo updatePlatformSetting(HsSysPlatformSetting platformSetting);
+
+    //新增平台设置
+    ResultVo addPlatformSetting(HsSysPlatformSetting platformSetting);
+
+    //删除平台设置
+    ResultVo deletePlatformSetting(Integer id);
+
+    /**
+     * 获取地址编码
+     * @return
+     * @throws Exception
+     */
+    ResultVo loadCityCode(Map<Object,Object> condition);
+
+    /**
+     * 获取进度流程
+     * @param type
+     * @return
+     */
+    List<Map<String, Object>> findProgressList(String type);
+
+
+
+}

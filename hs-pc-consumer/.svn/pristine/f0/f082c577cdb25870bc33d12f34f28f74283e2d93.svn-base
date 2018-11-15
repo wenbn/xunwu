@@ -1,0 +1,54 @@
+package www.ucforward.com.manager;
+
+import org.springframework.stereotype.Service;
+import www.ucforward.com.entity.*;
+import www.ucforward.com.vo.ResultVo;
+
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 系统及业务员相关管理
+ * @author wenbn
+ * @version 1.0
+ * @date 2018/6/20
+ */
+@Service
+public interface IMemberManager {
+
+    //获取内部用户列表
+    ResultVo getUserlList(Map<Object, Object> condition);
+
+    //获取内部用户详情
+    ResultVo getUserDetail(Integer userId);
+
+    //修改内部用户
+    ResultVo updateUser(HsSysUser user);
+
+    //新增内部用户
+    ResultVo addUser(HsSysUser user);
+
+    //获取角色列表
+    ResultVo getRoleList(Map<Object, Object> condition);
+
+    //获取角色详情
+    ResultVo getRoleDetail(String roleId);
+
+    //修改角色信息
+    ResultVo updateRole(HsSysRole role);
+
+    //新增角色信息
+    ResultVo addRole(HsSysRole role);
+
+    //获取权限列表
+    ResultVo getPermissionList(Map<Object, Object> condition);
+
+    //新增权限
+    ResultVo addPermission(HsSysPermission hsSysPermission);
+
+    //修改权限
+    ResultVo updatePermission(HsSysPermission hsSysPermission);
+
+    //为角色添加权限
+    ResultVo grantPermission(List<Integer> pids, String roleId);
+}

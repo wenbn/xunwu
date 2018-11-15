@@ -1,0 +1,23 @@
+package www.ucforward.com.manager;
+
+import org.springframework.stereotype.Service;
+import www.ucforward.com.entity.*;
+import www.ucforward.com.vo.ResultVo;
+
+import java.util.Map;
+
+/**
+ * 系统及业务员相关管理
+ * @author wenbn
+ * @version 1.0
+ * @date 2018/6/20
+ */
+@Service
+public interface IUserManager {
+
+    //获取内部用户列表
+    ResultVo getUserlList(Map<Object, Object> condition);
+
+    //获取内部用户详情
+    ResultVo getUserDetail(Integer userId);
+}

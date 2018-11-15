@@ -1,0 +1,54 @@
+package www.ucforward.com.controller.operation;
+
+import com.google.common.collect.Maps;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.utils.StringUtil;
+import www.ucforward.com.constants.AppRquestParamsConstant;
+import www.ucforward.com.constants.ResultConstant;
+import www.ucforward.com.manager.ICommonManager;
+import www.ucforward.com.utils.JsonUtil;
+import www.ucforward.com.vo.ResultVo;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import java.util.Map;
+
+/**
+ * 展位管理类
+ * @author wenbn
+ * @version 1.0
+ * @date 2018/8/20
+ */
+@Controller
+public class ChannelController {
+
+    // 日志记录器
+    private static Logger logger = LoggerFactory.getLogger(ChannelController.class);
+
+    @Resource
+    private ICommonManager commonManager;
+
+    /**
+     * 获取当前展位信息
+     * @return
+     */
+    @RequestMapping(value="/channel/get",method = RequestMethod.POST)
+    @ResponseBody
+    public String getChannels(HttpServletRequest request) throws Exception {
+        ResultVo vo = null;
+        int pageIndex = StringUtil.getAsInt(request.getParameter("pageIndex"),0); //当前页
+        int languageVersion = StringUtil.getAsInt(request.getParameter("languageVersion"),0); //语言版本
+        Map<Object,Object> condition = Maps.newHashMap();
+        condition.put("languageVersion",languageVersion);
+        condition.put("pageIndex",pageIndex);
+        condition.put("pageSize", AppRquestParamsConstant.APP_PAGE_SIZE); //页显示条数
+        vo = commonManager.getChannels(condition);
+        return JsonUtil.toJson(vo);
+    }
+
+}

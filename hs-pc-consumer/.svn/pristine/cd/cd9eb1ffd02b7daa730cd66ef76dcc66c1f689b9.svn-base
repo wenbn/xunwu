@@ -1,0 +1,246 @@
+package www.ucforward.com.controller.finance;
+
+import com.google.common.collect.Maps;
+import org.apache.shiro.SecurityUtils;
+import org.apache.shiro.subject.Subject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.utils.StringUtil;
+import www.ucforward.com.constants.AppRquestParamsConstant;
+import www.ucforward.com.constants.ResultConstant;
+import www.ucforward.com.controller.base.BaseController;
+import www.ucforward.com.entity.ActiveUser;
+import www.ucforward.com.entity.HsHousingOrder;
+import www.ucforward.com.entity.HsOrderCommissionRecord;
+import www.ucforward.com.manager.IOrderManager;
+import www.ucforward.com.manager.IPayManager;
+import www.ucforward.com.utils.JsonUtil;
+import www.ucforward.com.utils.RequestUtil;
+import www.ucforward.com.vo.ResultVo;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import java.util.Map;
+
+/**
+ * @author wenbn
+ * @version 1.0
+ * @date 2018/8/30
+ */
+@Controller
+@ResponseBody
+public class FinanceController  extends BaseController {
+
+    // 日志记录器
+    private static Logger logger = LoggerFactory.getLogger(FinanceController.class);
+
+    @Resource
+    private IPayManager payManager;
+    @Resource
+    private IOrderManager orderManager;
+
+
+    /**
+     * 获取订单列表
+     * @return
+     */
+    @PostMapping(value="/order/list")
+    public String getOrderList(HttpServletRequest request) throws Exception {
+        ResultVo vo = null;
+        int pageIndex = StringUtil.getAsInt(request.getParameter("pageIndex"),0); //当前页
+        int orderType = StringUtil.getAsInt(request.getParameter("orderType"),-1); //订单类型 0-租房->1-买房
+        int payStatus = StringUtil.getAsInt(request.getParameter("payStatus"),-1); //支付状态 0-未付款 1- 已支付
+        int payWay = StringUtil.getAsInt(request.getParameter("payWay"),-1); //支付方式 0-未付款 1-线上支付 2-线下支付 3-钱包支付
+        int isCheck = StringUtil.getAsInt(request.getParameter("isCheck"),-1); //订单是否审核 1已支付未审核 ，2已审核
+        Map map = RequestUtil.getParameterMap(request);
+        Map<Object,Object> condition = Maps.newHashMap();
+        condition.putAll(map);
+        condition.put("pageIndex",pageIndex);
+        condition.put("pageSize", AppRquestParamsConstant.APP_PAGE_SIZE); //页显示条数
+        if(orderType!= -1){
+            condition.put("orderType",orderType); //订单类型 0-租房->1-买房
+        }
+        if(payStatus!= -1){
+            condition.put("payStatus",payStatus); //支付状态 0-未付款 1- 已支付
+        }
+        if(isCheck != -1){//已支付未审核
+            condition.put("orderStatus",isCheck);
+        }
+        if(payWay != -1){//支付方式
+            condition.put("payWay",payWay);
+        }
+        vo = orderManager.getOrderList(condition);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 获取订单列表
+     * @return
+     */
+    @PostMapping(value="/order/detail/{id}")
+    public String getOrderDetail(@PathVariable Integer id) throws Exception {
+        ResultVo vo = null;
+        vo = orderManager.getOrderDetail(id);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 修改平台设置
+     * @return
+     */
+    @PostMapping(value="/order/update")
+    public String updateOrder(HsHousingOrder order) throws Exception {
+        //修改平台设置
+        ResultVo vo = null;
+        return JsonUtil.toJson(vo);
+    }
+
+
+
+
+
+    /**
+     * 审核订单支付
+     * @param request
+     * @return
+     */
+    @PostMapping(value="/check/order/pay")
+    public String checkOrderPay(HttpServletRequest request){
+        ResultVo vo =null;
+        try {
+            Map map = RequestUtil.getParameterMap(request);
+            String orderCode = StringUtil.trim(map.get("orderCode"));//订单编码
+            if(!StringUtil.hasText(orderCode)){
+                vo = ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR,ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE);
+                return JsonUtil.toJson(vo);
+            }
+            Map<Object ,Object> condition = Maps.newHashMap();
+            condition.put("orderCode",orderCode);
+            Subject subject = SecurityUtils.getSubject();
+            ActiveUser user = (ActiveUser) subject.getPrincipal();
+            condition.put("updateId",user.getUserid());//保存修改人ID
+            vo = payManager.checkOrderPay(condition);
+        } catch (Exception e) {
+            logger.error("FinanceController controller: offlineOrderPay Exception message:" + e.getMessage());
+            vo = ResultVo.error(
+                    ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR,
+                    ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE
+            );
+        }
+        return JsonUtil.toJson(vo);
+    }
+
+
+    /**
+     * 获取成单结佣列表
+     * @return
+     */
+    @PostMapping(value="/final/commission/list")
+    public String getOrderCommissionRecordList(HttpServletRequest request) throws Exception {
+        ResultVo vo = null;
+        int pageIndex = StringUtil.getAsInt(request.getParameter("pageIndex"),0); //当前页
+        int orderType = StringUtil.getAsInt(request.getParameter("orderType"),-1); //订单类型 0-租房->1-买房
+        int isCheck = StringUtil.getAsInt(request.getParameter("isCheck"),-1); //订单是否审核 0已支付未审核 ，1已审核
+        int isSettleAccounts = StringUtil.getAsInt(request.getParameter("isSettleAccounts"),-1);//是否完成结算0:未结算，1：已结算
+        String keyword = request.getParameter("keyword"); //查询关键字
+        Map<Object,Object> condition = Maps.newHashMap();
+        condition.put("pageIndex",pageIndex);
+        condition.put("pageSize", AppRquestParamsConstant.APP_PAGE_SIZE); //页显示条数
+        if(orderType!= -1){
+            condition.put("orderType",orderType); //订单类型 0-租房->1-买房
+        }
+        if(isCheck != -1){//已支付未审核
+            condition.put("isCheck",isCheck);
+        }
+        if(isSettleAccounts != -1){//是否完成结算0:未结算，1：已结算
+            condition.put("isSettleAccounts",isSettleAccounts);
+        }
+        if(StringUtil.hasText(keyword)){
+            condition.put("keyword",keyword);
+        }
+        //查询最终成单列表
+        vo = orderManager.getCommissionOrderList(condition);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 获取成单结佣详情
+     * @return
+     */
+    @PostMapping(value="/final/commission/detail/{id}")
+    public String getOrderCommissionRecordDetail(@PathVariable Integer id) throws Exception {
+        ResultVo vo = null;
+        if(id == null){//已支付未审核
+            return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR,ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE));
+        }
+        //查询最终成单详情
+        vo = orderManager.getOrderCommissionRecordDetail(id);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 获取成单结佣
+     * @return
+     */
+    @PostMapping(value="/final/commission/update")
+    public String updateOrderCommissionRecord(HsOrderCommissionRecord commissionRecord) throws Exception {
+        ResultVo vo = null;
+        //修改最终成单
+        vo = orderManager.updateOrderCommissionRecord(commissionRecord);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 获取退款列表
+     * @return
+     */
+    @PostMapping(value="/refund/list")
+    public String getRefundList(HttpServletRequest request) throws Exception {
+        ResultVo vo = null;
+        int pageIndex = StringUtil.getAsInt(request.getParameter("pageIndex"),0); //当前页
+        int orderType = StringUtil.getAsInt(request.getParameter("orderType"),-1); //订单类型 0-租房->1-买房
+        int refundType = StringUtil.getAsInt(request.getParameter("refundType"),-1); //0:业主申请退款，1：买家申请退款
+        int isCheck = StringUtil.getAsInt(request.getParameter("isCheck"),-1); //是否审核0:未审核，1：审核通过 2审核不通过
+        int isRefund = StringUtil.getAsInt(request.getParameter("isRefund"),-1);//是否退款0:未退款，1：已退款
+        String keyword = request.getParameter("keyword"); //查询关键字
+        Map<Object,Object> condition = Maps.newHashMap();
+        condition.put("pageIndex",pageIndex);
+        condition.put("pageSize", AppRquestParamsConstant.APP_PAGE_SIZE); //页显示条数
+        if(orderType!= -1){
+            condition.put("orderType",orderType); //订单类型 0-租房->1-买房
+        }
+        if(isCheck != -1){//已支付未审核
+            condition.put("isCheck",isCheck);
+        }
+        if(refundType != -1){//是否完成结算0:未结算，1：已结算
+            condition.put("refundType",refundType);
+        }
+        if(isRefund != -1){//是否退款0:未退款，1：已退款
+            condition.put("isRefund",isRefund);
+        }
+        if(StringUtil.hasText(keyword)){
+            condition.put("keyword",keyword);
+        }
+        //获取退款列表
+        vo = orderManager.getRefundList(condition);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 获取退款详情
+     * @return
+     */
+    @PostMapping(value="/refund/detail/{id}")
+    public String getRefundDetail(@PathVariable Integer id) throws Exception {
+        ResultVo vo = null;
+        //获取退款列表
+        vo = orderManager.getRefundDetail(id);
+        return JsonUtil.toJson(vo);
+    }
+
+
+}

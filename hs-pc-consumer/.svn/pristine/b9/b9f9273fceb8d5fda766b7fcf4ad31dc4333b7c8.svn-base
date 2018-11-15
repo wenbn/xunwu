@@ -1,0 +1,101 @@
+package www.ucforward.com.controller.user;
+
+import com.google.common.collect.Maps;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.utils.StringUtil;
+import www.ucforward.com.constants.AppRquestParamsConstant;
+import www.ucforward.com.constants.ResultConstant;
+import www.ucforward.com.entity.HsSysUser;
+import www.ucforward.com.manager.IUserManager;
+import www.ucforward.com.utils.JsonUtil;
+import www.ucforward.com.vo.ResultVo;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import java.util.Map;
+
+/**
+ * @author wenbn
+ * @version 1.0
+ * @date 2018/8/21
+ */
+@Controller
+@ResponseBody
+public class UserController {
+
+    // 日志记录器
+    private static Logger logger = LoggerFactory.getLogger(UserController.class);
+
+    @Resource
+    private IUserManager userManager;
+
+    /**
+     * 获取内部用户列表
+     * @return
+     */
+    @RequestMapping(value="/user/list",method = RequestMethod.POST)
+    public String getUserlList(HttpServletRequest request) throws Exception {
+        ResultVo vo = null;
+        int pageIndex = StringUtil.getAsInt(request.getParameter("pageIndex"),0); //当前页
+        int languageVersion = StringUtil.getAsInt(request.getParameter("languageVersion"),0); //语言版本
+        Map<Object,Object> condition = Maps.newHashMap();
+        condition.put("languageVersion",languageVersion);
+        condition.put("pageIndex",pageIndex);
+        condition.put("pageSize", AppRquestParamsConstant.APP_PAGE_SIZE); //页显示条数
+        vo = userManager.getUserlList(condition);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 获取内部用户详情
+     * @return
+     */
+    @RequestMapping(value="/user/detail/{userId}",method = RequestMethod.POST)
+    public String getUserDetail(@PathVariable Integer userId) throws Exception {
+        ResultVo vo = userManager.getUserDetail(userId);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 修改内部用户
+     * @return
+     */
+    @RequestMapping(value="/user/update",method = RequestMethod.POST)
+    public String updateUser(HsSysUser user) throws Exception {
+        //修改用户信息
+        if(user.getId()== null || user.getId().intValue()<=0){//内部用户ID
+            return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR,"内部用户ID不能为空"));
+        }
+        ResultVo vo = userManager.updateUser(user);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 新增内部用户
+     * @return
+     */
+    @RequestMapping(value="/user/add",method = RequestMethod.POST)
+    public String addUser(HsSysUser user) throws Exception {
+        //修改用户信息
+        if(!StringUtil.hasText(user.getUsername())){//内部用户账号
+            return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR,"内部用户账号不能为空"));
+        }
+        if(!StringUtil.hasText(user.getUsercode())){//内部用户姓名
+            return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR,"内部用户姓名不能为空"));
+        }
+        if(!StringUtil.hasText(user.getMobile())){//内部用户手机号
+            return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR,"手机号不能为空"));
+        }
+        ResultVo vo = userManager.addUser(user);
+        return JsonUtil.toJson(vo);
+    }
+
+
+
+}

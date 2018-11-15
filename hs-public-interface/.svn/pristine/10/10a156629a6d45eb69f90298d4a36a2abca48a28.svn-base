@@ -1,0 +1,293 @@
+package www.ucforward.com.index.entity;
+
+import java.io.Serializable;
+
+/**
+ * 房源查询条件
+ * @author wenbn
+ * @version 1.0
+ * @date 2018/7/2
+ */
+public class HouseSearchCondition implements Serializable {
+
+    private String keywords;//搜索关键字
+    private int minPrice;//最小价格
+    private int maxPrice;//最大价格
+    private int minArea;//最小面积
+    private int maxArea;//最大面积
+    private int minBedroom;//最小卧室数量
+    private int maxBedroom;//最大卧室数量
+    private int minBathroom;//最小浴室数量
+    private int maxBathroom;//最大浴室数量
+
+    private String houseOrientationDictcode;//房屋朝向 0：东 1：南 2：西 3：北 4：南北
+    private String houseDecorationDictcode;//房屋装修 0：毛坯 1：普通装修 2：精装修 3：豪华装修
+    private String houseLabelDictcode;//房源特色，查询数据字典，逗号分割
+    private String houseFloorDictcode;//房源楼层，0：低楼层 1：中楼层 2：高楼层
+    private String houseConfigDictcode;//房源楼层，0：低楼层 1：中楼层 2：高楼层
+    private String housingTypeDictcode;//房屋类型 0:小区 1:公寓 2:民房 3:别墅
+
+    private String orderBy = "updateTime";
+    private String orderDirection = "desc";
+    private String city;//城市
+    private String community;//社区
+    private String subCommunity;//子社区
+    private String property;//城市
+    private String address;//详细地址
+    private String houseName;//房源名称
+    private String buildingName;//楼名/别墅名
+    private String villageName;//小区名称
+
+    private int pageIndex = 0;//当前页
+    private int pageSize = 10;//查询数据条数
+
+
+    public String getKeywords() {
+        return keywords;
+    }
+
+    public void setKeywords(String keywords) {
+        this.keywords = keywords;
+    }
+
+    public int getMinPrice() {
+        return minPrice;
+    }
+
+    public void setMinPrice(int minPrice) {
+        this.minPrice = minPrice;
+    }
+
+    public int getMaxPrice() {
+        return maxPrice;
+    }
+
+    public void setMaxPrice(int maxPrice) {
+        this.maxPrice = maxPrice;
+    }
+
+    public int getMinArea() {
+        return minArea;
+    }
+
+    public void setMinArea(int minArea) {
+        this.minArea = minArea;
+    }
+
+    public int getMaxArea() {
+        return maxArea;
+    }
+
+    public void setMaxArea(int maxArea) {
+        this.maxArea = maxArea;
+    }
+
+    public int getMinBedroom() {
+        return minBedroom;
+    }
+
+    public void setMinBedroom(int minBedroom) {
+        this.minBedroom = minBedroom;
+    }
+
+    public int getMaxBedroom() {
+        return maxBedroom;
+    }
+
+    public void setMaxBedroom(int maxBedroom) {
+        this.maxBedroom = maxBedroom;
+    }
+
+    public int getMinBathroom() {
+        return minBathroom;
+    }
+
+    public void setMinBathroom(int minBathroom) {
+        this.minBathroom = minBathroom;
+    }
+
+    public int getMaxBathroom() {
+        return maxBathroom;
+    }
+
+    public void setMaxBathroom(int maxBathroom) {
+        this.maxBathroom = maxBathroom;
+    }
+
+    public String getHouseOrientationDictcode() {
+        return houseOrientationDictcode;
+    }
+
+    public void setHouseOrientationDictcode(String houseOrientationDictcode) {
+        this.houseOrientationDictcode = houseOrientationDictcode;
+    }
+
+    public String getHouseDecorationDictcode() {
+        return houseDecorationDictcode;
+    }
+
+    public void setHouseDecorationDictcode(String houseDecorationDictcode) {
+        this.houseDecorationDictcode = houseDecorationDictcode;
+    }
+
+    public String getHouseLabelDictcode() {
+        return houseLabelDictcode;
+    }
+
+    public void setHouseLabelDictcode(String houseLabelDictcode) {
+        this.houseLabelDictcode = houseLabelDictcode;
+    }
+
+    public String getHouseFloorDictcode() {
+        return houseFloorDictcode;
+    }
+
+    public void setHouseFloorDictcode(String houseFloorDictcode) {
+        this.houseFloorDictcode = houseFloorDictcode;
+    }
+
+    public String getHouseConfigDictcode() {
+        return houseConfigDictcode;
+    }
+
+    public void setHouseConfigDictcode(String houseConfigDictcode) {
+        this.houseConfigDictcode = houseConfigDictcode;
+    }
+
+    public String getHousingTypeDictcode() {
+        return housingTypeDictcode;
+    }
+
+    public void setHousingTypeDictcode(String housingTypeDictcode) {
+        this.housingTypeDictcode = housingTypeDictcode;
+    }
+
+    public String getOrderBy() {
+        return orderBy;
+    }
+
+    public void setOrderBy(String orderBy) {
+        this.orderBy = orderBy;
+    }
+
+    public String getOrderDirection() {
+        return orderDirection;
+    }
+
+    public void setOrderDirection(String orderDirection) {
+        this.orderDirection = orderDirection;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
+    }
+
+    public String getCommunity() {
+        return community;
+    }
+
+    public void setCommunity(String community) {
+        this.community = community;
+    }
+
+    public String getSubCommunity() {
+        return subCommunity;
+    }
+
+    public void setSubCommunity(String subCommunity) {
+        this.subCommunity = subCommunity;
+    }
+
+    public String getProperty() {
+        return property;
+    }
+
+    public void setProperty(String property) {
+        this.property = property;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
+    public String getHouseName() {
+        return houseName;
+    }
+
+    public void setHouseName(String houseName) {
+        this.houseName = houseName;
+    }
+
+    public String getBuildingName() {
+        return buildingName;
+    }
+
+    public void setBuildingName(String buildingName) {
+        this.buildingName = buildingName;
+    }
+
+    public String getVillageName() {
+        return villageName;
+    }
+
+    public void setVillageName(String villageName) {
+        this.villageName = villageName;
+    }
+
+    public int getPageIndex() {
+        return pageIndex;
+    }
+
+    public void setPageIndex(int pageIndex) {
+        this.pageIndex = pageIndex;
+    }
+
+    public int getPageSize() {
+        return pageSize;
+    }
+
+    public void setPageSize(int pageSize) {
+        this.pageSize = pageSize;
+    }
+
+    @Override
+    public String toString() {
+        return "HouseSearchCondition{" +
+                "keywords='" + keywords + '\'' +
+                ", minPrice=" + minPrice +
+                ", maxPrice=" + maxPrice +
+                ", minArea=" + minArea +
+                ", maxArea=" + maxArea +
+                ", minBedroom=" + minBedroom +
+                ", maxBedroom=" + maxBedroom +
+                ", minBathroom=" + minBathroom +
+                ", maxBathroom=" + maxBathroom +
+                ", houseOrientationDictcode='" + houseOrientationDictcode + '\'' +
+                ", houseDecorationDictcode='" + houseDecorationDictcode + '\'' +
+                ", houseLabelDictcode='" + houseLabelDictcode + '\'' +
+                ", houseFloorDictcode='" + houseFloorDictcode + '\'' +
+                ", houseConfigDictcode='" + houseConfigDictcode + '\'' +
+                ", housingTypeDictcode='" + housingTypeDictcode + '\'' +
+                ", orderBy='" + orderBy + '\'' +
+                ", orderDirection='" + orderDirection + '\'' +
+                ", city='" + city + '\'' +
+                ", community='" + community + '\'' +
+                ", subCommunity='" + subCommunity + '\'' +
+                ", property='" + property + '\'' +
+                ", address='" + address + '\'' +
+                ", houseName='" + houseName + '\'' +
+                ", buildingName='" + buildingName + '\'' +
+                ", villageName='" + villageName + '\'' +
+                ", pageIndex=" + pageIndex +
+                ", pageSize=" + pageSize +
+                '}';
+    }
+}

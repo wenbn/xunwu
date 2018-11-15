@@ -1,0 +1,418 @@
+package www.ucforward.com.index.template;
+
+import www.ucforward.com.index.entity.GoogleMapLocation;
+import www.ucforward.com.index.entity.HouseSuggest;
+
+import java.math.BigDecimal;
+import java.util.Date;
+import java.util.List;
+
+/**
+ * 索引结构模板
+ * @author wenbn
+ * @version 1.0
+ * @date 2018/6/25
+ */
+public class HouseIndexTemplate {
+
+
+    /**房源id     */
+    private Integer id;
+
+    /**房源名称     */
+    private String houseName;
+
+    /**预约类型（0：出租，1：出售）     */
+    private Integer leaseType;
+
+    /**
+     *   房屋类型 0:小区 1:公寓 2:民房 3:别墅
+     */
+    private String housingTypeDictcode;
+
+    /**城市     */
+    private String city;
+
+    /**社区     */
+    private String community;
+
+    /**子社区     */
+    private String subCommunity;
+
+    /**项目     */
+    private String property;
+
+    /**房源所在区域名称     */
+    private String address;
+//
+//    /**经度     */
+//    private String longitude;
+//
+//    /**纬度     */
+//    private String latitude;
+
+    /**小区名     */
+//    private String villageName;
+
+    /**楼名/别墅名     */
+    private String buildingName;
+
+    /**房屋面积     */
+    private BigDecimal houseAcreage;
+
+    /**浴室数量     */
+    private Integer bathroomNum;
+
+    /**卧室数量     */
+    private Integer bedroomNum;
+
+    /** 房屋装修 0：带家具，1：不带家具     */
+    private String houseDecorationDictcode;
+
+
+    /** 支付节点 , 1....12/月     */
+    private String payNode;
+
+    /**房源配置，ids     */
+    private String houseConfigDictcode;
+
+    /**房屋状态（0：空房，1：出租，2：自住，3：准现房）    */
+    private Integer housingStatus;
+
+    /**房源状态：0>期房，1>现房     */
+    private Integer isPromissoryBuild;
+
+    /**是否有房贷：0>无，1>有     */
+    private Integer isHouseLoan;
+
+    /**期望租金/或出售价  */
+    private BigDecimal houseRent;
+
+    /**最低租金/或出售价     */
+    private BigDecimal minHouseRent;
+
+    /**房源状态：0>已提交 1审核通过 2商家申请下架 3下架 4已出售或出租     */
+    private Integer houseStatus;
+
+    /**房源概况     */
+    private String houseSituation;
+
+    /**浏览量     */
+    private Integer browseCount;
+
+    /** 收藏量      */
+    private Integer collectCount;
+
+    /** 分享次数     */
+    private Integer shareCount;
+
+    /**看房次数     */
+    private Integer lookHouseCount;
+
+    /**议价次数     */
+    private Integer negotiatedCount;
+
+    /**被举报次数     */
+    private Integer beReportedCount;
+
+    /**创建时间*/
+    private Date createTime;
+
+    /**更新时间*/
+    private Date updateTime;
+
+    //关键词自动补全
+    private List<HouseSuggest> suggest;
+
+    //google地图信息
+    private GoogleMapLocation location;
+
+
+    public Integer getId() {
+        return id;
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
+    }
+
+    public String getHouseName() {
+        return houseName;
+    }
+
+    public void setHouseName(String houseName) {
+        this.houseName = houseName;
+    }
+
+    public Integer getLeaseType() {
+        return leaseType;
+    }
+
+    public void setLeaseType(Integer leaseType) {
+        this.leaseType = leaseType;
+    }
+
+    public String getHousingTypeDictcode() {
+        return housingTypeDictcode;
+    }
+
+    public void setHousingTypeDictcode(String housingTypeDictcode) {
+        this.housingTypeDictcode = housingTypeDictcode;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
+    }
+
+    public String getCommunity() {
+        return community;
+    }
+
+    public void setCommunity(String community) {
+        this.community = community;
+    }
+
+    public String getSubCommunity() {
+        return subCommunity;
+    }
+
+    public void setSubCommunity(String subCommunity) {
+        this.subCommunity = subCommunity;
+    }
+
+    public String getProperty() {
+        return property;
+    }
+
+    public void setProperty(String property) {
+        this.property = property;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
+//    public String getLongitude() {
+//        return longitude;
+//    }
+//
+//    public void setLongitude(String longitude) {
+//        this.longitude = longitude;
+//    }
+//
+//    public String getLatitude() {
+//        return latitude;
+//    }
+//
+//    public void setLatitude(String latitude) {
+//        this.latitude = latitude;
+//    }
+
+//    public String getVillageName() {
+//        return villageName;
+//    }
+//
+//    public void setVillageName(String villageName) {
+//        this.villageName = villageName;
+//    }
+
+    public String getBuildingName() {
+        return buildingName;
+    }
+
+    public void setBuildingName(String buildingName) {
+        this.buildingName = buildingName;
+    }
+
+    public BigDecimal getHouseAcreage() {
+        return houseAcreage;
+    }
+
+    public void setHouseAcreage(BigDecimal houseAcreage) {
+        this.houseAcreage = houseAcreage;
+    }
+
+    public Integer getBathroomNum() {
+        return bathroomNum;
+    }
+
+    public void setBathroomNum(Integer bathroomNum) {
+        this.bathroomNum = bathroomNum;
+    }
+
+    public Integer getBedroomNum() {
+        return bedroomNum;
+    }
+
+    public void setBedroomNum(Integer bedroomNum) {
+        this.bedroomNum = bedroomNum;
+    }
+
+    public String getHouseDecorationDictcode() {
+        return houseDecorationDictcode;
+    }
+
+    public void setHouseDecorationDictcode(String houseDecorationDictcode) {
+        this.houseDecorationDictcode = houseDecorationDictcode;
+    }
+
+    public String getHouseConfigDictcode() {
+        return houseConfigDictcode;
+    }
+
+    public void setHouseConfigDictcode(String houseConfigDictcode) {
+        this.houseConfigDictcode = houseConfigDictcode;
+    }
+
+    public Integer getHousingStatus() {
+        return housingStatus;
+    }
+
+    public void setHousingStatus(Integer housingStatus) {
+        this.housingStatus = housingStatus;
+    }
+
+    public Integer getIsPromissoryBuild() {
+        return isPromissoryBuild;
+    }
+
+    public void setIsPromissoryBuild(Integer isPromissoryBuild) {
+        this.isPromissoryBuild = isPromissoryBuild;
+    }
+
+    public Integer getIsHouseLoan() {
+        return isHouseLoan;
+    }
+
+    public void setIsHouseLoan(Integer isHouseLoan) {
+        this.isHouseLoan = isHouseLoan;
+    }
+
+    public BigDecimal getHouseRent() {
+        return houseRent;
+    }
+
+    public void setHouseRent(BigDecimal houseRent) {
+        this.houseRent = houseRent;
+    }
+
+    public BigDecimal getMinHouseRent() {
+        return minHouseRent;
+    }
+
+    public void setMinHouseRent(BigDecimal minHouseRent) {
+        this.minHouseRent = minHouseRent;
+    }
+
+    public Integer getHouseStatus() {
+        return houseStatus;
+    }
+
+    public void setHouseStatus(Integer houseStatus) {
+        this.houseStatus = houseStatus;
+    }
+
+    public String getHouseSituation() {
+        return houseSituation;
+    }
+
+    public void setHouseSituation(String houseSituation) {
+        this.houseSituation = houseSituation;
+    }
+
+    public Integer getBrowseCount() {
+        return browseCount;
+    }
+
+    public void setBrowseCount(Integer browseCount) {
+        this.browseCount = browseCount;
+    }
+
+    public Integer getCollectCount() {
+        return collectCount;
+    }
+
+    public void setCollectCount(Integer collectCount) {
+        this.collectCount = collectCount;
+    }
+
+    public Integer getShareCount() {
+        return shareCount;
+    }
+
+    public void setShareCount(Integer shareCount) {
+        this.shareCount = shareCount;
+    }
+
+    public Integer getLookHouseCount() {
+        return lookHouseCount;
+    }
+
+    public void setLookHouseCount(Integer lookHouseCount) {
+        this.lookHouseCount = lookHouseCount;
+    }
+
+    public Integer getNegotiatedCount() {
+        return negotiatedCount;
+    }
+
+    public void setNegotiatedCount(Integer negotiatedCount) {
+        this.negotiatedCount = negotiatedCount;
+    }
+
+    public Integer getBeReportedCount() {
+        return beReportedCount;
+    }
+
+    public void setBeReportedCount(Integer beReportedCount) {
+        this.beReportedCount = beReportedCount;
+    }
+
+    public Date getCreateTime() {
+        return createTime;
+    }
+
+    public void setCreateTime(Date createTime) {
+        this.createTime = createTime;
+    }
+
+    public Date getUpdateTime() {
+        return updateTime;
+    }
+
+    public void setUpdateTime(Date updateTime) {
+        this.updateTime = updateTime;
+    }
+
+    public List<HouseSuggest> getSuggest() {
+        return suggest;
+    }
+
+    public void setSuggest(List<HouseSuggest> suggest) {
+        this.suggest = suggest;
+    }
+
+    public GoogleMapLocation getLocation() {
+        return location;
+    }
+
+    public void setLocation(GoogleMapLocation location) {
+        this.location = location;
+    }
+
+    public String getPayNode() {
+        return payNode;
+    }
+
+    public void setPayNode(String payNode) {
+        this.payNode = payNode;
+    }
+}

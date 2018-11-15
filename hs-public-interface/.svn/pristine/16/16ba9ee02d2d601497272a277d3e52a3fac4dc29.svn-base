@@ -1,0 +1,26 @@
+#\u6D4B\u8BD5
+test_android_appkey = 5b21107ba40fa377160000ef
+test_android_messageSecret = 7wfdssbr1epkzbnlcucjugfxiil4lr6j
+test_ios_appkey = 5b779267b27b0a129f0006aa
+test_ios_messageSecret = ubydocq8wi51jatwtfmeuzrnsp3obhfk
+#\u5916\u90E8
+external_android_appkey = 5b21107ba40fa377160000ef
+external_android_messageSecret = 7wfdssbr1epkzbnlcucjugfxiil4lr6j
+external_ios_appkey = 5b779267b27b0a129f0006aa
+external_ios_messageSecret = ubydocq8wi51jatwtfmeuzrnsp3obhfk
+#\u5916\u83B7
+outOf_android_appkey = 5b923f75f43e4825720001a6
+outOf_android_messageSecret = wvkyvavrxnhzuwxvs2zouwc1emsyq2lq
+outOf_ios_appkey = 5b779267b27b0a129f0006aa
+outOf_ios_messageSecret = ubydocq8wi51jatwtfmeuzrnsp3obhfk
+#\u5916\u770B
+outLook_android_appkey = 5b21107ba40fa377160000ef
+outLook_android_messageSecret = 97153ce86041357721bd8f012a31d029
+outLook_ios_appkey = 5b87a1e6b27b0a483800027a
+outLook_ios_messageSecret = ugcathzrfm9qeh2l6aaipmyekmvrtqzd
+#\u533A\u57DF\u957F
+regionalChief_android_appkey = 5b21107ba40fa377160000ef
+regionalChief_android_messageSecret = ikypqcmfkw83xbdyskhd05n2exxhep0w
+regionalChief_ios_appkey = 5b879383f43e483648000028
+regionalChief_ios_messageSecret = ikypqcmfkw83xbdyskhd05n2exxhep0w
+

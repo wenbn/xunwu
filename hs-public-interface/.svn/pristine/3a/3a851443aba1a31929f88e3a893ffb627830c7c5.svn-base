@@ -1,0 +1,368 @@
+package www.ucforward.com.umeng.util;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.utils.StringUtil;
+import www.ucforward.com.constants.ResultConstant;
+import www.ucforward.com.entity.HsMsgSetting;
+import www.ucforward.com.serviceInter.CommonService;
+import www.ucforward.com.umeng.AndroidNotification;
+import www.ucforward.com.umeng.PushClient;
+import www.ucforward.com.umeng.android.AndroidBroadcast;
+import www.ucforward.com.umeng.android.AndroidCustomizedcast;
+import www.ucforward.com.umeng.ios.IOSBroadcast;
+import www.ucforward.com.umeng.ios.IOSCustomizedcast;
+import www.ucforward.com.utils.PropertiesUtils;
+import www.ucforward.com.utils.SpringContextUtils;
+import www.ucforward.com.vo.ResultVo;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+/**
+ * 友盟推送工具类
+ * @Auther: lsq
+ * @Date: 2018/8/28 09:59
+ * @Description:
+ */
+public class UmengUtil {
+    private static Logger logger = LoggerFactory.getLogger(UmengUtil.class);
+
+    private final static PushClient PUSH_CLIENT = new PushClient();
+
+
+    /**
+     * 测试
+     */
+    private static final String TEST_ANDROID_APPKEY = PropertiesUtils.loadProps("/umeng/umeng.properties").getProperty("test_android_appkey");
+    private static final String TEST_ANDROID_MESSAGE_SECRET = PropertiesUtils.loadProps("/umeng/umeng.properties").getProperty("test_android_messageSecret");
+    private static final String TEST_IOS_APPKEY = PropertiesUtils.loadProps("/umeng/umeng.properties").getProperty("test_ios_appkey");
+    private static final String TEST_IOS_MESSAGE_SECRET = PropertiesUtils.loadProps("/umeng/umeng.properties").getProperty("test_ios_messageSecret");
+    /**
+     * 外部
+     */
+    private static final String EXTERNAL_ANDROID_APPKEY = PropertiesUtils.loadProps("/umeng/umeng.properties").getProperty("external_android_appkey");
+    private static final String EXTERNAL_ANDROID_MESSAGE_SECRET = PropertiesUtils.loadProps("/umeng/umeng.properties").getProperty("external_android_messageSecret");
+    private static final String EXTERNAL_IOS_APPKEY = PropertiesUtils.loadProps("/umeng/umeng.properties").getProperty("external_ios_appkey");
+    private static final String EXTERNAL_IOS_MESSAGE_SECRET = PropertiesUtils.loadProps("/umeng/umeng.properties").getProperty("external_ios_messageSecret");
+    /**
+     * 外获
+     */
+    private static final String OUTOF_ANDROID_APPKEY = PropertiesUtils.loadProps("/umeng/umeng.properties").getProperty("outOf_android_appkey");
+    private static final String OUTOF_ANDROID_MESSAGE_SECRET = PropertiesUtils.loadProps("/umeng/umeng.properties").getProperty("outOf_android_messageSecret");
+    private static final String OUTOF_IOS_APPKEY = PropertiesUtils.loadProps("/umeng/umeng.properties").getProperty("outOf_ios_appkey");
+    private static final String OUTOF_IOS_MESSAGE_SECRET = PropertiesUtils.loadProps("/umeng/umeng.properties").getProperty("outOf_ios_messageSecret");
+    /**
+     * 外看
+     */
+    private static final String OUTLOOK_ANDROID_APPKEY = PropertiesUtils.loadProps("/umeng/umeng.properties").getProperty("outLook_android_appkey");
+    private static final String OUTLOOK_ANDROID_MESSAGE_SECRET = PropertiesUtils.loadProps("/umeng/umeng.properties").getProperty("outLook_android_messageSecret");
+    private static final String OUTLOOK_IOS_APPKEY = PropertiesUtils.loadProps("/umeng/umeng.properties").getProperty("outLook_ios_appkey");
+    private static final String OUTLOOK_IOS_MESSAGE_SECRET = PropertiesUtils.loadProps("/umeng/umeng.properties").getProperty("outLook_ios_messageSecret");
+
+    private static final String REGIONALCHIEF_ANDROID_APPKEY = PropertiesUtils.loadProps("/umeng/umeng.properties").getProperty("regionalChief_android_appkey");
+    private static final String REGIONALCHIEF_ANDROID_MESSAGE_SECRET = PropertiesUtils.loadProps("/umeng/umeng.properties").getProperty("regionalChief_android_messageSecret");
+    private static final String REGIONALCHIEF_IOS_APPKEY = PropertiesUtils.loadProps("/umeng/umeng.properties").getProperty("regionalChief_ios_appkey");
+    private static final String REGIONALCHIEF_IOS_MESSAGE_SECRET = PropertiesUtils.loadProps("/umeng/umeng.properties").getProperty("regionalChief_ios_messageSecret");
+
+    private UmengUtil() {
+    }
+
+
+    /**
+     * 获取pushClient对象
+     *
+     * @return PushClient对象
+     */
+    public static PushClient getPushClient() {
+        return PUSH_CLIENT;
+    }
+
+
+    /**
+     * 按照别名推送消息
+     *
+     * @param language 语言版本 0:中文,1:英文
+     * @param alias    别名 用户手机号。如果有多个按照逗号分隔 最多50个
+     * @param msg      推送内容
+     * @param platform 平台类型 测试:0 外部:1 外获:2 外看:3 区域长:4
+     * @param msgCode  消息类型  查字典表 dict_msg
+     * @return 推送是否成功
+     * @throws Exception 异常情况
+     */
+    public static boolean aliasSend(Integer language,String alias, String msg, Integer platform, Integer msgCode) throws Exception {
+        //简单的判空处理
+        if (!StringUtil.hasText(alias) || !StringUtil.hasText(msg) || platform == null || msgCode == null) {
+            throw new RuntimeException("参数错误");
+        }
+        //别名类型 必须与别名对应 测试test 外部:external 外获:outOf 外看:outLook 区域长:regionalChief
+        String aliasType;
+        //判断用户是否开启消息推送
+        boolean open = isOpen(alias, platform, StringUtil.trim(msgCode));
+        if (!open) {
+            return false;
+        }
+        //获取title
+        String title = getTitle(language, platform, msgCode);
+        String[] aliasSplit = alias.split(",");
+        String androidAppKey;
+        String androidMessageSecret;
+        String iosAppKey;
+        String iosMessageSecret;
+        switch (platform) {
+            case 0:
+                androidAppKey = TEST_ANDROID_APPKEY;
+                androidMessageSecret = TEST_ANDROID_MESSAGE_SECRET;
+                iosAppKey = TEST_IOS_APPKEY;
+                iosMessageSecret = TEST_IOS_MESSAGE_SECRET;
+                aliasType = spliceAliasType(aliasSplit.length, "test");
+                break;
+            case 1:
+                androidAppKey = EXTERNAL_ANDROID_APPKEY;
+                androidMessageSecret = EXTERNAL_ANDROID_MESSAGE_SECRET;
+                iosAppKey = OUTOF_IOS_APPKEY;
+                iosMessageSecret = OUTOF_IOS_MESSAGE_SECRET;
+                aliasType = spliceAliasType(aliasSplit.length, "external");
+                break;
+            case 2:
+                androidAppKey = OUTOF_ANDROID_APPKEY;
+                androidMessageSecret = OUTOF_ANDROID_MESSAGE_SECRET;
+                iosAppKey = EXTERNAL_IOS_APPKEY;
+                iosMessageSecret = EXTERNAL_IOS_MESSAGE_SECRET;
+                aliasType = spliceAliasType(aliasSplit.length, "outOf");
+                break;
+            case 3:
+                androidAppKey = OUTLOOK_ANDROID_APPKEY;
+                androidMessageSecret = OUTLOOK_ANDROID_MESSAGE_SECRET;
+                iosAppKey = OUTLOOK_IOS_APPKEY;
+                iosMessageSecret = OUTLOOK_IOS_MESSAGE_SECRET;
+                aliasType = spliceAliasType(aliasSplit.length, "outLook");
+                break;
+            case 4:
+                androidAppKey = REGIONALCHIEF_ANDROID_APPKEY;
+                androidMessageSecret = REGIONALCHIEF_ANDROID_MESSAGE_SECRET;
+                iosAppKey = REGIONALCHIEF_IOS_APPKEY;
+                iosMessageSecret = REGIONALCHIEF_IOS_MESSAGE_SECRET;
+                aliasType = spliceAliasType(aliasSplit.length, "regionalChief");
+                break;
+            default:
+                throw new RuntimeException("平台类型错误");
+        }
+
+        //TODO 无法确认用户设备类型 所ios和android的都推一次
+        //推送android消息
+        AndroidCustomizedcast androidCustomizedcast = new AndroidCustomizedcast(androidAppKey, androidMessageSecret);
+        androidCustomizedcast.setAlias(alias, aliasType);
+        androidCustomizedcast.setTitle(title);
+        androidCustomizedcast.setText(msg);
+        androidCustomizedcast.goAppAfterOpen();
+        androidCustomizedcast.setDisplayType(AndroidNotification.DisplayType.NOTIFICATION);
+        if(platform == 0){
+            androidCustomizedcast.setTestMode();
+        }else{
+            androidCustomizedcast.setProductionMode();
+        }
+        boolean androidSend = PUSH_CLIENT.send(androidCustomizedcast);
+
+        //推送ios消息
+        IOSCustomizedcast customizedcast = new IOSCustomizedcast(iosAppKey, iosMessageSecret);
+        customizedcast.setAlias(alias, aliasType);
+        customizedcast.setAlert(msg);
+        customizedcast.setBadge(0);
+        customizedcast.setTitle(title);
+        customizedcast.setSound("default");
+        if(platform == 0){
+            customizedcast.setTestMode();
+        }else{
+            customizedcast.setProductionMode();
+        }
+        boolean iosSend = PUSH_CLIENT.send(customizedcast);
+        return androidSend || iosSend;
+    }
+
+    /**
+     * 发送广播消息
+     * @param language 语言版本 0:中文,1:英文
+     * @param msg      推送内容
+     * @param platform 平台类型 测试:0 外部:1 外获:2 外看:3
+     * @param msgCode  消息类型
+     * @param client   推送客户端 0:所有用户 1:android 2:ios
+     * @return 推送是否成功
+     * @throws Exception 异常情况
+     */
+    public static boolean broadcastSend(Integer language,String msg, Integer platform, Integer msgCode,Integer client) throws Exception {
+        //系统消息不能设置关闭
+
+        //获取title
+//        String title = getTitle(language, platform, msgCode);
+
+        /**
+         * 系统消息为群发消息，后台不能根据用户的设置去判断是否推送。交由前端判断是否接受
+         * title为"sysMsg"表示为系统消息，此时前端需要去获取用户的设置信息，判断是否接受这个推送
+         */
+        String title = "sysMsg";
+        String androidAppKey;
+        String androidMessageSecret;
+        String iosAppKey;
+        String iosMessageSecret;
+        switch (platform) {
+            case 0:
+                androidAppKey = TEST_ANDROID_APPKEY;
+                androidMessageSecret = TEST_ANDROID_MESSAGE_SECRET;
+                iosAppKey = TEST_IOS_APPKEY;
+                iosMessageSecret = TEST_IOS_MESSAGE_SECRET;
+                break;
+            case 1:
+                androidAppKey = EXTERNAL_ANDROID_APPKEY;
+                androidMessageSecret = EXTERNAL_ANDROID_MESSAGE_SECRET;
+                iosAppKey = OUTOF_IOS_APPKEY;
+                iosMessageSecret = OUTOF_IOS_MESSAGE_SECRET;
+                break;
+            case 2:
+                androidAppKey = OUTOF_ANDROID_APPKEY;
+                androidMessageSecret = OUTOF_ANDROID_MESSAGE_SECRET;
+                iosAppKey = EXTERNAL_IOS_APPKEY;
+                iosMessageSecret = EXTERNAL_IOS_MESSAGE_SECRET;
+                break;
+            case 3:
+                androidAppKey = OUTLOOK_ANDROID_APPKEY;
+                androidMessageSecret = OUTLOOK_ANDROID_MESSAGE_SECRET;
+                iosAppKey = OUTLOOK_IOS_APPKEY;
+                iosMessageSecret = OUTLOOK_IOS_MESSAGE_SECRET;
+                break;
+            case 4:
+                androidAppKey = REGIONALCHIEF_ANDROID_APPKEY;
+                androidMessageSecret = REGIONALCHIEF_ANDROID_MESSAGE_SECRET;
+                iosAppKey = REGIONALCHIEF_IOS_APPKEY;
+                iosMessageSecret = REGIONALCHIEF_IOS_MESSAGE_SECRET;
+                break;
+            default:
+                throw new RuntimeException("平台类型错误");
+        }
+
+        AndroidBroadcast androidBroadcast = new AndroidBroadcast(androidAppKey,androidMessageSecret);
+        androidBroadcast.setTitle(title);
+        androidBroadcast.setText(msg);
+        androidBroadcast.goAppAfterOpen();
+        androidBroadcast.setDisplayType(AndroidNotification.DisplayType.NOTIFICATION);
+        if(platform == 0){
+            androidBroadcast.setTestMode();
+        }else{
+            androidBroadcast.setProductionMode();
+        }
+
+        IOSBroadcast iosBroadcast = new IOSBroadcast(iosAppKey,iosMessageSecret);
+        iosBroadcast.setAlert(msg);
+        iosBroadcast.setTitle(title);
+        iosBroadcast.setBadge( 0);
+        iosBroadcast.setSound( "default");
+        if(platform == 0){
+            iosBroadcast.setTestMode();
+        }else{
+            iosBroadcast.setProductionMode();
+        }
+//        iosBroadcast.setTestMode();
+
+        boolean androidSend = true;
+        boolean iosSend;
+        if(client == 1){
+            androidSend = PUSH_CLIENT.send(androidBroadcast);
+        }if(client == 2){
+            iosSend = PUSH_CLIENT.send(iosBroadcast);
+        }else{
+            androidSend = PUSH_CLIENT.send(androidBroadcast);
+            iosSend = PUSH_CLIENT.send(iosBroadcast);
+        }
+        System.out.println("推送=====android广播消息结果为：" + androidSend);
+        System.out.println("推送=====ios广播消息结果为：" + iosSend);
+        return androidSend && iosSend;
+    }
+
+    /**
+     * 判断用户是否开启设置
+     *
+     * @param mobile   用户手机号
+     * @param platform 平台类型 外部:1 外获:2 外看:3  其他为测试
+     * @param msgCode  消息code
+     * @return true 已经开启 false 没有开启
+     * @throws Exception 异常情况
+     */
+    private static boolean isOpen(String mobile, Integer platform, String msgCode) throws Exception {
+        Map<Object, Object> condition = new HashMap<>(5);
+        //platform  平台类型 外部:1 外获:2 外看:3  其他为测试
+        condition.put("platform", platform);
+        condition.put("userName", mobile);
+        condition.put("isDel", 0);
+
+        CommonService commonService = SpringContextUtils.getBean("commonService");
+        ResultVo resultVo = commonService.selectList(new HsMsgSetting(), condition, 0);
+        if (resultVo == null || resultVo.getResult() != ResultConstant.SYS_REQUIRED_SUCCESS || resultVo.getDataSet() == null) {
+            throw new RuntimeException("获取人员消息设置信息失败！");
+        }
+        List<Map<Object, Object>> memberSettingList = (List<Map<Object, Object>>) resultVo.getDataSet();
+        if (memberSettingList.size() == 0) {
+            //人员未设置过消息设置。默认全部开启
+            return true;
+        }
+        /*if (memberSettingList.size() > 1) {
+            throw new RuntimeException("人员消息设置数据异常！");
+        }*/
+        Map<Object, Object> memberSetting = memberSettingList.get(0);
+        String openCode = StringUtil.trim(memberSetting.get("openCode"));
+        String[] split = openCode.split(",");
+        for (String s : split) {
+            if (msgCode.equals(s)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 获取标题
+     * @param language 语言版本 0:中文,1:英文
+     * @param platform 平台类型 测试:0 外部:1 外获:2 外看:3
+     * @param msgCode  消息类型
+     * @return 中文或者英文标题
+     */
+    private static String getTitle(Integer language,Integer platform,Integer msgCode){
+        CommonService commonService = SpringContextUtils.getBean("commonService");
+        ResultVo resultVo = commonService.getMsgType(StringUtil.trim(platform));
+        if(resultVo.getResult() != ResultConstant.SYS_REQUIRED_SUCCESS || resultVo.getDataSet() == null){
+            throw new RuntimeException("获取消息类型失败！");
+        }
+        List<Map<Object, Object>> msgList = (List<Map<Object, Object>>) resultVo.getDataSet();
+        Optional<Map<Object, Object>> codeOptional = msgList.stream().filter(map -> map.get("code").equals(msgCode)).findFirst();
+        Map<Object, Object> code = new HashMap<>(16);
+        if(codeOptional.isPresent()){
+            code = codeOptional.get();
+        }
+        if(language == 1){
+            //英文
+            return StringUtil.trim(code.get("enUs"));
+        }
+        //中文
+        return StringUtil.trim(code.get("zhCn"));
+    }
+
+    /**
+     * 拼接 AliasType
+     *
+     * @param length Alias 根据逗号分割后的长度
+     * @return 拼接好的 AliasType
+     */
+    private static String spliceAliasType(Integer length, String aliasType) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < length; i++) {
+            sb.append(aliasType);
+            if (i < length - 1) {
+                sb.append(",");
+            }
+        }
+        return sb.toString();
+    }
+
+
+}

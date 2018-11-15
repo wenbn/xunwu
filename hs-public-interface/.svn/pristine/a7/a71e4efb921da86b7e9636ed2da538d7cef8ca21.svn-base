@@ -1,0 +1,256 @@
+package www.ucforward.com.dto;
+
+import java.math.BigDecimal;
+import java.util.Date;
+
+/**
+ * 订单合同
+ * @Auther: lsq
+ * @Date: 2018/8/24 10:48
+ * @Description:
+ */
+public class HsOrderContract {
+
+    /**
+     * 楼名/别墅名
+     */
+    private String buildingName;
+
+    /**
+     * 具体地址
+     * location
+     */
+    private String address;
+
+    /**
+     * 房屋面积
+     * property size
+     */
+    private BigDecimal houseAcreage;
+
+    /**
+     * 房屋类型 0：出租，1：出售
+     * property type
+     */
+    private Integer leaseType;
+
+    /**
+     * 门牌号
+     * property no
+     */
+    private String roomName;
+
+    /**
+     * 租赁到期日期
+     */
+    private Date ContractPeriodTo;
+
+    /**
+     * 起租日期
+     * from
+     */
+    private Date leaseStartDate;
+
+    /**
+     * 每年的租金
+     * Annual Rent
+     */
+    private BigDecimal leasePrice;
+
+    /**
+     * 保证金  有家具为总租金的百分之10 没家具为总租金的百分之5
+     */
+    private BigDecimal securityDepositAmount;
+
+    /**
+     * 支付节点
+     * mode of payment
+     */
+    private Integer payNode;
+
+    /**
+     * 合同附加条款
+     */
+    private String additionalTerms;
+
+    /**
+     * 地块信息
+     */
+    private String plotNumber;
+
+    /**
+     * 区域信息
+     * 0:Free Hold 1:Lease Hold
+     */
+    private Integer typeOfArea;
+
+    /**
+     * 产权证书编号
+     */
+    private String titleDeedNumber;
+
+    /**
+     * 产权编号
+     */
+    private String propertyNumber;
+
+    /**
+     * 项目（小区名称）
+     * project name
+     */
+    private String property;
+
+    /**
+     * 地产开发商
+     */
+    private String masterDevelpoerName;
+
+    /**
+     * 过户日期
+     */
+    private Date transferDate;
+
+    public String getBuildingName() {
+        return buildingName;
+    }
+
+    public void setBuildingName(String buildingName) {
+        this.buildingName = buildingName;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
+    public BigDecimal getHouseAcreage() {
+        return houseAcreage;
+    }
+
+    public void setHouseAcreage(BigDecimal houseAcreage) {
+        this.houseAcreage = houseAcreage;
+    }
+
+    public Integer getLeaseType() {
+        return leaseType;
+    }
+
+    public void setLeaseType(Integer leaseType) {
+        this.leaseType = leaseType;
+    }
+
+    public String getRoomName() {
+        return roomName;
+    }
+
+    public void setRoomName(String roomName) {
+        this.roomName = roomName;
+    }
+
+    public Date getContractPeriodTo() {
+        return ContractPeriodTo;
+    }
+
+    public void setContractPeriodTo(Date contractPeriodTo) {
+        ContractPeriodTo = contractPeriodTo;
+    }
+
+    public Date getLeaseStartDate() {
+        return leaseStartDate;
+    }
+
+    public void setLeaseStartDate(Date leaseStartDate) {
+        this.leaseStartDate = leaseStartDate;
+    }
+
+    public BigDecimal getLeasePrice() {
+        return leasePrice;
+    }
+
+    public void setLeasePrice(BigDecimal leasePrice) {
+        this.leasePrice = leasePrice;
+    }
+
+    public BigDecimal getSecurityDepositAmount() {
+        return securityDepositAmount;
+    }
+
+    public void setSecurityDepositAmount(BigDecimal securityDepositAmount) {
+        this.securityDepositAmount = securityDepositAmount;
+    }
+
+    public Integer getPayNode() {
+        return payNode;
+    }
+
+    public void setPayNode(Integer payNode) {
+        this.payNode = payNode;
+    }
+
+    public String getAdditionalTerms() {
+        return additionalTerms;
+    }
+
+    public void setAdditionalTerms(String additionalTerms) {
+        this.additionalTerms = additionalTerms;
+    }
+
+    public String getPlotNumber() {
+        return plotNumber;
+    }
+
+    public void setPlotNumber(String plotNumber) {
+        this.plotNumber = plotNumber;
+    }
+
+    public Integer getTypeOfArea() {
+        return typeOfArea;
+    }
+
+    public void setTypeOfArea(Integer typeOfArea) {
+        this.typeOfArea = typeOfArea;
+    }
+
+    public String getTitleDeedNumber() {
+        return titleDeedNumber;
+    }
+
+    public void setTitleDeedNumber(String titleDeedNumber) {
+        this.titleDeedNumber = titleDeedNumber;
+    }
+
+    public String getPropertyNumber() {
+        return propertyNumber;
+    }
+
+    public void setPropertyNumber(String propertyNumber) {
+        this.propertyNumber = propertyNumber;
+    }
+
+    public String getProperty() {
+        return property;
+    }
+
+    public void setProperty(String property) {
+        this.property = property;
+    }
+
+    public String getMasterDevelpoerName() {
+        return masterDevelpoerName;
+    }
+
+    public void setMasterDevelpoerName(String masterDevelpoerName) {
+        this.masterDevelpoerName = masterDevelpoerName;
+    }
+
+    public Date getTransferDate() {
+        return transferDate;
+    }
+
+    public void setTransferDate(Date transferDate) {
+        this.transferDate = transferDate;
+    }
+}

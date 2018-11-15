@@ -1,0 +1,178 @@
+package www.ucforward.com.utils;
+
+import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import com.itextpdf.text.DocumentException;
+import com.itextpdf.text.Image;
+import com.itextpdf.text.Rectangle;
+import com.itextpdf.text.pdf.AcroFields;
+import com.itextpdf.text.pdf.BaseFont;
+import com.itextpdf.text.pdf.PdfContentByte;
+import com.itextpdf.text.pdf.PdfReader;
+import com.itextpdf.text.pdf.PdfStamper;
+import org.junit.Test;
+import org.utils.StringUtil;
+
+/**
+ * pdf工具类
+ * 参考博客 https://blog.csdn.net/ITBigGod/article/details/81155483
+ * @Auther: lsq
+ * @Date: 2018/10/13 17:04
+ * @Description:
+ */
+public class PdfUtil {
+
+
+    /**
+     * 获取pdf文件
+     * @param templatePath  模板地址
+     * @param data          文本标签集合
+     * @param bookSignature 图片标签（没有传空串，目前只能有一张图片）
+     * @param urlStr        图片地址 http://120.77.220.25/group1/M01/00/22/rBLBRFulpSyANmGHAABkw832LNU615.png
+     * @return
+     * @throws Exception
+     */
+    public byte[] getPDF(String templatePath,Map<Object, Object> data,String bookSignature,String urlStr) throws Exception {
+        /* 导入PDF模板 */
+        File directory = new File("");
+        String author =directory.getAbsolutePath() + "contractTemplate.pdf";
+
+        URL resource = this.getClass().getResource("/");
+        String path = resource.getPath() + templatePath;
+        System.out.println("path:" + path);
+        /*//获取绝对路径
+        URL fileUrl = this.getClass().getClassLoader().getResource("pdf/contractTemplate.pdf");
+        String path = fileUrl.getPath();
+        //去掉多余斜杠
+        if(StringUtil.hasText(path) && path.startsWith("/")){
+            path = path.substring(1,path.length());
+        }
+        System.out.println(path);*/
+        String fileName = path;
+        byte[] result = null;
+        try(ByteArrayOutputStream bos = new ByteArrayOutputStream()){
+            PdfReader reader = new PdfReader(fileName);
+            /* 2.读取PDF模板内容 */
+            PdfStamper ps = new PdfStamper(reader, bos);
+            PdfContentByte under = ps.getUnderContent(1);
+            System.out.println("采用PDF模板:" + fileName);
+
+            /* 3.法1:设置使用itext-asian.jar的中文字体 */
+            BaseFont bf = BaseFont.createFont("STSong-Light", "UniGB-UCS2-H", BaseFont.NOT_EMBEDDED);
+            //法2:使用项目下的自定义的中文字体
+            //bfChinese = BaseFont.createFont("static/font/SIMSUN.TTC,1", BaseFont.IDENTITY_H, BaseFont.NOT_EMBEDDED);
+            //法3:使用windows系统下的字体库
+            //bfChinese = BaseFont.createFont("c://windows//fonts//simsun.ttc,1",BaseFont.IDENTITY_H, false);
+
+
+            ArrayList<BaseFont> fontList = new ArrayList<BaseFont>();
+            fontList.add(bf);
+            /* 4.获取模板中的所有字段 */
+            AcroFields fields = ps.getAcroFields();
+            fields.setSubstitutionFonts(fontList);
+            //调用方法执行写入
+            fillData(fields, data);
+            if(StringUtil.hasText(bookSignature) || StringUtil.hasText(urlStr)){
+                //插入图片
+                insertImage(ps,fields,urlStr,bookSignature);
+            }
+            /* 必须要调用这个，否则文档不会生成的 */
+            ps.setFormFlattening(true);
+            ps.close();
+            result=bos.toByteArray();
+        } catch (IOException e) {
+            System.out.println("证书生成失败,原因:" + e.getLocalizedMessage());
+        } catch (DocumentException e) {
+            System.out.println("证书生成失败,原因:" + e.getLocalizedMessage());
+        }
+        return result;
+    }
+
+    /**
+     * 获取pdf模板中有哪些字段key+赋值的值value
+     * @param fields
+     * @param data
+     * @throws IOException
+     * @throws DocumentException
+     */
+    private void fillData(AcroFields fields, Map<Object, Object> data) throws IOException, DocumentException {
+        for (Object key : data.keySet()) {
+            String keyStr = StringUtil.trim(key);
+            String value = StringUtil.trim(data.get(keyStr));
+            System.out.println(keyStr + "字段:" + value);
+            //为字段赋值,注意字段名称是区分大小写的
+            fields.setField(keyStr, value);
+        }
+    }
+
+    /**
+     * 插入图片
+     *
+     * @param ps
+     * @param s
+     * @author WangMeng
+     * @date 2016年6月16日
+     */
+    private void insertImage(PdfStamper ps, AcroFields s,String urlStr,String bookSignature) throws IOException {
+        File imageFile = File.createTempFile("tmp", ".jgp");
+        try (FileOutputStream outStream = new FileOutputStream(imageFile)) {
+            /**
+             * 根据url获取图片
+             */
+            //new一个URL对象
+            URL url = new URL(urlStr);
+            //打开链接
+            HttpURLConnection conn = (HttpURLConnection)url.openConnection();
+            //设置请求方式为"GET"
+            conn.setRequestMethod("GET");
+            //超时响应时间为5秒
+            conn.setConnectTimeout(5 * 1000);
+            //通过输入流获取图片数据
+            InputStream inStream = conn.getInputStream();
+            //得到图片的二进制数据，以二进制封装得到数据，具有通用性
+            byte[] data = readInputStream(inStream);
+            //在程序退出时删除临时文件
+            imageFile.deleteOnExit();
+            //绝对路径
+            String absolutePath = imageFile.getAbsolutePath();
+            // 输出绝对路径
+            System.out.println("File path: "+absolutePath);
+            //写入数据
+            outStream.write(data);
+
+            /**
+             * 写入图片
+             */
+            List<AcroFields.FieldPosition> list = s.getFieldPositions(bookSignature);
+            AcroFields.FieldPosition fieldPosition = list.get(0);
+            int pageNo = fieldPosition.page;
+            Rectangle signRect = fieldPosition.position;
+            Image image = Image.getInstance(absolutePath);
+            PdfContentByte under = ps.getOverContent(pageNo);
+            float x = signRect.getLeft();
+            float y = signRect.getBottom();
+            //根据书签名压缩图片
+            image.setAbsolutePosition(x, y);
+            image.scaleToFit(signRect.getWidth(), signRect.getHeight());
+            under.addImage(image);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static byte[] readInputStream(InputStream inStream) throws Exception{
+        ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+        byte[] buffer = new byte[1024];
+        int len = 0;
+        while( (len=inStream.read(buffer)) != -1 ){
+            outStream.write(buffer, 0, len);
+        }
+        inStream.close();
+        return outStream.toByteArray();
+    }
+}

@@ -1,0 +1,119 @@
+package www.ucforward.com.serviceInter;
+
+import www.ucforward.com.entity.HsHouseKeyCases;
+import www.ucforward.com.vo.ResultVo;
+
+import java.util.List;
+import java.util.Map;
+
+public interface HousesService<T> {
+
+    //所有库公用的方法 start
+
+    ResultVo delete(Integer id, Object o) throws Exception;
+
+    ResultVo insert(Object o) throws Exception;
+
+    ResultVo select(Integer id, Object o) throws Exception;
+
+    /**
+     * 查询列表数据
+     * @param o 查询的实体，用于控制查询的dao
+     * @param condition 查询参数
+     * @param returnType 返回值类型，0 List<Map>  1 list<Entity>
+     * @return
+     * @throws Exception
+     */
+    ResultVo selectList(Object o, Map<Object,Object> condition, int returnType) throws Exception;
+
+
+    /**
+     * 自定义查询列数据
+     * @param condition 查询条件 List<String> columns
+     * @return
+     * @throws Exception
+     */
+    ResultVo selectCustomColumnNamesList(T t, Map<Object,Object> condition) throws Exception;
+
+    ResultVo update(Object o) throws Exception;
+
+    //客服审核业主申请房源信息
+    ResultVo checkHousingApplyTx(Map<Object, Object> condition);
+
+    //客服审核房源信息
+    ResultVo checkHouse(Map<Object, Object> condition);
+
+    //获取房源位置
+    List<Map<Object,Object>> loadHousesPosition(Map<Object, Object> condition);
+
+    //修改记录
+    ResultVo updateRecord(Object obj) throws Exception;
+
+    //所有库公用的方法 end
+
+    /**
+     * 查询业主提交预约平台上门获取房源数量
+     * @return
+     * @throws Exception
+     */
+    ResultVo getHousingApplicationCount() throws Exception;
+
+    ResultVo batchInsert(Object o, Map<Object, Object> condition);
+
+    ResultVo batchUpdate(Object o,Map<Object,Object> condition);
+
+    /**
+     * 根据条件查询数据
+     * @param obj
+     * @param condition
+     * @return
+     */
+    ResultVo selectDataByCondition(Object obj,Map<Object,Object> condition);
+
+    /**
+     * 根据条件查询主房源信息条数
+     * @param condition
+     * @return
+     */
+    ResultVo selectHouseCountByCondition(Map<Object,Object> condition);
+
+
+    /**
+     * 业务员获取房源钥匙
+     * @param houseKeyCases
+     * @return
+     */
+    ResultVo getHouseKeys(HsHouseKeyCases houseKeyCases);
+
+    /**
+     * 检查房源钥匙是否过期
+     * @param condition
+     * @return
+     */
+    ResultVo checkKeyIsExpire(Map<Object, Object> condition);
+
+    /**
+     * 获取房源钥匙数据
+     * @param condition
+     * @return
+     */
+    ResultVo loadMyHousekeys(Map<Object, Object> condition);
+
+    /**
+     * 获取房源进度信息
+     * @param condition
+     * @return
+     */
+    ResultVo selectProgressInfoByCondition(Map<Object,Object> condition);
+
+    /**
+     * 获取进度流程
+     * @param type
+     * @return
+     */
+    List<Map<String, Object>> findProgressList(String type);
+
+    List<Map<Object,Object>> getProgress(Integer houseId);
+
+    List<Map<Object,Object>> getPropertyArea();
+}

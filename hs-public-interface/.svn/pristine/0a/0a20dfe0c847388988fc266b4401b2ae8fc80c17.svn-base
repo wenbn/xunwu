@@ -1,0 +1,115 @@
+package www.ucforward.com.constants;
+
+/**
+ * 全局消息常量类
+ * Author:wenbn
+ * Date:2018/1/11
+ * Description:
+ */
+public class ResultConstant {
+
+    ////////////////////////////////系统常量//////////////////////////////////
+
+    ////////////////http请求常见状态码 start/////////////
+    public static final int HTTP_STATUS_BAD_REQUEST = 400;//用户未登录
+    public static final String HTTP_STATUS_BAD_REQUEST_VALUE = "错误请求";
+
+    public static final int HTTP_STATUS_NOT_FOUND = 404;//用户未登录
+    public static final String HTTP_STATUS_NOT_FOUND_VALUE = "请求的资源不可用";
+
+    public static final int HTTP_STATUS_METHOD_NOT_ALLOWED = 405;//不合法的请求方法
+    public static final String HTTP_STATUS_METHOD_NOT_ALLOWED_VALUE = "不合法的请求方法";
+
+    public static final int HTTP_STATUS_UNSUPPORTED_MEDIA_TYPE = 415;//内容类型不支持
+    public static final String HTTP_STATUS_UNSUPPORTED_MEDIA_TYPE_VALUE = "内容类型不支持";
+
+    public static final int HTTP_STATUS_INTERNAL_SERVER_ERROR = 500;//内部服务错误
+    public static final String HTTP_STATUS_INTERNAL_SERVER_ERROR_VALUE = "内部服务错误";
+    ////////////////http请求常见状态码 end///////////////
+
+    public static final int SYS_REQUIRED_UNLOGIN_ERROR = 1001;//用户未登录
+    public static final String SYS_REQUIRED_UNLOGIN_ERROR_VALUE = "请先登录";
+
+    public static final int SYS_REQUIRED_LOGIN_SUCCESS = 1002;//登录成功
+    public static final String SYS_REQUIRED_LOGIN_SUCCESS_VALUE = "登录成功";
+
+    public static final int SYS_REQUIRED_UNAUTHORIZED_ERROR = 1003;//没有访问权限
+    public static final String SYS_REQUIRED_UNAUTHORIZED_ERROR_VALUE = "没有访问权限";
+
+    public static final int SYS_REQUIRED_PARAMETER_ERROR = 1004;//请求参数错误
+    public static final String SYS_REQUIRED_PARAMETER_ERROR_VALUE = "请求参数错误";
+
+    public static final int SYS_REQUIRED_TIMEOUT_ERROR = 1005;//请求超时
+    public static final String SYS_REQUIRED_TIMEOUT_ERROR_VALUE = "请求超时";
+
+    public static final int SYS_REQUIRED_SUCCESS = 0;//请求成功
+    public static final String SYS_REQUIRED_SUCCESS_VALUE = "请求成功";
+
+    public static final int SYS_IMG_CODE_IS_OVERDUE = 1006;//验证码过期
+    public static final String SYS_IMG_CODE_IS_OVERDUE_VALUE = "验证码过期";
+
+    public static final int SYS_REQUIRED_UNOPERATION_ERROR = 1007;//没有操作权限
+    public static final String SYS_REQUIRED_UNOPERATION_ERROR_VALUE = "没有操作权限";
+
+    public static final int SYS_REQUIRED_FAILURE = -1;//请求失败
+    public static final String SYS_REQUIRED_FAILURE_VALUE = "请求失败";
+
+    public static final int SYS_REQUIRED_SIGN_ERROR = 11111;//验签失败
+    public static final String SYS_REQUIRED_SIGN_ERROR_VALUE = "验签失败";
+
+    public static final int SYS_REQUIRED_VERSION_ERROR = 33333;//版本号错误
+    public static final String SYS_REQUIRED_VERSION_ERROR_VALUE = "版本号错误";
+
+    public static final int SYS_REQUIRED_METHOD_NAME_ERROR = 22222;//请求接口名称错误
+    public static final String SYS_REQUIRED_METHOD_NAME_ERROR_VALUE = "请求接口名称错误";
+
+    public static final int SYS_REQUIRED_ERROR = 1000; //系统错误
+    public static final String SYS_REQUIRED_ERROR_VALUE = "系统错误";
+
+    public static final int HOUSES_DATA_EXCEPTION = 1100;
+    public static final String HOUSES_DATA_EXCEPTION_VALUE = "房源数据异常";
+
+    public static final int ORDER_DATA_EXCEPTION = 1101;
+    public static final String ORDER_DATA_EXCEPTION_VALUE = "订单数据异常";
+
+    public static final int NEGOTIATION_SUCCESS = 1102;
+    public static final String NEGOTIATION_SUCCESS_VALUE = "议价成功";
+
+    public static final int GET_CITY_DATA_ERROR = 1103;
+    public static final String GET_CITY_DATA_ERROR_VALUE = "获取城市信息失败";
+
+    /**
+     * 提示信息，后端返回的错误信息，前端直接弹窗提示用户
+     */
+    public static final int PROMPT_MESSAGE = 2000;
+
+
+    ////////////////////////////////业务常量//////////////////////////////////
+    public static final String BUS_MEMBER_CODE_VALUE = "m_";
+    public static final String BUS_TAG_TOKEN = "token";
+
+    public static final int BUS_MEMBER_LOGIN_TIMEOUT = 2001;//登录超时
+    public static final String BUS_MEMBER_LOGIN_TIMEOUT_VALUE = "token异常";
+
+    public static final int BUS_MEMBER_APPOINTMENT_FAILURE = 3001; //预约失败
+    public static final String BUS_MEMBER_APPOINTMENT_FALIURE_VALUE = "预约失败";
+
+    public static final int BUS_MEMBER_SUBSCRIBE_FAILURE = 4001; //订阅失败
+    public static final String BUS_MEMBER_SUBSCRIBE_FAILURE_VALUE = "订阅失败";
+
+    public static final int BUS_USER_TRANSFER_ORDER_FAILURE = 5001; //转单失败
+    public static final String BUS_USER_TRANSFER_ORDER_FAILURE_VALUE = "转单失败";
+
+    public static final int BUS_USER_PASSWORD_ERROR = 6001;
+    public static final String BUS_USER_PASSWORD_ERROR_VALUE = "密码错误";
+
+    public static final int BUS_MEMBER_NEGOTIATION_SUCCESS = 7001;
+    public static final String BUS_MEMBER_NEGOTIATION_SUCCESS_VALUE = "议价成功";
+
+    public static final int BUS_MEMBER_NEGOTIATION_FAILURE = 7002;
+    public static final String BUS_MEMBER_NEGOTIATION_FAILURE_VALUE = "议价失败";
+
+    public static final int BUS_MEMBER_SEND_SUCCESS = 7003;
+    public static final String BUS_MEMBER_SEND_SUCCESS_VALUE = "议价消息发送成功";
+
+}

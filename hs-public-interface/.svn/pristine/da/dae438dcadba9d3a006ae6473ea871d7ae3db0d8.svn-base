@@ -1,0 +1,108 @@
+package www.ucforward.com.serviceInter;
+
+import org.springframework.stereotype.Service;
+import www.ucforward.com.entity.HsSysPermission;
+import www.ucforward.com.entity.HsSysUser;
+import www.ucforward.com.entity.HsSystemUserOrderTasks;
+import www.ucforward.com.vo.ResultVo;
+
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Author:wenbn
+ * Date:2018/1/3
+ * Description:
+ */
+@Service
+public interface MemberService<T> {
+
+    //所有库公用的方法 start
+    ResultVo delete(Integer id, Object o) throws Exception;
+
+    ResultVo insert(Object o) throws Exception;
+
+    ResultVo select(Integer id, Object o) throws Exception;
+
+    /**
+     * 查询列表数据
+     * @param o 查询的实体，用于控制查询的dao
+     * @param condition 查询参数
+     * @param returnType 返回值类型，0 List<Map>  1 list<Entity>
+     * @return
+     * @throws Exception
+     */
+    ResultVo selectList(Object o, Map<Object,Object> condition, int returnType) throws Exception;
+
+    /**
+     * 自定义查询列数据
+     * @param condition 查询条件 List<String> columns
+     * @return
+     * @throws Exception
+     */
+    ResultVo selectCustomColumnNamesList(T t, Map<Object,Object> condition) throws Exception;
+
+    ResultVo update(Object o) throws Exception;
+
+    ResultVo batchInsert(Object o, Map<Object, Object> condition);
+
+    ResultVo batchUpdate(Object o,Map<Object,Object> condition);
+
+    //所有库公用的方法 end
+
+    //根据条件查询用户信息
+    HsSysUser selectHsSysUserByCondition(Map<Object, Object> condition);
+
+    //获取系统用户权限
+    List<HsSysPermission> selectPermissionListByUser(Map<Object, Object> condition);
+
+    ResultVo login(Map<Object, Object> condition) throws Exception;
+
+    //计算可用的业务员
+    List<Map<Object,Object>> allotUsableUsers(Map<Object, Object> condition);
+
+    /**
+     * 获取外获业务员
+     * @param condition
+     * @return
+     */
+    List<Map<Object,Object>> selectOutsideUser(Map<Object, Object> condition);
+
+    /**
+     * 修改用户订单任务信息
+     * @param condition
+     * @return
+     */
+    ResultVo updateUserOrderTask(Map<Object,Object> condition);
+
+    /**
+     * 查询今日可看
+     * @param condition
+     * @return
+     */
+    ResultVo getToday2SeeHouses(Map<Object, Object> condition);
+
+    /**
+     * 查询用户角色
+     * @param condition
+     * @return
+     */
+    ResultVo selectUserRoles(Map<Object, Object> condition);
+
+    /**
+     * 查询个人绩效
+     * @param condition
+     * @return
+     */
+    ResultVo selectPersonalPerformance(Map<Object,Object> condition);
+
+    /**
+     * 根据订单池ID更新预约看房信息
+     * @param condition
+     * @return
+     */
+    ResultVo updateHousingApplicationByPoolId(Map<Object,Object> condition);
+
+
+
+}

@@ -1,0 +1,22 @@
+package www.ucforward.com.serviceInter;
+
+/**
+ * 检索接口
+ * @author wenbn
+ * @version 1.0
+ * @date 2018/6/25
+ */
+public interface SearchService {
+
+    /**
+     * 索引目标房源
+     * @param houseId
+     */
+    void index(int houseId);
+
+    /**
+     * 移除房源索引
+     * @param houseId
+     */
+    void remove(int houseId);
+}

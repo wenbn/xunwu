@@ -1,0 +1,125 @@
+package www.ucforward.com.umeng.util;
+
+import org.utils.StringUtil;
+import www.ucforward.com.umeng.AndroidNotification;
+import www.ucforward.com.umeng.PushClient;
+import www.ucforward.com.umeng.UmengNotification;
+import www.ucforward.com.umeng.android.AndroidCustomizedcast;
+import www.ucforward.com.umeng.ios.IOSCustomizedcast;
+import www.ucforward.com.utils.PropertiesUtils;
+
+/**
+ * @Auther: lsq
+ * @Date: 2018/8/28 09:59
+ * @Description:
+ */
+public class UmengUtil {
+    private final static PushClient PUSH_CLIENT = new PushClient();
+    /**
+     * 测试
+     */
+    private static final String TEST_ANDROID_APPKEY = PropertiesUtils.loadProps("/umeng/umeng.properties").getProperty("test_android_appkey");
+    private static final String TEST_ANDROID_MESSAGE_SECRET = PropertiesUtils.loadProps("/umeng/umeng.properties").getProperty("test_android_messageSecret");
+    private static final String TEST_IOS_APPKEY = PropertiesUtils.loadProps("/umeng/umeng.properties").getProperty("test_ios_appkey");
+    private static final String TEST_IOS_MESSAGE_SECRET = PropertiesUtils.loadProps("/umeng/umeng.properties").getProperty("test_ios_messageSecret");
+    /**
+     * 外部
+     */
+    private static final String EXTERNAL_ANDROID_APPKEY = PropertiesUtils.loadProps("/umeng/umeng.properties").getProperty("external_android_appkey");
+    private static final String EXTERNAL_ANDROID_MESSAGE_SECRET = PropertiesUtils.loadProps("/umeng/umeng.properties").getProperty("external_android_messageSecret");
+    private static final String EXTERNAL_IOS_APPKEY = PropertiesUtils.loadProps("/umeng/umeng.properties").getProperty("external_ios_appkey");
+    private static final String EXTERNAL_IOS_MESSAGE_SECRET = PropertiesUtils.loadProps("/umeng/umeng.properties").getProperty("external_ios_messageSecret");
+    /**
+     * 外获
+     */
+    private static final String OUTOF_ANDROID_APPKEY = PropertiesUtils.loadProps("/umeng/umeng.properties").getProperty("outOf_android_appkey");
+    private static final String OUTOF_ANDROID_MESSAGE_SECRET = PropertiesUtils.loadProps("/umeng/umeng.properties").getProperty("outOf_android_messageSecret");
+    private static final String OUTOF_IOS_APPKEY = PropertiesUtils.loadProps("/umeng/umeng.properties").getProperty("outOf_ios_appkey");
+    private static final String OUTOF_IOS_MESSAGE_SECRET = PropertiesUtils.loadProps("/umeng/umeng.properties").getProperty("outOf_ios_messageSecret");
+    /**
+     * 外看
+     */
+    private static final String OUTLOCK_ANDROID_APPKEY = PropertiesUtils.loadProps("/umeng/umeng.properties").getProperty("outLock_android_appkey");
+    private static final String OUTLOCK_ANDROID_MESSAGE_SECRET = PropertiesUtils.loadProps("/umeng/umeng.properties").getProperty("outLock_android_messageSecret");
+    private static final String OUTLOCK_IOS_APPKEY = PropertiesUtils.loadProps("/umeng/umeng.properties").getProperty("outLock_ios_appkey");
+    private static final String OUTLOCK_IOS_MESSAGE_SECRET = PropertiesUtils.loadProps("/umeng/umeng.properties").getProperty("outLock_ios_messageSecret");
+
+    private UmengUtil() {
+    }
+
+    /**
+     * 获取pushClient对象
+     *
+     * @return
+     */
+    public static PushClient getPushClient() {
+        return PUSH_CLIENT;
+    }
+
+    /**
+     * 按照别名推送消息
+     *
+     * @param alias     别名 用户手机号。如果有多个按照逗号分隔 最多50个
+     * @param aliasType 别名类型 必须与别名对应 外部:external 外获:outOf 外看:outLock
+     * @param msg       推送内容
+     * @param platform  平台类型 外部:1 外获:2 外看:3  其他为测试
+     * @throws Exception
+     */
+    public static boolean aliasSend(String alias, String aliasType, String msg, Integer platform) throws Exception {
+        if(StringUtil.hasText(alias) || StringUtil.hasText(aliasType) || StringUtil.hasText(msg) || platform == null){
+
+        }
+
+        boolean boo;
+        String androidAppKey;
+        String androidMessageSecret;
+        String iosAppKey;
+        String iosMessageSecret;
+        switch (platform) {
+            case 1:
+                androidAppKey = EXTERNAL_ANDROID_APPKEY;
+                androidMessageSecret = EXTERNAL_ANDROID_MESSAGE_SECRET;
+                iosAppKey = OUTOF_IOS_APPKEY;
+                iosMessageSecret = OUTOF_IOS_MESSAGE_SECRET;
+                break;
+            case 2:
+                androidAppKey = OUTOF_ANDROID_APPKEY;
+                androidMessageSecret = OUTOF_ANDROID_MESSAGE_SECRET;
+                iosAppKey = EXTERNAL_IOS_APPKEY;
+                iosMessageSecret = EXTERNAL_IOS_MESSAGE_SECRET;
+                break;
+            case 3:
+                androidAppKey = OUTLOCK_ANDROID_APPKEY;
+                androidMessageSecret = OUTLOCK_ANDROID_MESSAGE_SECRET;
+                iosAppKey = OUTLOCK_IOS_APPKEY;
+                iosMessageSecret = OUTLOCK_IOS_MESSAGE_SECRET;
+                break;
+            default:
+                androidAppKey = TEST_ANDROID_APPKEY;
+                androidMessageSecret = TEST_ANDROID_MESSAGE_SECRET;
+                iosAppKey = TEST_IOS_APPKEY;
+                iosMessageSecret = TEST_IOS_MESSAGE_SECRET;
+                break;
+        }
+        //TODO 无法确认用户设备类型 所ios和android的都推一次
+        AndroidCustomizedcast androidCustomizedcast = new AndroidCustomizedcast(androidAppKey, androidMessageSecret);
+        androidCustomizedcast.setAlias(alias, aliasType);
+        //androidCustomizedcast.setTicker("Android customizedcast ticker");
+        //androidCustomizedcast.setTitle("中文的title");
+        androidCustomizedcast.setText(msg);
+        androidCustomizedcast.goAppAfterOpen();
+        androidCustomizedcast.setDisplayType(AndroidNotification.DisplayType.NOTIFICATION);
+        androidCustomizedcast.setTestMode();
+        boo = PUSH_CLIENT.send(androidCustomizedcast);
+        IOSCustomizedcast customizedcast = new IOSCustomizedcast(iosAppKey, iosMessageSecret);
+        customizedcast.setAlias(alias, aliasType);
+        customizedcast.setAlert(msg);
+        customizedcast.setBadge(0);
+        customizedcast.setSound("default");
+        customizedcast.setTestMode();
+        boo = PUSH_CLIENT.send(customizedcast);
+        return boo;
+    }
+
+
+}

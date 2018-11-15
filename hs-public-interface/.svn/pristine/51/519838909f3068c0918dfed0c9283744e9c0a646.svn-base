@@ -1,0 +1,315 @@
+package www.ucforward.com.utils;
+
+import io.netty.handler.codec.base64.Base64;
+import net.sf.json.JSONObject;
+import org.apache.commons.io.IOUtils;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpHost;
+import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.conn.params.ConnRouteParams;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.utils.StringUtil;
+
+import java.io.*;
+import java.net.*;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * @author wenbn
+ * @version 1.0
+ * @date 2018/5/30
+ */
+public class HttpClientUtil {
+
+    private static Logger logger = LoggerFactory.getLogger(HttpClientUtil.class); // 日志记录
+    private static RequestConfig requestConfig = null;
+    static
+    {
+        // 设置请求和传输超时时间
+        requestConfig = RequestConfig.custom().setSocketTimeout(2000).setConnectTimeout(2000).build();
+    }
+
+    /**
+     * post请求传输json参数
+     * @param url  url地址
+     * @param jsonParam 参数
+     * @return
+     */
+    public static JSONObject httpPost(String url, JSONObject jsonParam) {
+        // post请求返回结果
+        CloseableHttpClient httpClient = HttpClients.createDefault();
+        JSONObject jsonResult = null;
+        HttpPost httpPost = new HttpPost(url);
+        // 设置请求和传输超时时间
+        httpPost.setConfig(requestConfig);
+        try {
+            if (null != jsonParam)
+            {
+                // 解决中文乱码问题
+                StringEntity entity = new StringEntity(jsonParam.toString(), "utf-8");
+                entity.setContentEncoding("UTF-8");
+                entity.setContentType("application/json");
+                httpPost.setEntity(entity);
+            }
+            CloseableHttpResponse result = httpClient.execute(httpPost);
+            // 请求发送成功，并得到响应
+            if (result.getStatusLine().getStatusCode() == HttpStatus.SC_OK){
+                String str = "";
+                try {
+                    // 读取服务器返回过来的json字符串数据
+                    str = EntityUtils.toString(result.getEntity(), "utf-8");
+                    // 把json字符串转换成json对象
+                    jsonResult = JsonUtil.object2JsonObject(str);
+                } catch (Exception e){
+                    logger.error("post请求提交失败:" + url, e);
+                }
+            }
+        }catch (IOException e){
+            e.printStackTrace();
+            System.out.println(e.getMessage());
+            logger.error("post请求提交失败:" + url, e);
+        }finally{
+            httpPost.releaseConnection();
+        }
+        return jsonResult;
+    }
+
+    /**
+     * post请求传输json参数
+     * @param url  url地址
+     * @param jsonParam 参数
+     * @return
+     */
+    public static String httpPost2(String url, JSONObject jsonParam) {
+        // post请求返回结果
+        CloseableHttpClient httpClient = HttpClients.createDefault();
+        String jsonResult = null;
+        HttpPost httpPost = new HttpPost(url);
+        // 设置请求和传输超时时间
+        httpPost.setConfig(requestConfig);
+        try {
+            if (null != jsonParam)
+            {
+                // 解决中文乱码问题
+                StringEntity entity = new StringEntity(jsonParam.toString(), "utf-8");
+                entity.setContentEncoding("UTF-8");
+                entity.setContentType("application/json");
+                httpPost.setEntity(entity);
+            }
+            CloseableHttpResponse result = httpClient.execute(httpPost);
+            // 请求发送成功，并得到响应
+            if (result.getStatusLine().getStatusCode() == HttpStatus.SC_OK){
+                String str = "";
+                try {
+                    // 读取服务器返回过来的json字符串数据
+                    jsonResult = EntityUtils.toString(result.getEntity(), "utf-8");
+                } catch (Exception e){
+                    logger.error("post请求提交失败:" + url, e);
+                }
+            }
+        }catch (IOException e){
+            e.printStackTrace();
+            System.out.println(e.getMessage());
+            logger.error("post请求提交失败:" + url, e);
+        }finally{
+            httpPost.releaseConnection();
+        }
+        return jsonResult;
+    }
+
+    /**
+     * post请求传输String参数 例如：name=Jack&sex=1&type=2
+     * Content-type:application/x-www-form-urlencoded
+     * @param url            url地址
+     * @param strParam       参数
+     * @return
+     */
+    public static JSONObject httpPost(String url, String strParam) {
+        // post请求返回结果
+        CloseableHttpClient httpClient = HttpClients.createDefault();
+        JSONObject jsonResult = null;
+        HttpPost httpPost = new HttpPost(url);
+        httpPost.setConfig(requestConfig);
+        try {
+            if (null != strParam) {
+                // 解决中文乱码问题
+                StringEntity entity = new StringEntity(strParam, "utf-8");
+                entity.setContentEncoding("UTF-8");
+                entity.setContentType("application/x-www-form-urlencoded");
+                httpPost.setEntity(entity);
+            }
+            CloseableHttpResponse result = httpClient.execute(httpPost);
+            // 请求发送成功，并得到响应
+            if (result.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
+                String str = "";
+                try {
+                    // 读取服务器返回过来的json字符串数据
+                    str = EntityUtils.toString(result.getEntity(), "utf-8");
+                    // 把json字符串转换成json对象
+                    jsonResult = JsonUtil.object2JsonObject(str);
+                }catch (Exception e) {
+                    logger.error("post请求提交失败:" + url, e);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.out.println(e.getMessage());
+            logger.error("post请求提交失败:" + url, e);
+        } finally {
+            httpPost.releaseConnection();
+        }
+        return jsonResult;
+    }
+
+    /**
+     * 发送get请求
+     * @param strUrl 路径
+     * @return
+     */
+    public static JSONObject httpGet(String strUrl) {
+        // get请求返回结果
+        JSONObject jsonResult = null;
+        CloseableHttpClient client = HttpClients.createDefault();
+        HttpGet request = null;
+        try {
+            // 发送get请求
+            URL url = new URL(strUrl);
+            URI uri = new URI(url.getProtocol(), url.getHost(), url.getPath(), url.getQuery(), null);
+            request = new HttpGet(uri);
+            //设置代理IP，设置连接超时时间 、 设置 请求读取数据的超时时间 、 设置从connect Manager获取Connection超时时间、
+            HttpHost proxy = new HttpHost("127.0.0.1",1080);
+            RequestConfig requestConfig = RequestConfig.custom()
+                    .setProxy(proxy)
+                    .setConnectTimeout(10000)
+                    .setSocketTimeout(10000)
+                    .setConnectionRequestTimeout(3000)
+                    .build();
+            request.setConfig(requestConfig);
+
+            CloseableHttpResponse response = client.execute(request);
+
+            // 请求发送成功，并得到响应
+            if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
+                // 读取服务器返回过来的json字符串数据
+                HttpEntity entity = response.getEntity();
+                String strResult = EntityUtils.toString(entity, "utf-8");
+                // 把json字符串转换成json对象
+                jsonResult = JsonUtil.object2JsonObject(strResult);
+            } else {
+                logger.error("get请求提交失败:" + strUrl);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println(e.getMessage());
+            logger.error("get请求提交失败:" + strUrl, e);
+        } finally {
+            request.releaseConnection();
+        }
+        return jsonResult;
+    }
+
+    /**
+     * 发送get请求
+     * @param strUrl 路径
+     * @return
+     */
+    public static String get(String strUrl) {
+        // get请求返回结果
+        String jsonResult = null;
+        HttpGet request = null;
+        try {
+            CloseableHttpClient client = HttpClients.createDefault();
+            // 发送get请求
+            URL url = new URL(strUrl);
+            URI uri = new URI(url.getProtocol(), url.getHost(), url.getPath(), url.getQuery(), null);
+            request = new HttpGet(uri);
+            //设置代理IP，设置连接超时时间 、 设置 请求读取数据的超时时间 、 设置从connect Manager获取Connection超时时间、
+            HttpHost proxy = new HttpHost("127.0.0.1",1080);
+            RequestConfig requestConfig = RequestConfig.custom()
+                    .setProxy(proxy)
+                    .setConnectTimeout(10000)
+                    .setSocketTimeout(10000)
+                    .setConnectionRequestTimeout(3000)
+                    .build();
+            request.setConfig(requestConfig);
+
+            CloseableHttpResponse response = client.execute(request);
+            // 请求发送成功，并得到响应
+            if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
+                // 读取服务器返回过来的json字符串数据
+                HttpEntity entity = response.getEntity();
+                jsonResult = EntityUtils.toString(entity, "utf-8");
+            } else {
+                logger.error("get请求提交失败:" + url);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println(e.getMessage());
+            logger.error("get请求提交失败:" + strUrl, e);
+        } finally {
+            request.releaseConnection();
+        }
+        return jsonResult;
+    }
+
+
+    public static void main(String[] args) {
+        /**
+         * 支付接口相关
+         */
+//        JSONObject json = new JSONObject();
+//        Map data = new HashMap<Object,Object>();
+//        Map order = new HashMap<Object,Object>();
+//        data.put("method","create");
+//        data.put("store","17916");
+//        data.put("authkey","1234");
+//
+//        order.put("cartid", StringUtil.trim(new Date().getTime()));
+//        order.put("test",1);
+//        data.put("order",order);
+//        json = JsonUtil.object2JsonObject(data);
+//        //String json = "{\n  \"method\":\"check\",\n  \"order\":{\n    \"ref\":\"OrderRef\",\n    \"cartid\":\"Your Cart ID\",\n    \"test\":Test mode indicator,\n    \"amount\":Transaction amount,\n    \"currency\":\"Transaction currency\",\n    \"description\":\"Order description\",\n    \"status\":{\n      \"code\":Order status code,\n      \"text\":\"Order status description\"\n    },\n  \"transaction\":{\n    \"ref\":\"Transaction reference\",\n    \"type\":\"Transaction type\",\n    \"status\":\"Transaction status\",\n    \"code\":\"Authorisation/Error code\",\n    \"message\":\"Authorisation/Error message\"\n  },\n  \"customer\":{\n    \"email\":\"Customer email address\",\n    \"name\":{\n      \"title\":\"Customer title\",\n      \"forenames\":\"Customer forename\",\n      \"surname\":\"Customer surname\"\n    },\n  \"address\":{\n    \"line1\":\"Address line 1\",\n    \"line2\":\"Address line 2\",\n    \"line3\":\"Address line 3\",\n    \"city\":\"City\",\n    \"state\":\"Region\",\"country\":\"ISO Country code\",\n    \"areacode\":\"Post/Area/Zip code\"\n      }\n    }\n  }\n}";
+//        JSONObject jsonObject = httpPost("https://secure.telr.com/gateway/order.json" ,json);
+//        System.out.println(jsonObject);
+
+        /**
+         * google地图相关
+         */
+//        System.setProperty("http.proxySet", "true");
+//        System.setProperty("http.proxyHost", "us08.cnode.xyz");
+//        System.setProperty("http.proxyPort", "" + 15394);
+//        // 针对https也开启代理
+//        System.setProperty("https.proxyHost", "us08.cnode.xyz");
+//        System.setProperty("https.proxyPort", "" + 15394);
+
+//        System.setProperty("proxySet", "true");
+//        System.setProperty("socksProxyHost", "127.0.0.1");
+//        System.setProperty("socksProxyPort", "1080");
+        //String googleUrl = "https://maps.google.com";
+        //String googleUrl = "https://maps.google.com/maps/api/geocode/json?address=上海市&key=AIzaSyBPZotPdwOiRBOGHJ3U5Cd1nqvqi6odOcE";
+
+        String googleUrl = "https://www.googleapis.com/geolocation/v1/geolocate?key=AIzaSyAlE8ysZ3l5BjWxrVsLHkjxmK37KBbqPQ4";
+       // String googleUrl = "https://maps.googleapis.com/maps/api/distancematrix/json?origins=北京|长沙&destinations=上海&key=AIzaSyBPZotPdwOiRBOGHJ3U5Cd1nqvqi6odOcE";
+        JSONObject jsonObject = httpGet(googleUrl);
+        //jsonObject.get();
+        System.out.println(jsonObject);
+
+    }
+}

@@ -1,0 +1,4 @@
+#redis����������� ���Ի���
+redis.host = 47.91.110.186
+redis.port = 6379
+redis.pwd = HiSandy^2018

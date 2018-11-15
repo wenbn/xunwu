@@ -1,0 +1,335 @@
+package www.ucforward.com.index.template;
+
+import java.math.BigDecimal;
+import java.util.Date;
+
+/**
+ * 索引结构模板
+ * @author wenbn
+ * @version 1.0
+ * @date 2018/6/25
+ */
+public class HouseIndexTemplate {
+
+    //   房源id
+    private Integer id;
+    //  房源名称
+    private String houseName;
+    //  小区名称
+    private String villageName;
+    //楼名/别墅名
+    private String buildingName;
+    //房间号
+    private String roomName;
+    // 所在楼层
+    private Integer floorNumber;
+    //租金/或出售价
+    private BigDecimal houseRent;
+    //房屋面积
+    private BigDecimal houseAcreage;
+    //户型 0：一室 1：二室 2：三室 3、四室 4：五室及以上 5：别墅
+    private String houseTypeDictcode;
+    //卧室数量
+    private Integer bedroomNum;
+    //浴室数量
+    private Integer bathroomNum;
+    //房屋朝向 0：东 1：南 2：西 3：北 4：南北
+    private String houseOrientationDictcode;
+    //房屋装修 0：毛坯 1：普通装修 2：精装修 3：豪华装修
+    private String houseDecorationDictcode;
+    //房源特色，查询数据字典，逗号分割
+    private String houseLabelDictcode;
+    //房源楼层，0：低楼层 1：中楼层 2：高楼层
+    private String houseFloorDictcode;
+    //房源配置，ids
+    private String houseConfigDictcode;
+    //房屋类型 0:小区 1:公寓 2:民房 3:别墅
+    private String housingTypeDictcode;
+    //城市
+    private String city;
+    //社区
+    private String community;
+    //子社区
+    private String subCommunity;
+    //项目
+    private String property;
+    //所在位置
+    private String address;
+    //经度
+    private String longitude;
+    //纬度
+    private String latitude;
+    //是否有停车位（0：无，1：有）
+    private Integer parkingSpace;
+    //是否有电梯：0>有电梯，1>无
+    private Integer isElevator;
+    //是否期房：0>是，1>否
+    private Integer isPromissoryBuild;
+    //是否有房贷：0>无，1>有
+    private Integer isHouseLoan;
+    //房屋类型 0:出租，1：出售
+    private Integer leaseType;
+    //房源概况
+    private String houseSituation;
+    //创建时间
+    private Date createTime;
+    //修改时间
+    private Date updateTime;
+
+
+    public Integer getId() {
+        return id;
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
+    }
+
+    public String getHouseName() {
+        return houseName;
+    }
+
+    public void setHouseName(String houseName) {
+        this.houseName = houseName;
+    }
+
+    public String getVillageName() {
+        return villageName;
+    }
+
+    public void setVillageName(String villageName) {
+        this.villageName = villageName;
+    }
+
+    public String getBuildingName() {
+        return buildingName;
+    }
+
+    public void setBuildingName(String buildingName) {
+        this.buildingName = buildingName;
+    }
+
+    public String getRoomName() {
+        return roomName;
+    }
+
+    public void setRoomName(String roomName) {
+        this.roomName = roomName;
+    }
+
+    public Integer getFloorNumber() {
+        return floorNumber;
+    }
+
+    public void setFloorNumber(Integer floorNumber) {
+        this.floorNumber = floorNumber;
+    }
+
+    public BigDecimal getHouseRent() {
+        return houseRent;
+    }
+
+    public void setHouseRent(BigDecimal houseRent) {
+        this.houseRent = houseRent;
+    }
+
+    public BigDecimal getHouseAcreage() {
+        return houseAcreage;
+    }
+
+    public void setHouseAcreage(BigDecimal houseAcreage) {
+        this.houseAcreage = houseAcreage;
+    }
+
+    public String getHouseTypeDictcode() {
+        return houseTypeDictcode;
+    }
+
+    public void setHouseTypeDictcode(String houseTypeDictcode) {
+        this.houseTypeDictcode = houseTypeDictcode;
+    }
+
+    public Integer getBedroomNum() {
+        return bedroomNum;
+    }
+
+    public void setBedroomNum(Integer bedroomNum) {
+        this.bedroomNum = bedroomNum;
+    }
+
+    public Integer getBathroomNum() {
+        return bathroomNum;
+    }
+
+    public void setBathroomNum(Integer bathroomNum) {
+        this.bathroomNum = bathroomNum;
+    }
+
+    public String getHouseOrientationDictcode() {
+        return houseOrientationDictcode;
+    }
+
+    public void setHouseOrientationDictcode(String houseOrientationDictcode) {
+        this.houseOrientationDictcode = houseOrientationDictcode;
+    }
+
+    public String getHouseDecorationDictcode() {
+        return houseDecorationDictcode;
+    }
+
+    public void setHouseDecorationDictcode(String houseDecorationDictcode) {
+        this.houseDecorationDictcode = houseDecorationDictcode;
+    }
+
+    public String getHouseLabelDictcode() {
+        return houseLabelDictcode;
+    }
+
+    public void setHouseLabelDictcode(String houseLabelDictcode) {
+        this.houseLabelDictcode = houseLabelDictcode;
+    }
+
+    public String getHouseFloorDictcode() {
+        return houseFloorDictcode;
+    }
+
+    public void setHouseFloorDictcode(String houseFloorDictcode) {
+        this.houseFloorDictcode = houseFloorDictcode;
+    }
+
+    public String getHouseConfigDictcode() {
+        return houseConfigDictcode;
+    }
+
+    public void setHouseConfigDictcode(String houseConfigDictcode) {
+        this.houseConfigDictcode = houseConfigDictcode;
+    }
+
+    public String getHousingTypeDictcode() {
+        return housingTypeDictcode;
+    }
+
+    public void setHousingTypeDictcode(String housingTypeDictcode) {
+        this.housingTypeDictcode = housingTypeDictcode;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
+    }
+
+    public String getCommunity() {
+        return community;
+    }
+
+    public void setCommunity(String community) {
+        this.community = community;
+    }
+
+    public String getSubCommunity() {
+        return subCommunity;
+    }
+
+    public void setSubCommunity(String subCommunity) {
+        this.subCommunity = subCommunity;
+    }
+
+    public String getProperty() {
+        return property;
+    }
+
+    public void setProperty(String property) {
+        this.property = property;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
+    public String getLongitude() {
+        return longitude;
+    }
+
+    public void setLongitude(String longitude) {
+        this.longitude = longitude;
+    }
+
+    public String getLatitude() {
+        return latitude;
+    }
+
+    public void setLatitude(String latitude) {
+        this.latitude = latitude;
+    }
+
+    public Integer getParkingSpace() {
+        return parkingSpace;
+    }
+
+    public void setParkingSpace(Integer parkingSpace) {
+        this.parkingSpace = parkingSpace;
+    }
+
+    public Integer getIsElevator() {
+        return isElevator;
+    }
+
+    public void setIsElevator(Integer isElevator) {
+        this.isElevator = isElevator;
+    }
+
+    public Integer getIsPromissoryBuild() {
+        return isPromissoryBuild;
+    }
+
+    public void setIsPromissoryBuild(Integer isPromissoryBuild) {
+        this.isPromissoryBuild = isPromissoryBuild;
+    }
+
+    public Integer getIsHouseLoan() {
+        return isHouseLoan;
+    }
+
+    public void setIsHouseLoan(Integer isHouseLoan) {
+        this.isHouseLoan = isHouseLoan;
+    }
+
+    public Integer getLeaseType() {
+        return leaseType;
+    }
+
+    public void setLeaseType(Integer leaseType) {
+        this.leaseType = leaseType;
+    }
+
+    public String getHouseSituation() {
+        return houseSituation;
+    }
+
+    public void setHouseSituation(String houseSituation) {
+        this.houseSituation = houseSituation;
+    }
+
+    public Date getCreateTime() {
+        return createTime;
+    }
+
+    public void setCreateTime(Date createTime) {
+        this.createTime = createTime;
+    }
+
+    public Date getUpdateTime() {
+        return updateTime;
+    }
+
+    public void setUpdateTime(Date updateTime) {
+        this.updateTime = updateTime;
+    }
+}

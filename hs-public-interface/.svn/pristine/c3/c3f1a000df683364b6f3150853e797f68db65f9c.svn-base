@@ -1,0 +1,26 @@
+package www.ucforward.com.utils;
+
+import org.modelmapper.ModelMapper;
+
+/**
+ * Bean 复制
+ * @author wenbn
+ * @version 1.0
+ * @date 2018/6/28
+ */
+public class ModelMapperUtil {
+
+    private static ModelMapper modelMapper;
+
+    public static ModelMapper getInstance(){
+        if (modelMapper==null){
+            synchronized (ModelMapperUtil.class){
+                if (modelMapper==null){
+                    new ModelMapper();
+                }
+            }
+        }
+        return  modelMapper;
+    }
+
+}

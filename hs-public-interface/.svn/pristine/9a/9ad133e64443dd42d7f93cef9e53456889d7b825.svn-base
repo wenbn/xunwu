@@ -1,0 +1,1365 @@
+package www.ucforward.com.dto;
+
+import java.io.Serializable;
+import java.util.Date;
+
+/**
+ * 线下纸质合同
+ * @Auther: lsq
+ * @Date: 2018/10/16 10:58
+ * @Description:
+ */
+public class PaperContract implements Serializable {
+    /**
+     * 日
+     */
+    private String day;
+    /**
+     * 月
+     */
+    private String month;
+    /**
+     * 年
+     */
+    private String year;
+    /**
+     * 房源编号
+     */
+    private String no;
+    /**
+     * 财产的使用 industrial工业  commercial商业   residential住宅
+     */
+    private String propertyUsage;
+    /**
+     * 业主名称
+     */
+    private String ownerName;
+    /**
+     * 房东名称
+     */
+    private String landlordName;
+    /**
+     * 租客名称
+     */
+    private String tenantName;
+    /**
+     * 租客Email
+     */
+    private String tenantEmail;
+    /**
+     * 租客电话
+     */
+    private String tenantPhone;
+    /**
+     * 楼名
+     */
+    private String buildingName;
+    /**
+     * 产权大小 propertySiz
+     */
+    private String houseAcreage;
+    /**
+     * 物业
+     */
+    private String propertyNo;
+    /**
+     *
+     */
+    private String premisesPeriodTo;
+    /**
+     * 每年租金 annualRent
+     */
+    private String leasePrice;
+    /**
+     * 合同金额
+     */
+    private String contractValue;
+    /**
+     * 保证金额
+     */
+    private String securityDepositAmount;
+    /**
+     * 房东Email
+     */
+    private String landlordEmail;
+    /**
+     * 房东电话
+     */
+    private String landlordPhone;
+    /**
+     * 地址 location
+     */
+    private String address;
+    /**
+     * 产权类型 propertyType
+     */
+    private String leaseType;
+    /**
+     * 图号
+     */
+    private String plotNo;
+    /**
+     * 来源 from
+     */
+    private String leaseStartDate;
+    /**
+     * 门牌号 propertyNO
+     */
+    private String roomName;
+    /**
+     * 付款方式 modeOfPayment
+     */
+    private String payNode;
+    /**
+     * 附加条款1
+     */
+    private String additionalTerm1;
+    /**
+     * 附加条款2
+     */
+    private String additionalTerm2;
+    /**
+     * 附加条款3
+     */
+    private String additionalTerm3;
+    /**
+     * 附加条款4
+     */
+    private String additionalTerm4;
+    /**
+     * 附加条款5
+     */
+    private String additionalTerm5;
+    /**
+     * 附加条款6
+     */
+    private String additionalTerm6;
+    /**
+     * 附加条款7
+     */
+    private String additionalTerm7;
+    /**
+     * 附加条款8
+     */
+    private String additionalTerm8;
+    /**
+     * 备注
+     */
+    private String remark;
+
+    /**
+     * 语言版本 0中文 1英文 2阿拉伯语
+     */
+    private Integer languageVersion;
+
+    /**
+     * 订单id
+     */
+    private Integer orderId;
+
+    private String nameOfOwner;
+    private String ownerNationality;
+    private String ownerIDCardNumber;
+    private String ownerPassportNo;
+    private String ownerMobile;
+    private String ownerPhone;
+    private String ownerAddress;
+    private String ownerEmail;
+    private String ownerExpiryDate;
+    private String ownerPOBox;
+    private String ownerFax;
+    private String buyerFax;
+    private String buyerPOBox;
+    private String buyerExpiryDate;
+    private String buyerEmail;
+    private String buyerAddress;
+    private String buyerPhone;
+    private String buyerMobile;
+    private String buyerPassportNo;
+    private String buyerIDCardNumber;
+    private String buyerNationality;
+    private String nameOfBuyer;
+    private String propertyStatus;
+    private String typeOfArea;
+    private String typeOfProperty;
+    private String area;
+    private String presentUse;
+    private String additionalInformation;
+    private String typeofSale;
+    private String plotNumber;
+    private String titleDeedNumber;
+    private String propertyNumber;
+    /**
+     * projectName
+     */
+    private String subCommunity;
+    private String masterDevelpoerName;
+    private String communityNumber;
+    private String NOCFromDeveloper;
+    private String listedPrice;
+    private String paidAmount;
+    private String serviceCharge;
+    private String originalPrice;
+    private String sellPrice;
+    private String balanceAmount;
+    private String sellerAgentCommission;
+    private String buyerAgentCommission;
+    private String sellerOfficeName;
+    private String sellerLicenseAuthority;
+    private String sellerORN;
+    private String sellerFax;
+    private String sellerAddress;
+    private String sellerEmail;
+    private String sellerAgentName;
+    private String sellerBRN;
+    private String sellerLicenseNumber;
+    private String sellerPhone;
+    private String sellerMobile;
+    private String buyerOfficeName;
+    private String buyerLicenseAuthority;
+    private String buyerORN;
+    private String buyerFax2;
+    private String buyerAddress2;
+    private String buyerEmail2;
+    private String buyerAgentName;
+    private String buyerBRN;
+    private String buyerLicenseNumber;
+    private String buyerPhone2;
+    private String buyerMobile2;
+    private String mortgagee;
+    private String mortgageAmoun;
+    private String paidAmount2;
+    private String mortgagePeriodFrom;
+    private String mortgagePeriodTo;
+    private String mortgageLevel;
+    private String NOCAttachred;
+    private String propertyRented;
+    private String numberOfRentedProperties;
+    private String ownerNameEnglish;
+    private String ownerNameArabic;
+    private String ownerLegalRepresentativeNameEnglish;
+    private String ownerLegalRepresentativeNameArabic;
+    private String ownerRepresentingType;
+    private String ownerPowerOfAttorneyNumber;
+    private String ownerSignature;
+    private String buyerNameEnglish;
+    private String buyerNameArabic;
+    private String buyerLegalRepresentativeNameEnglish;
+    private String buyerLegalRepresentativeNameArabic;
+    private String buyerRepresentingType;
+    private String buyerPowerOfAttorneyNumber;
+    private String buyerSignature;
+    private String serviceFee;
+    private String totalSellingPrice;
+    private String transferDate;
+    /**
+     * 出售合同签订年
+     */
+    private String signYear;
+    /**
+     * 出售合同签订月
+     */
+    private String signMonth;
+    /**
+     * 出售合同签订日
+     */
+    private String signDay;
+
+    /**
+     * 见面时间
+     */
+    private Date estimatedTime;
+    /**
+     * 见面地点
+     */
+    private String appointmentMeetPlace;
+    /**
+     * 用户id
+     */
+    private Integer userId;
+
+    /**
+     * 财务审核通过日期
+     */
+    private String dateStr;
+
+    public String getDay() {
+        return day;
+    }
+
+    public void setDay(String day) {
+        this.day = day;
+    }
+
+    public String getMonth() {
+        return month;
+    }
+
+    public void setMonth(String month) {
+        this.month = month;
+    }
+
+    public String getYear() {
+        return year;
+    }
+
+    public void setYear(String year) {
+        this.year = year;
+    }
+
+    public String getNo() {
+        return no;
+    }
+
+    public void setNo(String no) {
+        this.no = no;
+    }
+
+    public String getPropertyUsage() {
+        return propertyUsage;
+    }
+
+    public void setPropertyUsage(String propertyUsage) {
+        this.propertyUsage = propertyUsage;
+    }
+
+    public String getOwnerName() {
+        return ownerName;
+    }
+
+    public void setOwnerName(String ownerName) {
+        this.ownerName = ownerName;
+    }
+
+    public String getLandlordName() {
+        return landlordName;
+    }
+
+    public void setLandlordName(String landlordName) {
+        this.landlordName = landlordName;
+    }
+
+    public String getTenantName() {
+        return tenantName;
+    }
+
+    public void setTenantName(String tenantName) {
+        this.tenantName = tenantName;
+    }
+
+    public String getTenantEmail() {
+        return tenantEmail;
+    }
+
+    public void setTenantEmail(String tenantEmail) {
+        this.tenantEmail = tenantEmail;
+    }
+
+    public String getTenantPhone() {
+        return tenantPhone;
+    }
+
+    public void setTenantPhone(String tenantPhone) {
+        this.tenantPhone = tenantPhone;
+    }
+
+    public String getBuildingName() {
+        return buildingName;
+    }
+
+    public void setBuildingName(String buildingName) {
+        this.buildingName = buildingName;
+    }
+
+    public String getHouseAcreage() {
+        return houseAcreage;
+    }
+
+    public void setHouseAcreage(String houseAcreage) {
+        this.houseAcreage = houseAcreage;
+    }
+
+    public String getPropertyNo() {
+        return propertyNo;
+    }
+
+    public void setPropertyNo(String propertyNo) {
+        this.propertyNo = propertyNo;
+    }
+
+    public String getPremisesPeriodTo() {
+        return premisesPeriodTo;
+    }
+
+    public void setPremisesPeriodTo(String premisesPeriodTo) {
+        this.premisesPeriodTo = premisesPeriodTo;
+    }
+
+    public String getLeasePrice() {
+        return leasePrice;
+    }
+
+    public void setLeasePrice(String leasePrice) {
+        this.leasePrice = leasePrice;
+    }
+
+    public String getContractValue() {
+        return contractValue;
+    }
+
+    public void setContractValue(String contractValue) {
+        this.contractValue = contractValue;
+    }
+
+    public String getSecurityDepositAmount() {
+        return securityDepositAmount;
+    }
+
+    public void setSecurityDepositAmount(String securityDepositAmount) {
+        this.securityDepositAmount = securityDepositAmount;
+    }
+
+    public String getLandlordEmail() {
+        return landlordEmail;
+    }
+
+    public void setLandlordEmail(String landlordEmail) {
+        this.landlordEmail = landlordEmail;
+    }
+
+    public String getLandlordPhone() {
+        return landlordPhone;
+    }
+
+    public void setLandlordPhone(String landlordPhone) {
+        this.landlordPhone = landlordPhone;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
+    public String getLeaseType() {
+        return leaseType;
+    }
+
+    public void setLeaseType(String leaseType) {
+        this.leaseType = leaseType;
+    }
+
+    public String getPlotNo() {
+        return plotNo;
+    }
+
+    public void setPlotNo(String plotNo) {
+        this.plotNo = plotNo;
+    }
+
+    public String getLeaseStartDate() {
+        return leaseStartDate;
+    }
+
+    public void setLeaseStartDate(String leaseStartDate) {
+        this.leaseStartDate = leaseStartDate;
+    }
+
+    public String getRoomName() {
+        return roomName;
+    }
+
+    public void setRoomName(String roomName) {
+        this.roomName = roomName;
+    }
+
+    public String getPayNode() {
+        return payNode;
+    }
+
+    public void setPayNode(String payNode) {
+        this.payNode = payNode;
+    }
+
+    public String getAdditionalTerm1() {
+        return additionalTerm1;
+    }
+
+    public void setAdditionalTerm1(String additionalTerm1) {
+        this.additionalTerm1 = additionalTerm1;
+    }
+
+    public String getAdditionalTerm2() {
+        return additionalTerm2;
+    }
+
+    public void setAdditionalTerm2(String additionalTerm2) {
+        this.additionalTerm2 = additionalTerm2;
+    }
+
+    public String getAdditionalTerm3() {
+        return additionalTerm3;
+    }
+
+    public void setAdditionalTerm3(String additionalTerm3) {
+        this.additionalTerm3 = additionalTerm3;
+    }
+
+    public String getAdditionalTerm4() {
+        return additionalTerm4;
+    }
+
+    public void setAdditionalTerm4(String additionalTerm4) {
+        this.additionalTerm4 = additionalTerm4;
+    }
+
+    public String getAdditionalTerm5() {
+        return additionalTerm5;
+    }
+
+    public void setAdditionalTerm5(String additionalTerm5) {
+        this.additionalTerm5 = additionalTerm5;
+    }
+
+    public String getAdditionalTerm6() {
+        return additionalTerm6;
+    }
+
+    public void setAdditionalTerm6(String additionalTerm6) {
+        this.additionalTerm6 = additionalTerm6;
+    }
+
+    public String getAdditionalTerm7() {
+        return additionalTerm7;
+    }
+
+    public void setAdditionalTerm7(String additionalTerm7) {
+        this.additionalTerm7 = additionalTerm7;
+    }
+
+    public String getAdditionalTerm8() {
+        return additionalTerm8;
+    }
+
+    public void setAdditionalTerm8(String additionalTerm8) {
+        this.additionalTerm8 = additionalTerm8;
+    }
+
+    public String getRemark() {
+        return remark;
+    }
+
+    public void setRemark(String remark) {
+        this.remark = remark;
+    }
+
+    public Integer getLanguageVersion() {
+        return languageVersion;
+    }
+
+    public void setLanguageVersion(Integer languageVersion) {
+        this.languageVersion = languageVersion;
+    }
+
+    public Integer getOrderId() {
+        return orderId;
+    }
+
+    public void setOrderId(Integer orderId) {
+        this.orderId = orderId;
+    }
+
+    public String getNameOfOwner() {
+        return nameOfOwner;
+    }
+
+    public void setNameOfOwner(String nameOfOwner) {
+        this.nameOfOwner = nameOfOwner;
+    }
+
+    public String getOwnerNationality() {
+        return ownerNationality;
+    }
+
+    public void setOwnerNationality(String ownerNationality) {
+        this.ownerNationality = ownerNationality;
+    }
+
+    public String getOwnerIDCardNumber() {
+        return ownerIDCardNumber;
+    }
+
+    public void setOwnerIDCardNumber(String ownerIDCardNumber) {
+        this.ownerIDCardNumber = ownerIDCardNumber;
+    }
+
+    public String getOwnerPassportNo() {
+        return ownerPassportNo;
+    }
+
+    public void setOwnerPassportNo(String ownerPassportNo) {
+        this.ownerPassportNo = ownerPassportNo;
+    }
+
+    public String getOwnerMobile() {
+        return ownerMobile;
+    }
+
+    public void setOwnerMobile(String ownerMobile) {
+        this.ownerMobile = ownerMobile;
+    }
+
+    public String getOwnerPhone() {
+        return ownerPhone;
+    }
+
+    public void setOwnerPhone(String ownerPhone) {
+        this.ownerPhone = ownerPhone;
+    }
+
+    public String getOwnerAddress() {
+        return ownerAddress;
+    }
+
+    public void setOwnerAddress(String ownerAddress) {
+        this.ownerAddress = ownerAddress;
+    }
+
+    public String getOwnerEmail() {
+        return ownerEmail;
+    }
+
+    public void setOwnerEmail(String ownerEmail) {
+        this.ownerEmail = ownerEmail;
+    }
+
+    public String getOwnerExpiryDate() {
+        return ownerExpiryDate;
+    }
+
+    public void setOwnerExpiryDate(String ownerExpiryDate) {
+        this.ownerExpiryDate = ownerExpiryDate;
+    }
+
+    public String getOwnerPOBox() {
+        return ownerPOBox;
+    }
+
+    public void setOwnerPOBox(String ownerPOBox) {
+        this.ownerPOBox = ownerPOBox;
+    }
+
+    public String getOwnerFax() {
+        return ownerFax;
+    }
+
+    public void setOwnerFax(String ownerFax) {
+        this.ownerFax = ownerFax;
+    }
+
+    public String getBuyerFax() {
+        return buyerFax;
+    }
+
+    public void setBuyerFax(String buyerFax) {
+        this.buyerFax = buyerFax;
+    }
+
+    public String getBuyerPOBox() {
+        return buyerPOBox;
+    }
+
+    public void setBuyerPOBox(String buyerPOBox) {
+        this.buyerPOBox = buyerPOBox;
+    }
+
+    public String getBuyerExpiryDate() {
+        return buyerExpiryDate;
+    }
+
+    public void setBuyerExpiryDate(String buyerExpiryDate) {
+        this.buyerExpiryDate = buyerExpiryDate;
+    }
+
+    public String getBuyerEmail() {
+        return buyerEmail;
+    }
+
+    public void setBuyerEmail(String buyerEmail) {
+        this.buyerEmail = buyerEmail;
+    }
+
+    public String getBuyerAddress() {
+        return buyerAddress;
+    }
+
+    public void setBuyerAddress(String buyerAddress) {
+        this.buyerAddress = buyerAddress;
+    }
+
+    public String getBuyerPhone() {
+        return buyerPhone;
+    }
+
+    public void setBuyerPhone(String buyerPhone) {
+        this.buyerPhone = buyerPhone;
+    }
+
+    public String getBuyerMobile() {
+        return buyerMobile;
+    }
+
+    public void setBuyerMobile(String buyerMobile) {
+        this.buyerMobile = buyerMobile;
+    }
+
+    public String getBuyerPassportNo() {
+        return buyerPassportNo;
+    }
+
+    public void setBuyerPassportNo(String buyerPassportNo) {
+        this.buyerPassportNo = buyerPassportNo;
+    }
+
+    public String getBuyerIDCardNumber() {
+        return buyerIDCardNumber;
+    }
+
+    public void setBuyerIDCardNumber(String buyerIDCardNumber) {
+        this.buyerIDCardNumber = buyerIDCardNumber;
+    }
+
+    public String getBuyerNationality() {
+        return buyerNationality;
+    }
+
+    public void setBuyerNationality(String buyerNationality) {
+        this.buyerNationality = buyerNationality;
+    }
+
+    public String getNameOfBuyer() {
+        return nameOfBuyer;
+    }
+
+    public void setNameOfBuyer(String nameOfBuyer) {
+        this.nameOfBuyer = nameOfBuyer;
+    }
+
+    public String getPropertyStatus() {
+        return propertyStatus;
+    }
+
+    public void setPropertyStatus(String propertyStatus) {
+        this.propertyStatus = propertyStatus;
+    }
+
+    public String getTypeOfArea() {
+        return typeOfArea;
+    }
+
+    public void setTypeOfArea(String typeOfArea) {
+        this.typeOfArea = typeOfArea;
+    }
+
+    public String getTypeOfProperty() {
+        return typeOfProperty;
+    }
+
+    public void setTypeOfProperty(String typeOfProperty) {
+        this.typeOfProperty = typeOfProperty;
+    }
+
+    public String getArea() {
+        return area;
+    }
+
+    public void setArea(String area) {
+        this.area = area;
+    }
+
+    public String getPresentUse() {
+        return presentUse;
+    }
+
+    public void setPresentUse(String presentUse) {
+        this.presentUse = presentUse;
+    }
+
+    public String getAdditionalInformation() {
+        return additionalInformation;
+    }
+
+    public void setAdditionalInformation(String additionalInformation) {
+        this.additionalInformation = additionalInformation;
+    }
+
+    public String getTypeofSale() {
+        return typeofSale;
+    }
+
+    public void setTypeofSale(String typeofSale) {
+        this.typeofSale = typeofSale;
+    }
+
+    public String getPlotNumber() {
+        return plotNumber;
+    }
+
+    public void setPlotNumber(String plotNumber) {
+        this.plotNumber = plotNumber;
+    }
+
+    public String getTitleDeedNumber() {
+        return titleDeedNumber;
+    }
+
+    public void setTitleDeedNumber(String titleDeedNumber) {
+        this.titleDeedNumber = titleDeedNumber;
+    }
+
+    public String getPropertyNumber() {
+        return propertyNumber;
+    }
+
+    public void setPropertyNumber(String propertyNumber) {
+        this.propertyNumber = propertyNumber;
+    }
+
+    public String getSubCommunity() {
+        return subCommunity;
+    }
+
+    public void setSubCommunity(String subCommunity) {
+        this.subCommunity = subCommunity;
+    }
+
+    public String getMasterDevelpoerName() {
+        return masterDevelpoerName;
+    }
+
+    public void setMasterDevelpoerName(String masterDevelpoerName) {
+        this.masterDevelpoerName = masterDevelpoerName;
+    }
+
+    public String getCommunityNumber() {
+        return communityNumber;
+    }
+
+    public void setCommunityNumber(String communityNumber) {
+        this.communityNumber = communityNumber;
+    }
+
+    public String getNOCFromDeveloper() {
+        return NOCFromDeveloper;
+    }
+
+    public void setNOCFromDeveloper(String NOCFromDeveloper) {
+        this.NOCFromDeveloper = NOCFromDeveloper;
+    }
+
+    public String getListedPrice() {
+        return listedPrice;
+    }
+
+    public void setListedPrice(String listedPrice) {
+        this.listedPrice = listedPrice;
+    }
+
+    public String getPaidAmount() {
+        return paidAmount;
+    }
+
+    public void setPaidAmount(String paidAmount) {
+        this.paidAmount = paidAmount;
+    }
+
+    public String getServiceCharge() {
+        return serviceCharge;
+    }
+
+    public void setServiceCharge(String serviceCharge) {
+        this.serviceCharge = serviceCharge;
+    }
+
+    public String getOriginalPrice() {
+        return originalPrice;
+    }
+
+    public void setOriginalPrice(String originalPrice) {
+        this.originalPrice = originalPrice;
+    }
+
+    public String getSellPrice() {
+        return sellPrice;
+    }
+
+    public void setSellPrice(String sellPrice) {
+        this.sellPrice = sellPrice;
+    }
+
+    public String getBalanceAmount() {
+        return balanceAmount;
+    }
+
+    public void setBalanceAmount(String balanceAmount) {
+        this.balanceAmount = balanceAmount;
+    }
+
+    public String getSellerAgentCommission() {
+        return sellerAgentCommission;
+    }
+
+    public void setSellerAgentCommission(String sellerAgentCommission) {
+        this.sellerAgentCommission = sellerAgentCommission;
+    }
+
+    public String getBuyerAgentCommission() {
+        return buyerAgentCommission;
+    }
+
+    public void setBuyerAgentCommission(String buyerAgentCommission) {
+        this.buyerAgentCommission = buyerAgentCommission;
+    }
+
+    public String getSellerOfficeName() {
+        return sellerOfficeName;
+    }
+
+    public void setSellerOfficeName(String sellerOfficeName) {
+        this.sellerOfficeName = sellerOfficeName;
+    }
+
+    public String getSellerLicenseAuthority() {
+        return sellerLicenseAuthority;
+    }
+
+    public void setSellerLicenseAuthority(String sellerLicenseAuthority) {
+        this.sellerLicenseAuthority = sellerLicenseAuthority;
+    }
+
+    public String getSellerORN() {
+        return sellerORN;
+    }
+
+    public void setSellerORN(String sellerORN) {
+        this.sellerORN = sellerORN;
+    }
+
+    public String getSellerFax() {
+        return sellerFax;
+    }
+
+    public void setSellerFax(String sellerFax) {
+        this.sellerFax = sellerFax;
+    }
+
+    public String getSellerAddress() {
+        return sellerAddress;
+    }
+
+    public void setSellerAddress(String sellerAddress) {
+        this.sellerAddress = sellerAddress;
+    }
+
+    public String getSellerEmail() {
+        return sellerEmail;
+    }
+
+    public void setSellerEmail(String sellerEmail) {
+        this.sellerEmail = sellerEmail;
+    }
+
+    public String getSellerAgentName() {
+        return sellerAgentName;
+    }
+
+    public void setSellerAgentName(String sellerAgentName) {
+        this.sellerAgentName = sellerAgentName;
+    }
+
+    public String getSellerBRN() {
+        return sellerBRN;
+    }
+
+    public void setSellerBRN(String sellerBRN) {
+        this.sellerBRN = sellerBRN;
+    }
+
+    public String getSellerLicenseNumber() {
+        return sellerLicenseNumber;
+    }
+
+    public void setSellerLicenseNumber(String sellerLicenseNumber) {
+        this.sellerLicenseNumber = sellerLicenseNumber;
+    }
+
+    public String getSellerPhone() {
+        return sellerPhone;
+    }
+
+    public void setSellerPhone(String sellerPhone) {
+        this.sellerPhone = sellerPhone;
+    }
+
+    public String getSellerMobile() {
+        return sellerMobile;
+    }
+
+    public void setSellerMobile(String sellerMobile) {
+        this.sellerMobile = sellerMobile;
+    }
+
+    public String getBuyerOfficeName() {
+        return buyerOfficeName;
+    }
+
+    public void setBuyerOfficeName(String buyerOfficeName) {
+        this.buyerOfficeName = buyerOfficeName;
+    }
+
+    public String getBuyerLicenseAuthority() {
+        return buyerLicenseAuthority;
+    }
+
+    public void setBuyerLicenseAuthority(String buyerLicenseAuthority) {
+        this.buyerLicenseAuthority = buyerLicenseAuthority;
+    }
+
+    public String getBuyerORN() {
+        return buyerORN;
+    }
+
+    public void setBuyerORN(String buyerORN) {
+        this.buyerORN = buyerORN;
+    }
+
+    public String getBuyerFax2() {
+        return buyerFax2;
+    }
+
+    public void setBuyerFax2(String buyerFax2) {
+        this.buyerFax2 = buyerFax2;
+    }
+
+    public String getBuyerAddress2() {
+        return buyerAddress2;
+    }
+
+    public void setBuyerAddress2(String buyerAddress2) {
+        this.buyerAddress2 = buyerAddress2;
+    }
+
+    public String getBuyerEmail2() {
+        return buyerEmail2;
+    }
+
+    public void setBuyerEmail2(String buyerEmail2) {
+        this.buyerEmail2 = buyerEmail2;
+    }
+
+    public String getBuyerAgentName() {
+        return buyerAgentName;
+    }
+
+    public void setBuyerAgentName(String buyerAgentName) {
+        this.buyerAgentName = buyerAgentName;
+    }
+
+    public String getBuyerBRN() {
+        return buyerBRN;
+    }
+
+    public void setBuyerBRN(String buyerBRN) {
+        this.buyerBRN = buyerBRN;
+    }
+
+    public String getBuyerLicenseNumber() {
+        return buyerLicenseNumber;
+    }
+
+    public void setBuyerLicenseNumber(String buyerLicenseNumber) {
+        this.buyerLicenseNumber = buyerLicenseNumber;
+    }
+
+    public String getBuyerPhone2() {
+        return buyerPhone2;
+    }
+
+    public void setBuyerPhone2(String buyerPhone2) {
+        this.buyerPhone2 = buyerPhone2;
+    }
+
+    public String getBuyerMobile2() {
+        return buyerMobile2;
+    }
+
+    public void setBuyerMobile2(String buyerMobile2) {
+        this.buyerMobile2 = buyerMobile2;
+    }
+
+    public String getMortgagee() {
+        return mortgagee;
+    }
+
+    public void setMortgagee(String mortgagee) {
+        this.mortgagee = mortgagee;
+    }
+
+    public String getMortgageAmoun() {
+        return mortgageAmoun;
+    }
+
+    public void setMortgageAmoun(String mortgageAmoun) {
+        this.mortgageAmoun = mortgageAmoun;
+    }
+
+    public String getPaidAmount2() {
+        return paidAmount2;
+    }
+
+    public void setPaidAmount2(String paidAmount2) {
+        this.paidAmount2 = paidAmount2;
+    }
+
+    public String getMortgagePeriodFrom() {
+        return mortgagePeriodFrom;
+    }
+
+    public void setMortgagePeriodFrom(String mortgagePeriodFrom) {
+        this.mortgagePeriodFrom = mortgagePeriodFrom;
+    }
+
+    public String getMortgagePeriodTo() {
+        return mortgagePeriodTo;
+    }
+
+    public void setMortgagePeriodTo(String mortgagePeriodTo) {
+        this.mortgagePeriodTo = mortgagePeriodTo;
+    }
+
+    public String getMortgageLevel() {
+        return mortgageLevel;
+    }
+
+    public void setMortgageLevel(String mortgageLevel) {
+        this.mortgageLevel = mortgageLevel;
+    }
+
+    public String getNOCAttachred() {
+        return NOCAttachred;
+    }
+
+    public void setNOCAttachred(String NOCAttachred) {
+        this.NOCAttachred = NOCAttachred;
+    }
+
+    public String getPropertyRented() {
+        return propertyRented;
+    }
+
+    public void setPropertyRented(String propertyRented) {
+        this.propertyRented = propertyRented;
+    }
+
+    public String getNumberOfRentedProperties() {
+        return numberOfRentedProperties;
+    }
+
+    public void setNumberOfRentedProperties(String numberOfRentedProperties) {
+        this.numberOfRentedProperties = numberOfRentedProperties;
+    }
+
+    public String getOwnerNameEnglish() {
+        return ownerNameEnglish;
+    }
+
+    public void setOwnerNameEnglish(String ownerNameEnglish) {
+        this.ownerNameEnglish = ownerNameEnglish;
+    }
+
+    public String getOwnerNameArabic() {
+        return ownerNameArabic;
+    }
+
+    public void setOwnerNameArabic(String ownerNameArabic) {
+        this.ownerNameArabic = ownerNameArabic;
+    }
+
+    public String getOwnerLegalRepresentativeNameEnglish() {
+        return ownerLegalRepresentativeNameEnglish;
+    }
+
+    public void setOwnerLegalRepresentativeNameEnglish(String ownerLegalRepresentativeNameEnglish) {
+        this.ownerLegalRepresentativeNameEnglish = ownerLegalRepresentativeNameEnglish;
+    }
+
+    public String getOwnerLegalRepresentativeNameArabic() {
+        return ownerLegalRepresentativeNameArabic;
+    }
+
+    public void setOwnerLegalRepresentativeNameArabic(String ownerLegalRepresentativeNameArabic) {
+        this.ownerLegalRepresentativeNameArabic = ownerLegalRepresentativeNameArabic;
+    }
+
+    public String getOwnerRepresentingType() {
+        return ownerRepresentingType;
+    }
+
+    public void setOwnerRepresentingType(String ownerRepresentingType) {
+        this.ownerRepresentingType = ownerRepresentingType;
+    }
+
+    public String getOwnerPowerOfAttorneyNumber() {
+        return ownerPowerOfAttorneyNumber;
+    }
+
+    public void setOwnerPowerOfAttorneyNumber(String ownerPowerOfAttorneyNumber) {
+        this.ownerPowerOfAttorneyNumber = ownerPowerOfAttorneyNumber;
+    }
+
+    public String getOwnerSignature() {
+        return ownerSignature;
+    }
+
+    public void setOwnerSignature(String ownerSignature) {
+        this.ownerSignature = ownerSignature;
+    }
+
+    public String getBuyerNameEnglish() {
+        return buyerNameEnglish;
+    }
+
+    public void setBuyerNameEnglish(String buyerNameEnglish) {
+        this.buyerNameEnglish = buyerNameEnglish;
+    }
+
+    public String getBuyerNameArabic() {
+        return buyerNameArabic;
+    }
+
+    public void setBuyerNameArabic(String buyerNameArabic) {
+        this.buyerNameArabic = buyerNameArabic;
+    }
+
+    public String getBuyerLegalRepresentativeNameEnglish() {
+        return buyerLegalRepresentativeNameEnglish;
+    }
+
+    public void setBuyerLegalRepresentativeNameEnglish(String buyerLegalRepresentativeNameEnglish) {
+        this.buyerLegalRepresentativeNameEnglish = buyerLegalRepresentativeNameEnglish;
+    }
+
+    public String getBuyerLegalRepresentativeNameArabic() {
+        return buyerLegalRepresentativeNameArabic;
+    }
+
+    public void setBuyerLegalRepresentativeNameArabic(String buyerLegalRepresentativeNameArabic) {
+        this.buyerLegalRepresentativeNameArabic = buyerLegalRepresentativeNameArabic;
+    }
+
+    public String getBuyerRepresentingType() {
+        return buyerRepresentingType;
+    }
+
+    public void setBuyerRepresentingType(String buyerRepresentingType) {
+        this.buyerRepresentingType = buyerRepresentingType;
+    }
+
+    public String getBuyerPowerOfAttorneyNumber() {
+        return buyerPowerOfAttorneyNumber;
+    }
+
+    public void setBuyerPowerOfAttorneyNumber(String buyerPowerOfAttorneyNumber) {
+        this.buyerPowerOfAttorneyNumber = buyerPowerOfAttorneyNumber;
+    }
+
+    public String getBuyerSignature() {
+        return buyerSignature;
+    }
+
+    public void setBuyerSignature(String buyerSignature) {
+        this.buyerSignature = buyerSignature;
+    }
+
+    public String getServiceFee() {
+        return serviceFee;
+    }
+
+    public void setServiceFee(String serviceFee) {
+        this.serviceFee = serviceFee;
+    }
+
+    public String getTotalSellingPrice() {
+        return totalSellingPrice;
+    }
+
+    public void setTotalSellingPrice(String totalSellingPrice) {
+        this.totalSellingPrice = totalSellingPrice;
+    }
+
+    public String getTransferDate() {
+        return transferDate;
+    }
+
+    public void setTransferDate(String transferDate) {
+        this.transferDate = transferDate;
+    }
+
+    public String getSignYear() {
+        return signYear;
+    }
+
+    public void setSignYear(String signYear) {
+        this.signYear = signYear;
+    }
+
+    public String getSignMonth() {
+        return signMonth;
+    }
+
+    public void setSignMonth(String signMonth) {
+        this.signMonth = signMonth;
+    }
+
+    public String getSignDay() {
+        return signDay;
+    }
+
+    public void setSignDay(String signDay) {
+        this.signDay = signDay;
+    }
+
+    public Date getEstimatedTime() {
+        return estimatedTime;
+    }
+
+    public void setEstimatedTime(Date estimatedTime) {
+        this.estimatedTime = estimatedTime;
+    }
+
+    public String getAppointmentMeetPlace() {
+        return appointmentMeetPlace;
+    }
+
+    public void setAppointmentMeetPlace(String appointmentMeetPlace) {
+        this.appointmentMeetPlace = appointmentMeetPlace;
+    }
+
+    public Integer getUserId() {
+        return userId;
+    }
+
+    public void setUserId(Integer userId) {
+        this.userId = userId;
+    }
+
+    public String getDateStr() {
+        return dateStr;
+    }
+
+    public void setDateStr(String dateStr) {
+        this.dateStr = dateStr;
+    }
+}

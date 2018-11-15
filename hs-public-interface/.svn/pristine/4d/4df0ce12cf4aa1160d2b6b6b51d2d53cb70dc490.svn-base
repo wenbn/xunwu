@@ -1,0 +1,94 @@
+package www.ucforward.com.serviceInter;
+
+import org.springframework.stereotype.Service;
+import www.ucforward.com.vo.ResultVo;
+
+import java.util.List;
+import java.util.Map;
+
+/**
+ * @author wenbn
+ * @version 1.0
+ * @date 2018/5/22
+ */
+@Service("commonService")
+public interface CommonService<T>{
+
+    public int testTx() throws Exception;
+
+    //所有库公用的方法 start
+    ResultVo delete(Integer id, Object o) throws Exception;
+
+    ResultVo insert(Object o) throws Exception;
+
+    ResultVo select(Integer id, Object o) throws Exception;
+
+    /**
+     * 查询列表数据
+     * @param o 查询的实体，用于控制查询的dao
+     * @param condition 查询参数
+     * @param returnType 返回值类型，0 List<Map>  1 list<Entity>
+     * @return
+     * @throws Exception
+     */
+    ResultVo selectList(Object o, Map<Object,Object> condition, int returnType) throws Exception;
+
+    ResultVo update(Object o) throws Exception;
+
+    /**
+     * 自定义查询列数据
+     * @param condition 查询条件 List<String> columns
+     * @return
+     * @throws Exception
+     */
+    ResultVo selectCustomColumnNamesList(T t, Map<Object,Object> condition) throws Exception;
+
+    //批量插入数据
+    ResultVo batchInsert(T t ,List<T> data);
+
+    //批量删除数据,只有关联表才做删除
+    ResultVo batchDelete(T t ,Map<Object,Object> condition);
+
+
+    //所有库公用的方法 end
+
+    //获取首页信息
+    ResultVo getIndexDatas(Map<Object, Object> condition) throws Exception ;
+
+    //获取频道下的所有展位别名
+    List<Map<Object,Object>> getChannelBoothAliasName(Map<Object, Object> condition) throws Exception ;
+
+    //获取展位下面对应的数据
+    Map<Object,Object> getBoothDataByCondition(Map<Object, Object> condition);
+
+    ResultVo selectAdvertDataByCondition(Map<Object,Object> condition);
+
+    Map<Object, Object> getOwnerArticleDataByCondition(Map<Object, Object> condition);
+
+    /**
+     * 查询对应城市下的社区信息
+     * @param condition
+     * @return
+     */
+    ResultVo findCommunitiesByCityName(Map<Object, Object> condition) throws Exception;
+
+    /**
+     * 获取消息列表
+     * @param userName 用户名
+     * @return
+     */
+    ResultVo getMsgList(String userName);
+
+    /**
+     * 获取消息类型
+     * @param type 类型 1外部 2外获 3外看 4区域长
+     * @return
+     */
+    ResultVo getMsgType(String type);
+
+    /**
+     * 查询所有城市
+     * @return
+     */
+    List<Map<String,Object>> findAllCity(Map<Object, Object> queryFilter);
+}

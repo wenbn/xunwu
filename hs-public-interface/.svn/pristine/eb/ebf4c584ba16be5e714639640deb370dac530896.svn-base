@@ -1,0 +1,70 @@
+package www.ucforward.com.utils;
+
+import org.utils.StringUtil;
+import redis.clients.jedis.HostAndPort;
+import redis.clients.jedis.JedisCluster;
+import redis.clients.jedis.JedisPoolConfig;
+
+import java.util.LinkedHashSet;
+import java.util.Properties;
+import java.util.Set;
+
+
+/**
+ * redis集群工具类
+ * @author wenbn
+ * @version 1.0
+ * @date 2018/5/25
+ */
+public class RedisClusterUtil {
+
+    private static Properties properties = new Properties();
+    private static JedisCluster cluster;
+    static {
+        try{
+            properties.load(RedisClusterUtil.class.getResourceAsStream("/redis/redisCluster.properties"));
+            //properties.load(RedisClusterUtil.class.getResourceAsStream("/redis/redisCluster.properties"));
+        }catch (Exception e){
+            e.getMessage();
+        }
+    }
+
+    public static JedisCluster getJedisClusterInstance(){
+        if(cluster == null){
+            synchronized (RedisClusterUtil.class){
+                if(cluster == null) {
+                    try{
+                        JedisPoolConfig poolConfig = new JedisPoolConfig();
+                        // 最大连接数
+                        poolConfig.setMaxTotal(10);
+                        // 最大空闲数
+                        poolConfig.setMaxIdle(2);
+                        // 最大允许等待时间，如果超过这个时间还未获取到连接，则会报JedisException异常：
+                        // Could not get a resource from the pool
+                        poolConfig.setMaxWaitMillis(1000);
+                        Set<HostAndPort> nodes = new LinkedHashSet<HostAndPort>();
+                        nodes.add(new HostAndPort(properties.getProperty("redis.host1"), StringUtil.getAsInt(properties.getProperty("redis.port1"))));
+                        nodes.add(new HostAndPort(properties.getProperty("redis.host2"), StringUtil.getAsInt(properties.getProperty("redis.port2"))));
+                        nodes.add(new HostAndPort(properties.getProperty("redis.host3"), StringUtil.getAsInt(properties.getProperty("redis.port3"))));
+                        nodes.add(new HostAndPort(properties.getProperty("redis.host4"), StringUtil.getAsInt(properties.getProperty("redis.port4"))));
+                        nodes.add(new HostAndPort(properties.getProperty("redis.host5"), StringUtil.getAsInt(properties.getProperty("redis.port5"))));
+                        nodes.add(new HostAndPort(properties.getProperty("redis.host6"), StringUtil.getAsInt(properties.getProperty("redis.port6"))));
+                        cluster = new JedisCluster(nodes, 2000, 2000, 3, properties.getProperty("redis.cluster.password"), poolConfig);
+                    }catch (Exception ex){
+
+                    }
+                }
+            }
+        }
+        return cluster;
+    }
+
+    public static void main(String[] args) {
+        cluster = RedisClusterUtil.getJedisClusterInstance();
+        cluster.set("name2", "wenbn");
+        String name = cluster.get("name");
+        System.out.println(name);
+        cluster.set("age2", "18");
+        System.out.println(cluster.get("age"));
+    }
+}

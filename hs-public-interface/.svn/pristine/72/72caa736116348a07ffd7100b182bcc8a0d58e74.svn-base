@@ -1,0 +1,433 @@
+package www.ucforward.com.dto;
+
+import java.io.Serializable;
+
+/**
+ * 出租合同
+ * @Auther: lsq
+ * @Date: 2018/10/16 10:58
+ * @Description:
+ */
+public class RentalContract implements Serializable {
+    /**
+     * 日
+     */
+    private Integer day;
+    /**
+     * 月
+     */
+    private Integer month;
+    /**
+     * 年
+     */
+    private Integer year;
+    /**
+     * 房源编号
+     */
+    private String no;
+    /**
+     * 财产的使用 Industrial工业  Commercial商业   Residential住宅
+     */
+    private String propertyUsage;
+    /**
+     * 业主名称
+     */
+    private String ownerName;
+    /**
+     * 房东名称
+     */
+    private String landlordName;
+    /**
+     * 租客名称
+     */
+    private String tenantName;
+    /**
+     * 租客Emall
+     */
+    private String tenantEmail;
+    /**
+     * 租客电话
+     */
+    private String tenantPhone;
+    /**
+     * 楼名
+     */
+    private String buildingName;
+    /**
+     * 产权大小
+     */
+    private String propertySiz;
+    /**
+     * 物业
+     */
+    private String propertyNo;
+    /**
+     *
+     */
+    private String premisesPeriodTo;
+    /**
+     * 每年租金
+     */
+    private String annualRent;
+    /**
+     * 合同金额
+     */
+    private String contractValue;
+    /**
+     * 保证金额
+     */
+    private String securityDepositAmount;
+    /**
+     * 房东Email
+     */
+    private String landlordEmail;
+    /**
+     * 房东电话
+     */
+    private String landlordPhone;
+    /**
+     * 地址
+     */
+    private String location;
+    /**
+     * 产权类型
+     */
+    private String propertyType;
+    /**
+     * 图号
+     */
+    private String plotNo;
+    /**
+     * 来源
+     */
+    private String from;
+    /**
+     * 门牌号
+     */
+    private String propertyNO;
+    /**
+     * 付款方式
+     */
+    private String modeOfPayment;
+    /**
+     * 附加条款1
+     */
+    private String additionalTerm1;
+    /**
+     * 附加条款2
+     */
+    private String additionalTerm2;
+    /**
+     * 附加条款3
+     */
+    private String additionalTerm3;
+    /**
+     * 附加条款4
+     */
+    private String additionalTerm4;
+    /**
+     * 附加条款5
+     */
+    private String additionalTerm5;
+    /**
+     * 附加条款6
+     */
+    private String additionalTerm6;
+    /**
+     * 附加条款7
+     */
+    private String additionalTerm7;
+    /**
+     * 附加条款8
+     */
+    private String additionalTerm8;
+    /**
+     * 备注
+     */
+    private String remart;
+
+    /**
+     * 订单id
+     */
+    private Integer orderId;
+
+    public Integer getDay() {
+        return day;
+    }
+
+    public void setDay(Integer day) {
+        this.day = day;
+    }
+
+    public Integer getMonth() {
+        return month;
+    }
+
+    public void setMonth(Integer month) {
+        this.month = month;
+    }
+
+    public Integer getYear() {
+        return year;
+    }
+
+    public void setYear(Integer year) {
+        this.year = year;
+    }
+
+    public String getNo() {
+        return no;
+    }
+
+    public void setNo(String no) {
+        this.no = no;
+    }
+
+    public String getPropertyUsage() {
+        return propertyUsage;
+    }
+
+    public void setPropertyUsage(String propertyUsage) {
+        this.propertyUsage = propertyUsage;
+    }
+
+    public String getOwnerName() {
+        return ownerName;
+    }
+
+    public void setOwnerName(String ownerName) {
+        this.ownerName = ownerName;
+    }
+
+    public String getLandlordName() {
+        return landlordName;
+    }
+
+    public void setLandlordName(String landlordName) {
+        this.landlordName = landlordName;
+    }
+
+    public String getTenantName() {
+        return tenantName;
+    }
+
+    public void setTenantName(String tenantName) {
+        this.tenantName = tenantName;
+    }
+
+    public String getTenantEmail() {
+        return tenantEmail;
+    }
+
+    public void setTenantEmail(String tenantEmail) {
+        this.tenantEmail = tenantEmail;
+    }
+
+    public String getTenantPhone() {
+        return tenantPhone;
+    }
+
+    public void setTenantPhone(String tenantPhone) {
+        this.tenantPhone = tenantPhone;
+    }
+
+    public String getBuildingName() {
+        return buildingName;
+    }
+
+    public void setBuildingName(String buildingName) {
+        this.buildingName = buildingName;
+    }
+
+    public String getPropertySiz() {
+        return propertySiz;
+    }
+
+    public void setPropertySiz(String propertySiz) {
+        this.propertySiz = propertySiz;
+    }
+
+    public String getPropertyNo() {
+        return propertyNo;
+    }
+
+    public void setPropertyNo(String propertyNo) {
+        this.propertyNo = propertyNo;
+    }
+
+    public String getPremisesPeriodTo() {
+        return premisesPeriodTo;
+    }
+
+    public void setPremisesPeriodTo(String premisesPeriodTo) {
+        this.premisesPeriodTo = premisesPeriodTo;
+    }
+
+    public String getAnnualRent() {
+        return annualRent;
+    }
+
+    public void setAnnualRent(String annualRent) {
+        this.annualRent = annualRent;
+    }
+
+    public String getContractValue() {
+        return contractValue;
+    }
+
+    public void setContractValue(String contractValue) {
+        this.contractValue = contractValue;
+    }
+
+    public String getSecurityDepositAmount() {
+        return securityDepositAmount;
+    }
+
+    public void setSecurityDepositAmount(String securityDepositAmount) {
+        this.securityDepositAmount = securityDepositAmount;
+    }
+
+    public String getLandlordEmail() {
+        return landlordEmail;
+    }
+
+    public void setLandlordEmail(String landlordEmail) {
+        this.landlordEmail = landlordEmail;
+    }
+
+    public String getLandlordPhone() {
+        return landlordPhone;
+    }
+
+    public void setLandlordPhone(String landlordPhone) {
+        this.landlordPhone = landlordPhone;
+    }
+
+    public String getLocation() {
+        return location;
+    }
+
+    public void setLocation(String location) {
+        this.location = location;
+    }
+
+    public String getPropertyType() {
+        return propertyType;
+    }
+
+    public void setPropertyType(String propertyType) {
+        this.propertyType = propertyType;
+    }
+
+    public String getPlotNo() {
+        return plotNo;
+    }
+
+    public void setPlotNo(String plotNo) {
+        this.plotNo = plotNo;
+    }
+
+    public String getFrom() {
+        return from;
+    }
+
+    public void setFrom(String from) {
+        this.from = from;
+    }
+
+    public String getPropertyNO() {
+        return propertyNO;
+    }
+
+    public void setPropertyNO(String propertyNO) {
+        this.propertyNO = propertyNO;
+    }
+
+    public String getModeOfPayment() {
+        return modeOfPayment;
+    }
+
+    public void setModeOfPayment(String modeOfPayment) {
+        this.modeOfPayment = modeOfPayment;
+    }
+
+    public String getAdditionalTerm1() {
+        return additionalTerm1;
+    }
+
+    public void setAdditionalTerm1(String additionalTerm1) {
+        this.additionalTerm1 = additionalTerm1;
+    }
+
+    public String getAdditionalTerm2() {
+        return additionalTerm2;
+    }
+
+    public void setAdditionalTerm2(String additionalTerm2) {
+        this.additionalTerm2 = additionalTerm2;
+    }
+
+    public String getAdditionalTerm3() {
+        return additionalTerm3;
+    }
+
+    public void setAdditionalTerm3(String additionalTerm3) {
+        this.additionalTerm3 = additionalTerm3;
+    }
+
+    public String getAdditionalTerm4() {
+        return additionalTerm4;
+    }
+
+    public void setAdditionalTerm4(String additionalTerm4) {
+        this.additionalTerm4 = additionalTerm4;
+    }
+
+    public String getAdditionalTerm5() {
+        return additionalTerm5;
+    }
+
+    public void setAdditionalTerm5(String additionalTerm5) {
+        this.additionalTerm5 = additionalTerm5;
+    }
+
+    public String getAdditionalTerm6() {
+        return additionalTerm6;
+    }
+
+    public void setAdditionalTerm6(String additionalTerm6) {
+        this.additionalTerm6 = additionalTerm6;
+    }
+
+    public String getAdditionalTerm7() {
+        return additionalTerm7;
+    }
+
+    public void setAdditionalTerm7(String additionalTerm7) {
+        this.additionalTerm7 = additionalTerm7;
+    }
+
+    public String getAdditionalTerm8() {
+        return additionalTerm8;
+    }
+
+    public void setAdditionalTerm8(String additionalTerm8) {
+        this.additionalTerm8 = additionalTerm8;
+    }
+
+    public String getRemart() {
+        return remart;
+    }
+
+    public void setRemart(String remart) {
+        this.remart = remart;
+    }
+
+    public Integer getOrderId() {
+        return orderId;
+    }
+
+    public void setOrderId(Integer orderId) {
+        this.orderId = orderId;
+    }
+}

@@ -1,0 +1,20 @@
+#\u6D4B\u8BD5
+test_android_appkey = 5b21107ba40fa377160000ef
+test_android_messageSecret = 97153ce86041357721bd8f012a31d029
+test_ios_appkey = 5b779267b27b0a129f0006aa
+test_ios_messageSecret = ubydocq8wi51jatwtfmeuzrnsp3obhfk
+#\u5916\u90E8
+external_android_appkey = 5b21107ba40fa377160000ef
+external_android_messageSecret = 97153ce86041357721bd8f012a31d029
+external_ios_appkey = 5b779267b27b0a129f0006aa
+external_ios_messageSecret = ubydocq8wi51jatwtfmeuzrnsp3obhfk
+#\u5916\u83B7
+outOf_android_appkey = 5b21107ba40fa377160000ef
+outOf_android_messageSecret = 97153ce86041357721bd8f012a31d029
+outOf_ios_appkey = 5b779267b27b0a129f0006aa
+outOf_ios_messageSecret = ubydocq8wi51jatwtfmeuzrnsp3obhfk
+#\u5916\u770B
+outLock_android_appkey = 5b21107ba40fa377160000ef
+outLock_android_messageSecret = 97153ce86041357721bd8f012a31d029
+outLock_ios_appkey = 5b779267b27b0a129f0006aa
+outLock_ios_messageSecret = ubydocq8wi51jatwtfmeuzrnsp3obhfk

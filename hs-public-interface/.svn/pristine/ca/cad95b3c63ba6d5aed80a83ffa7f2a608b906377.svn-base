@@ -1,0 +1,70 @@
+package www.ucforward.com.dto;
+
+/**
+ * 开发商直售项目申购人员列表
+ * @Auther: lsq
+ * @Date: 2018/9/30 10:17
+ * @Description:
+ */
+public class BuildingMemberExport {
+    /**
+     * 姓氏
+     */
+    private String familyName;
+    /**
+     * 名称
+     */
+    private String name;
+    /**
+     * 国籍
+     */
+    private String nationality;
+    /**
+     * 护照号
+     */
+    private String passportNumber;
+    /**
+     * 联系方式
+     */
+    private String contactWay;
+
+    public String getFamilyName() {
+        return familyName;
+    }
+
+    public void setFamilyName(String familyName) {
+        this.familyName = familyName;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getNationality() {
+        return nationality;
+    }
+
+    public void setNationality(String nationality) {
+        this.nationality = nationality;
+    }
+
+    public String getPassportNumber() {
+        return passportNumber;
+    }
+
+    public void setPassportNumber(String passportNumber) {
+        this.passportNumber = passportNumber;
+    }
+
+    public String getContactWay() {
+        return contactWay;
+    }
+
+    public void setContactWay(String contactWay) {
+        this.contactWay = contactWay;
+    }
+}

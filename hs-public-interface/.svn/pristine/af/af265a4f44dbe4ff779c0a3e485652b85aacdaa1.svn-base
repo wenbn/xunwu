@@ -1,0 +1,4 @@
+#redis����������� ���Ի���
+redis.host = 120.77.220.25
+redis.port = 6379
+redis.pwd = ucforward^2018

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="UTF-8">
+    <title>Thymeleaf 入门</title>
+</head>
+<body>
+    <span th:text="hello"></span>
+    <hr/>
+    <span th:text="${msg}"></span>
+    <input id = "input" name="tyh_input" th:value="${msg}"/>
+
+    2，大部分的内置对象都以s 结尾strings、numbers、dates
+    ${#strings.isEmpty(key)}
+    判断字符串是否为空，如果为空返回true，否则返回false
+    ${#strings.contains(msg,'T')}
+    判断字符串是否包含指定的子串，如果包含返回true，否则返回false
+    ${#strings.startsWith(msg,'a')}
+    判断当前字符串是否以子串开头，如果是返回true，否则返回false
+    ${#strings.endsWith(msg,'a')}
+    判断当前字符串是否以子串结尾，如果是返回true，否则返回false
+    ${#strings.length(msg)}
+    返回字符串的长度
+    ${#strings.indexOf(msg,'h')}
+    查找子串的位置，并返回该子串的下标，如果没找到则返回-1
+    ${#strings.substring(msg,13)}
+    ${#strings.substring(msg,13,15)}
+    截取子串，用户与jdk String 类下SubString 方法相同
+    ${#strings.toUpperCase(msg)}
+    ${#strings.toLowerCase(msg)}
+
+</body>
+</html>

@@ -1,0 +1,257 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE generatorConfiguration PUBLIC
+        "-//mybatis.org//DTD MyBatis Generator Configuration 1.0//EN"
+        "http://mybatis.org/dtd/mybatis-generator-config_1_0.dtd" >
+<generatorConfiguration>
+
+    <!--数据库驱动jar包的真实路径 -->
+   <!-- <classPathEntry location="C:\Users\Hoictas\.m2\repository\mysql\mysql-connector-java\5.1.32\mysql-connector-java-5.1.32.jar"/>-->
+
+    <context id="context" targetRuntime="MyBatis3">
+        <!-- 是否去除自动生成的注释 true：是 ： false:否 -->
+        <commentGenerator >
+            <!--自动生成注释-->
+            <property name="addRemarkComments" value="true" />
+            <property name="suppressAllComments" value="false"/>
+            <property name="suppressDate" value="true"/>
+        </commentGenerator>
+
+        <!--数据库连接的信息：驱动类、连接地址、用户名、密码 -->
+        <jdbcConnection driverClass="com.mysql.jdbc.Driver"
+                        connectionURL="jdbc:mysql://localhost:3306/hs_member?characterEncoding=utf8"
+                        userId="root"
+                        password="123456">
+        </jdbcConnection>
+        <!-- 默认false，把JDBC DECIMAL 和 NUMERIC 类型解析为 Integer，为 true时把JDBC DECIMAL 和
+            NUMERIC 类型解析为java.math.BigDecimal -->
+        <javaTypeResolver>
+            <property name="forceBigDecimals" value="false"/>
+        </javaTypeResolver>
+
+        <!--指定包名生成实体类 以及生成的地址 （可以自定义地址，如果路径不存在会自动创建） -->
+        <javaModelGenerator targetPackage="www.ucforward.com.entity" targetProject=".\src\main\java">
+            <!-- enableSubPackages:是否让schema作为包的后缀 -->
+            <property name="enableSubPackages" value="false"/>
+            <!-- 从数据库返回的值被清理前后的空格 -->
+            <property name="trimStrings" value="true"/>
+        </javaModelGenerator>
+
+        <!-- !!!! Mapper XML Configurations !!!! -->
+        <sqlMapGenerator targetPackage="www.ucforward.com.mapper" targetProject=".\src\main\java">
+            <property name="enableSubPackages" value="false"/>
+        </sqlMapGenerator>
+
+        <!-- !!!! Mapper Interface Configurations !!!! -->
+        <javaClientGenerator targetPackage="www.ucforward.com.dao" targetProject=".\src\main\java"
+                             type="XMLMAPPER">
+            <property name="enableSubPackages" value="false"/>
+        </javaClientGenerator>
+
+        <!-- 指定数据库表    tableName 表名  mapperName生成的接口名   mapperName="ChannelDao"-->
+        <!--权限相关-->
+        <!--<table schema="HsSysPermissionDao" tableName="hs_sys_permission" mapperName="HsSysPermissionDao"-->
+               <!--enableCountByExample="false"  enableDeleteByExample="false"-->
+               <!--enableSelectByExample="false" enableUpdateByExample="false"/>-->
+
+        <!--<table schema="HsSysRoleDao" tableName="hs_sys_role" mapperName="HsSysRoleDao"-->
+               <!--enableCountByExample="false"  enableDeleteByExample="false"-->
+               <!--enableSelectByExample="false" enableUpdateByExample="false"/>-->
+
+        <!--<table schema="HsSysRolePermissionDao" tableName="hs_sys_role_permission" mapperName="HsSysRolePermissionDao"-->
+               <!--enableCountByExample="false"  enableDeleteByExample="false"-->
+               <!--enableSelectByExample="false" enableUpdateByExample="false"/>-->
+
+        <table schema="HsSysUserDao" tableName="hs_sys_user" mapperName="HsSysUserDao"
+               enableCountByExample="false"  enableDeleteByExample="false"
+               enableSelectByExample="false" enableUpdateByExample="false"/>
+
+        <!--<table schema="HsSysUserRoleDao" tableName="hs_sys_user_role" mapperName="HsSysUserRoleDao"-->
+               <!--enableCountByExample="false"  enableDeleteByExample="false"-->
+               <!--enableSelectByExample="false" enableUpdateByExample="false"/>-->
+
+
+        <!--common库-->
+    <!--    <table schema="HsChannelDao" tableName="hs_channel" mapperName="HsChannelDao"
+               enableCountByExample="false"  enableDeleteByExample="false"
+               enableSelectByExample="false" enableUpdateByExample="false"/>
+
+        <table schema="HsBoothDao" tableName="hs_booth" mapperName="HsBoothDao"
+               enableCountByExample="false"  enableDeleteByExample="false"
+               enableSelectByExample="false" enableUpdateByExample="false"/>
+
+        <table schema="HsBoothChannelRelDao" tableName="hs_booth_channel_rel" mapperName="HsBoothChannelRelDao"
+               enableCountByExample="false"  enableDeleteByExample="false"
+               enableSelectByExample="false" enableUpdateByExample="false"/>
+
+        <table schema="HsBoothAdvertRelDao" tableName="hs_booth_advert_rel" mapperName="HsBoothAdvertRelDao"
+               enableCountByExample="false"  enableDeleteByExample="false"
+               enableSelectByExample="false" enableUpdateByExample="false"/>
+
+        <table schema="HsAdvertDataDao" tableName="hs_advert_data" mapperName="HsAdvertDataDao"
+               enableCountByExample="false"  enableDeleteByExample="false"
+               enableSelectByExample="false" enableUpdateByExample="false"/>
+
+        <table schema="HsBoothArticleRelDao" tableName="hs_booth_article_rel" mapperName="HsBoothArticleRelDao"
+               enableCountByExample="false"  enableDeleteByExample="false"
+               enableSelectByExample="false" enableUpdateByExample="false"/>
+
+        <table schema="HsArticleDataDao" tableName="hs_article_data" mapperName="HsArticleDataDao"
+               enableCountByExample="false"  enableDeleteByExample="false"
+               enableSelectByExample="false" enableUpdateByExample="false"/>
+
+       <table schema="HsBoothHouseRelDao" tableName="hs_booth_house_rel" mapperName="HsBoothHouseRelDao"
+               enableCountByExample="false"  enableDeleteByExample="false"
+               enableSelectByExample="false" enableUpdateByExample="false"/>-->
+
+        <!--<table schema="HsSysDictcodeGroupDao" tableName="hs_sys_dictcode_group" mapperName="HsSysDictcodeGroupDao"-->
+               <!--enableCountByExample="false"  enableDeleteByExample="false"-->
+               <!--enableSelectByExample="false" enableUpdateByExample="false"/>-->
+
+        <!--<table schema="HsSysDictcodeItemDao" tableName="hs_sys_dictcode_item" mapperName="HsSysDictcodeItemDao"-->
+               <!--enableCountByExample="false"  enableDeleteByExample="false"-->
+               <!--enableSelectByExample="false" enableUpdateByExample="false"/>-->
+
+        <!--<table schema="HsMainHouseDao" tableName="hs_main_house" mapperName="HsMainHouseDao"-->
+               <!--enableCountByExample="false"  enableDeleteByExample="false"-->
+               <!--enableSelectByExample="false" enableUpdateByExample="false"/>-->
+
+        <!--<table schema="HsOwnerHousingApplicationDao" tableName="hs_owner_housing_application" mapperName="HsOwnerHousingApplicationDao"-->
+               <!--enableCountByExample="false"  enableDeleteByExample="false"-->
+               <!--enableSelectByExample="false" enableUpdateByExample="false"/>-->
+
+        <!--order相关-->
+        <!--<table schema="HsSystemOrderPoolDao" tableName="hs_system_order_pool" mapperName="HsSystemOrderPoolDao"-->
+               <!--enableCountByExample="false"  enableDeleteByExample="false"-->
+               <!--enableSelectByExample="false" enableUpdateByExample="false"/>-->
+
+        <!--<table schema="HsSystemOrderPoolLogDao" tableName="hs_system_order_pool_log" mapperName="HsSystemOrderPoolLogDao"-->
+               <!--enableCountByExample="false"  enableDeleteByExample="false"-->
+               <!--enableSelectByExample="false" enableUpdateByExample="false"/>-->
+
+        <!--会员-->
+        <!--<table schema="HsMemberDao" tableName="hs_member" mapperName="HsMemberDao"-->
+               <!--enableCountByExample="false"  enableDeleteByExample="false"-->
+               <!--enableSelectByExample="false" enableUpdateByExample="false"/>-->
+
+        <!--<table schema="HsSystemUserOrderTasksDao" tableName="hs_system_user_order_tasks" mapperName="HsSystemUserOrderTasksDao"-->
+        <!--enableCountByExample="false"  enableDeleteByExample="false"-->
+        <!--enableSelectByExample="false" enableUpdateByExample="false"/>-->
+
+        <!--<table schema="HsSystemUserOrderTasksLogDao" tableName="hs_system_user_order_tasks_log" mapperName="HsSystemUserOrderTasksLogDao"-->
+               <!--enableCountByExample="false"  enableDeleteByExample="false"-->
+               <!--enableSelectByExample="false" enableUpdateByExample="false"/>-->
+
+        <!--<table schema="HsSysUserLocationDao" tableName="hs_sys_user_location" mapperName="HsSysUserLocationDao"-->
+               <!--enableCountByExample="false"  enableDeleteByExample="false"-->
+               <!--enableSelectByExample="false" enableUpdateByExample="false"/>-->
+
+        <!--<table schema="HsMemberHousingBargainMessageDao" tableName="hs_member_housing_bargain_message" mapperName="HsMemberHousingBargainMessageDao"-->
+               <!--enableCountByExample="false"  enableDeleteByExample="false"-->
+               <!--enableSelectByExample="false" enableUpdateByExample="false"/>-->
+
+        <!--支持城市列表-->
+        <!--<table schema="HsSupportCityDao" tableName="hs_support_city" mapperName="HsSupportCityDao"-->
+        <!--enableCountByExample="false"  enableDeleteByExample="false"-->
+        <!--enableSelectByExample="false" enableUpdateByExample="false"/>-->
+
+        <!--房源订单-->
+        <!--<table schema="HsHousingOrderDao" tableName="hs_housing_order" mapperName="HsHousingOrderDao"-->
+               <!--enableCountByExample="false"  enableDeleteByExample="false"-->
+               <!--enableSelectByExample="false" enableUpdateByExample="false"/>-->
+
+        <!--<table schema="HsHousingOrderLogDao" tableName="hs_housing_order_log" mapperName="HsHousingOrderLogDao"-->
+               <!--enableCountByExample="false"  enableDeleteByExample="false"-->
+               <!--enableSelectByExample="false" enableUpdateByExample="false"/>-->
+
+        <!--<table schema="HsHousingOrderPaymentOnlineSerialDao" tableName="hs_housing_order_payment_online_serial" mapperName="HsHousingOrderPaymentOnlineSerialDao"-->
+               <!--enableCountByExample="false"  enableDeleteByExample="false"-->
+               <!--enableSelectByExample="false" enableUpdateByExample="false"/>-->
+
+        <!--<table schema="HsHousingOrderPaymentRecordDao" tableName="hs_housing_order_payment_record" mapperName="HsHousingOrderPaymentRecordDao"-->
+               <!--enableCountByExample="false"  enableDeleteByExample="false"-->
+               <!--enableSelectByExample="false" enableUpdateByExample="false"/>-->
+
+
+        <!--房源评价相关-->
+        <!--<table schema="HsSystemOrderPoolDao" tableName="hs_system_order_pool" mapperName="HsSystemOrderPoolDao"-->
+               <!--enableCountByExample="false"  enableDeleteByExample="false"-->
+               <!--enableSelectByExample="false" enableUpdateByExample="false"/>-->
+
+        <!--<table schema="hsRegionCodeDao" tableName="hs_region_code" mapperName="HsRegionCodeDao"-->
+        <!--enableCountByExample="false"  enableDeleteByExample="false"-->
+        <!--enableSelectByExample="false" enableUpdateByExample="false"/>-->
+
+        <!--业务员考勤表-->
+        <!--<table schema="hsUserAttendanceSheetDao" tableName="hs_user_attendance_sheet" mapperName="HsUserAttendanceSheetDao"-->
+               <!--enableCountByExample="false"  enableDeleteByExample="false"-->
+               <!--enableSelectByExample="false" enableUpdateByExample="false"/>-->
+
+        <!--业务员请假记录表-->
+        <!--<table schema="hsUserVacateSheetDao" tableName="hs_user_vacate_sheet" mapperName="HsUserVacateSheetDao"-->
+               <!--enableCountByExample="false"  enableDeleteByExample="false"-->
+               <!--enableSelectByExample="false" enableUpdateByExample="false"/>-->
+
+        <!--房源钥匙记录表-->
+        <!--<table schema="hsHouseKeyCasesDao" tableName="hs_house_key_cases" mapperName="HsHouseKeyCasesDao"-->
+               <!--enableCountByExample="false"  enableDeleteByExample="false"-->
+               <!--enableSelectByExample="false" enableUpdateByExample="false"/>-->
+
+        <!--积分记录表-->
+<!--        <table schema="HsMemberGoldLogDao" tableName="hs_member_gold_log" mapperName="HsMemberGoldLogDao"
+               enableCountByExample="false"  enableDeleteByExample="false"
+               enableSelectByExample="false" enableUpdateByExample="false"/>
+
+        <table schema="HsUserGoldLogDao" tableName="hs_user_gold_log" mapperName="HsUserGoldLogDao"
+               enableCountByExample="false"  enableDeleteByExample="false"
+               enableSelectByExample="false" enableUpdateByExample="false"/>-->
+
+<!--        <table schema="HsGoldRuleDao" tableName="hs_gold_rule" mapperName="HsGoldRuleDao"
+               enableCountByExample="false"  enableDeleteByExample="false"
+               enableSelectByExample="false" enableUpdateByExample="false"/>-->
+
+        <!--积分定义表-->
+        <!--<table schema="HsGoldRuleDao" tableName="hs_gold_rule" mapperName="HsGoldRuleDao"-->
+               <!--enableCountByExample="false"  enableDeleteByExample="false"-->
+               <!--enableSelectByExample="false" enableUpdateByExample="false"/>-->
+
+        <!--平台设置表-->
+        <!--<table schema="HsSysPlatformSettingDao" tableName="hs_sys_platform_setting" mapperName="HsSysPlatformSettingDao"-->
+               <!--enableCountByExample="false"  enableDeleteByExample="false"-->
+               <!--enableSelectByExample="false" enableUpdateByExample="false"/>-->
+
+        <!--成单结佣记录表-->
+        <!--<table schema="HsOrderCommissionRecordDao" tableName="hs_order_commission_record" mapperName="HsOrderCommissionRecordDao"-->
+               <!--enableCountByExample="false"  enableDeleteByExample="false"-->
+               <!--enableSelectByExample="false" enableUpdateByExample="false"/>-->
+
+        <!--退款记录表-->
+        <!--<table schema="HsHousingOrderRefundDao" tableName="hs_housing_order_refund" mapperName="HsHousingOrderRefundDao"-->
+               <!--enableCountByExample="false"  enableDeleteByExample="false"-->
+               <!--enableSelectByExample="false" enableUpdateByExample="false"/>-->
+
+        <!--会员-->
+        <!--<table schema="HsHouseComplainDao" tableName="hs_house_complain" mapperName="HsHouseComplainDao"-->
+               <!--enableCountByExample="false"  enableDeleteByExample="false"-->
+               <!--enableSelectByExample="false" enableUpdateByExample="false"/>-->
+
+
+        <!--<table schema="HsOwnerHousingApplicationDao" tableName="hs_owner_housing_application" mapperName="HsOwnerHousingApplicationDao"-->
+        <!--enableCountByExample="false"  enableDeleteByExample="false"-->
+        <!--enableSelectByExample="false" enableUpdateByExample="false"/>-->
+
+
+        <!--退款申请表-->
+        <!--<table schema="HsHousingOrderRefundApplyDao" tableName="hs_housing_order_refund_apply" mapperName="HsHousingOrderRefundApplyDao"-->
+               <!--enableCountByExample="false"  enableDeleteByExample="false"-->
+               <!--enableSelectByExample="false" enableUpdateByExample="false"/>-->
+
+        <!--<table schema="HsMemberHousesSubscribeDao" tableName="hs_member_houses_subscribe" mapperName="HsMemberHousesSubscribeDao"-->
+               <!--enableCountByExample="false"  enableDeleteByExample="false"-->
+               <!--enableSelectByExample="false" enableUpdateByExample="false"/>-->
+
+        <!--房源下架申请表-->
+        <!--<table schema="HsHouseObtainedDao" tableName="hs_house_obtained" mapperName="HsHouseObtainedDao"-->
+               <!--enableCountByExample="false"  enableDeleteByExample="false"-->
+               <!--enableSelectByExample="false" enableUpdateByExample="false"/>-->
+    </context>
+</generatorConfiguration>

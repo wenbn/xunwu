@@ -1,0 +1,72 @@
+package www.ucforward.com.dao.impl;
+
+import org.springframework.stereotype.Repository;
+import www.ucforward.com.dao.BaseDao;
+import www.ucforward.com.dao.HsHouseAutoReplySettingDao;
+import www.ucforward.com.entity.HsHouseAutoReplySetting;
+
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Created by Administrator on 2018/7/24.
+ */
+@Repository("hsHouseAutoReplySettingDao")
+public class HsHouseAutoReplySettingDaoImpl extends BaseDao implements HsHouseAutoReplySettingDao {
+    @Override
+    public int deleteByPrimaryKey(Integer id) {
+        return this.getSqlSession().delete("HsHouseAutoReplySettingDao.deleteByPrimaryKey",id);
+    }
+
+    @Override
+    public int insert(HsHouseAutoReplySetting record) {
+        return insertSelective(record);
+    }
+
+    @Override
+    public int insertSelective(HsHouseAutoReplySetting record) {
+        return this.getSqlSession().insert("HsHouseAutoReplySettingDao.insertSelective",record);
+    }
+
+    @Override
+    public HsHouseAutoReplySetting selectByPrimaryKey(Integer id) {
+        return this.getSqlSession().selectOne("HsHouseAutoReplySettingDao.selectByPrimaryKey",id);
+    }
+
+    @Override
+    public int updateByPrimaryKeySelective(HsHouseAutoReplySetting record) {
+        return this.getSqlSession().update("HsHouseAutoReplySettingDao.updateByPrimaryKeySelective",record);
+    }
+
+    @Override
+    public int updateByPrimaryKey(HsHouseAutoReplySetting record) {
+        return this.getSqlSession().update("HsHouseAutoReplySettingDao.updateByPrimaryKey",record);
+    }
+
+    @Override
+    public int batchInsert(List<HsHouseAutoReplySetting> list) {
+        return this.getSqlSession().insert("HsHouseAutoReplySettingDao.batchInsert",list);
+    }
+
+    @Override
+    public int batchUpdate(List<HsHouseAutoReplySetting> list) {
+        return this.getSqlSession().update("HsHouseAutoReplySettingDao.batchUpdate",list);
+    }
+
+    /**
+     * 查询列表数据
+     * @param condition 查询参数
+     * @param returnType 返回值类型，0 List<Map>  1 list<Entity>
+     * @return Map<Object,Object> result  key data,pageInfo
+     * @throws Exception
+     */
+    @Override
+    public Map<Object, Object> selectListByCondition(Map<Object, Object> condition, int returnType) {
+        //默认查询ListMap
+        String sql  = "HsHouseAutoReplySettingDao.selectHouseAutoReplySetListMapByCondition";
+        if(returnType!=0){//查询实体
+            sql  = "HsHouseAutoReplySettingDao.selectHouseAutoReplySetListByCondition";
+        }
+        return executeSql(condition, sql);
+    }
+}

@@ -1,0 +1,40 @@
+package www.ucforward.com.dao.impl;
+
+import org.springframework.stereotype.Repository;
+import www.ucforward.com.dao.BaseDao;
+import www.ucforward.com.dao.HsHouseKeyCasesDao;
+import www.ucforward.com.entity.HsHouseKeyCases;
+
+@Repository("hsHouseKeyCasesDao")
+public class HsHouseKeyCasesDaoImpl extends BaseDao implements HsHouseKeyCasesDao {
+
+    @Override
+    public int deleteByPrimaryKey(Integer id) {
+        return this.getSqlSession().delete("HsHouseKeyCasesDao.deleteByPrimaryKey",id);
+    }
+
+    @Override
+    public int insert(HsHouseKeyCases record) {
+        return insertSelective(record);
+    }
+
+    @Override
+    public int insertSelective(HsHouseKeyCases record) {
+        return this.getSqlSession().insert("HsHouseKeyCasesDao.insertSelective",record);
+    }
+
+    @Override
+    public HsHouseKeyCases selectByPrimaryKey(Integer id) {
+        return this.getSqlSession().selectOne("HsHouseKeyCasesDao.selectByPrimaryKey",id);
+    }
+
+    @Override
+    public int updateByPrimaryKeySelective(HsHouseKeyCases record) {
+        return this.getSqlSession().update("HsHouseKeyCasesDao.updateByPrimaryKeySelective",record);
+    }
+
+    @Override
+    public int updateByPrimaryKey(HsHouseKeyCases record) {
+        return updateByPrimaryKeySelective(record);
+    }
+}

@@ -1,0 +1,83 @@
+package www.ucforward.com.dao.impl;
+
+import com.github.pagehelper.PageHelper;
+import com.github.pagehelper.PageInfo;
+import org.springframework.stereotype.Repository;
+import org.utils.StringUtil;
+import www.ucforward.com.dao.BaseDao;
+import www.ucforward.com.dao.HsMainHouseDao;
+import www.ucforward.com.dao.HsOwnerHousingApplicationDao;
+import www.ucforward.com.entity.HsMainHouse;
+import www.ucforward.com.entity.HsOwnerHousingApplication;
+
+import java.util.List;
+import java.util.Map;
+
+@Repository("mainHouseDao")
+public class HsMainHouseDaoImpl extends BaseDao implements HsMainHouseDao {
+    @Override
+    public int deleteByPrimaryKey(Integer id) {
+        return this.getSqlSession().delete("HsMainHouseDao.deleteByPrimaryKey",id);
+    }
+
+    @Override
+    public int insert(HsMainHouse record) {
+        return insertSelective(record);
+    }
+
+    @Override
+    public int insertSelective(HsMainHouse record) {
+        return this.getSqlSession().insert("HsMainHouseDao.insertSelective",record);
+    }
+
+    @Override
+    public HsMainHouse selectByPrimaryKey(Integer id) {
+        return this.getSqlSession().selectOne("HsMainHouseDao.selectByPrimaryKey",id);
+    }
+
+    @Override
+    public int updateByPrimaryKeySelective(HsMainHouse record) {
+        return this.getSqlSession().update("HsMainHouseDao.updateByPrimaryKeySelective",record);
+    }
+
+    @Override
+    public int updateByPrimaryKey(HsMainHouse record) {
+        return updateByPrimaryKeySelective(record);
+    }
+
+    /**
+     * 查询列表数据
+     * @param condition 查询参数
+     * @param returnType 返回值类型，0 List<Map>  1 list<Entity>
+     * @return Map<Object,Object> result  key data,pageInfo
+     * @throws Exception
+     */
+    @Override
+    public Map<Object, Object> selectListByCondition(Map<Object, Object> condition, int returnType) {
+        //默认查询ListMap
+        String sql  = "HsMainHouseDao.selectHsMainHouseListMapByCondition";
+        if(returnType!=0){//查询实体
+            sql  = "HsMainHouseDao.selectHsMainHouseListByCondition";
+        }
+        String _pageIndex = StringUtil.trim(condition.get("pageIndex"));
+        String _pageSize = StringUtil.trim(condition.get("pageSize"));
+        if(StringUtil.hasText(_pageIndex)&& StringUtil.hasText(_pageSize)){
+            int pageIndex = StringUtil.getAsInt(_pageIndex);
+            int pageSize = StringUtil.getAsInt(_pageSize);
+            PageHelper.startPage(pageIndex,pageSize);
+            List<Object> resultList = this.getSqlSession().selectList(sql ,condition);
+            PageInfo result = new PageInfo(resultList);
+            condition.clear();
+            result.setList(null);
+            condition.put("data",resultList);
+            condition.put("pageInfo",result);
+            return condition;
+        }else{
+            List<Object> resultList = this.getSqlSession().selectList(sql ,condition);
+            condition.clear();
+            condition.put("data",resultList);
+            condition.put("pageInfo",null);
+            return condition;
+        }
+    }
+}

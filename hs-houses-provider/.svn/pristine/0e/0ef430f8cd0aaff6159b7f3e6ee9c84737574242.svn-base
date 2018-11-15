@@ -1,0 +1,39 @@
+package www.ucforward.com.dao.impl;
+
+import org.springframework.stereotype.Repository;
+import www.ucforward.com.dao.BaseDao;
+import www.ucforward.com.dao.HSOwnerHousingApplicationLogDao;
+import www.ucforward.com.entity.HsOwnerHousingApplicationLog;
+
+@Repository("ownerHousingApplyLogDao")
+public class HSOwnerHousingApplicationLogDaoImpl extends BaseDao implements HSOwnerHousingApplicationLogDao{
+    @Override
+    public int deleteByPrimaryKey(Integer id) {
+        return this.getSqlSession().delete("HSOwnerHousingApplicationLogDao.deleteByPrimaryKey",id);
+    }
+
+    @Override
+    public int insert(HsOwnerHousingApplicationLog record) {
+        return this.getSqlSession().insert("HSOwnerHousingApplicationLogDao.insert",record);
+    }
+
+    @Override
+    public int insertSelective(HsOwnerHousingApplicationLog record) {
+        return this.getSqlSession().insert("HSOwnerHousingApplicationLogDao.insertSelective",record);
+    }
+
+    @Override
+    public HsOwnerHousingApplicationLog selectByPrimaryKey(Integer id) {
+        return this.getSqlSession().selectOne("HSOwnerHousingApplicationLogDao.selectByPrimaryKey",id);
+    }
+
+    @Override
+    public int updateByPrimaryKeySelective(HsOwnerHousingApplicationLog record) {
+        return this.getSqlSession().update("HSOwnerHousingApplicationLogDao.updateByPrimaryKeySelective",record);
+    }
+
+    @Override
+    public int updateByPrimaryKey(HsOwnerHousingApplicationLog record) {
+        return this.getSqlSession().update("HSOwnerHousingApplicationLogDao.updateByPrimaryKey",record);
+    }
+}

@@ -1,0 +1,39 @@
+package www.ucforward.com.dao.impl;
+
+import org.springframework.stereotype.Repository;
+import www.ucforward.com.dao.BaseDao;
+import www.ucforward.com.dao.HSOwnerHousingApplicationDao;
+import www.ucforward.com.entity.HsOwnerHousingApplication;
+
+@Repository("ownerHousingApplyDao")
+public class HSOwnerHousingApplicationDaoImpl extends BaseDao implements HSOwnerHousingApplicationDao{
+    @Override
+    public int deleteByPrimaryKey(Integer id) {
+        return this.getSqlSession().delete("HSOwnerHousingApplicationDao.deleteByPrimaryKey",id);
+    }
+
+    @Override
+    public int insert(HsOwnerHousingApplication record) {
+        return this.getSqlSession().insert("HSOwnerHousingApplicationDao.insert",record);
+    }
+
+    @Override
+    public int insertSelective(HsOwnerHousingApplication record) {
+        return this.getSqlSession().insert("HSOwnerHousingApplicationDao.insertSelective",record);
+    }
+
+    @Override
+    public HsOwnerHousingApplication selectByPrimaryKey(Integer id) {
+        return this.getSqlSession().selectOne("HSOwnerHousingApplicationDao.selectByPrimaryKey",id);
+    }
+
+    @Override
+    public int updateByPrimaryKeySelective(HsOwnerHousingApplication record) {
+        return this.getSqlSession().update("HSOwnerHousingApplicationDao.updateByPrimaryKeySelective",record);
+    }
+
+    @Override
+    public int updateByPrimaryKey(HsOwnerHousingApplication record) {
+        return this.getSqlSession().update("HSOwnerHousingApplicationDao.updateByPrimaryKey",record);
+    }
+}

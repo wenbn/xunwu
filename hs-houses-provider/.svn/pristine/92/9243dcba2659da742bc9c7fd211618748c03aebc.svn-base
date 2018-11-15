@@ -1,0 +1,103 @@
+package www.ucforward.com.dao.impl;
+
+import com.github.pagehelper.PageHelper;
+import com.github.pagehelper.PageInfo;
+import org.springframework.stereotype.Repository;
+import org.utils.StringUtil;
+import www.ucforward.com.dao.BaseDao;
+import www.ucforward.com.dao.HsMainHouseDao;
+import www.ucforward.com.dao.HsOwnerHousingApplicationDao;
+import www.ucforward.com.entity.HsMainHouse;
+import www.ucforward.com.entity.HsOwnerHousingApplication;
+
+import java.util.List;
+import java.util.Map;
+
+@Repository("mainHouseDao")
+public class HsMainHouseDaoImpl extends BaseDao implements HsMainHouseDao {
+    @Override
+    public int deleteByPrimaryKey(Integer id) {
+        return this.getSqlSession().delete("HsMainHouseDao.deleteByPrimaryKey",id);
+    }
+
+    @Override
+    public int insert(HsMainHouse record) {
+        return insertSelective(record);
+    }
+
+    @Override
+    public int insertSelective(HsMainHouse record) {
+        return this.getSqlSession().insert("HsMainHouseDao.insertSelective",record);
+    }
+
+    @Override
+    public HsMainHouse selectByPrimaryKey(Integer id) {
+        return this.getSqlSession().selectOne("HsMainHouseDao.selectByPrimaryKey",id);
+    }
+
+    @Override
+    public int updateByPrimaryKeySelective(HsMainHouse record) {
+        return this.getSqlSession().update("HsMainHouseDao.updateByPrimaryKeySelective",record);
+    }
+
+    @Override
+    public int updateByPrimaryKey(HsMainHouse record) {
+        return updateByPrimaryKeySelective(record);
+    }
+
+    /**
+     * 查询列表数据
+     * @param condition 查询参数
+     * @param returnType 返回值类型，0 List<Map>  1 list<Entity>
+     * @return Map<Object,Object> result  key data,pageInfo
+     * @throws Exception
+     */
+    @Override
+    public Map<Object, Object> selectListByCondition(Map<Object, Object> condition, int returnType) {
+        //默认查询ListMap
+        String sql  = "HsMainHouseDao.selectHsMainHouseListMapByCondition";
+        if(returnType!=0){//查询实体
+            sql  = "HsMainHouseDao.selectHsMainHouseListByCondition";
+        }
+        return executeSql(condition, sql);
+    }
+
+    /**
+     * 获取房源位置
+     * @param condition
+     * @return
+     */
+    @Override
+    public List<Map<Object, Object>> loadHousesPosition(Map<Object, Object> condition) {
+        return this.getSqlSession().selectList("HsMainHouseDao.loadHousesPosition",condition);
+    }
+
+    /**
+     * 修改房源信息记录（修改次数）
+     * @param record
+     * @return
+     */
+    @Override
+    public int updateHousesRecord(HsMainHouse record) {
+        return this.getSqlSession().update("HsMainHouseDao.updateHousesRecord",record);
+    }
+
+    /**
+     * 查询业主提交预约平台上门获取房源数量
+     * @return
+     */
+    @Override
+    public int selectHousingApplicationCount() {
+        return this.getSqlSession().selectOne("HsMainHouseDao.selectHousingApplicationCount");
+    }
+
+    /**
+     * 自定义查询列
+     * @param condition
+     * @return
+     */
+    @Override
+    public Map<Object, Object> selectCustomColumnNamesList(Map<Object, Object> condition) {
+        return executeSql(condition, "HsMainHouseDao.selectCustomColumnNamesList");
+    }
+}

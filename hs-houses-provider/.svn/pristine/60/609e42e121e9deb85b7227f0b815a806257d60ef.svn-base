@@ -1,0 +1,10 @@
+package www.ucforward.com.serviceImpl;
+
+import org.apache.log4j.Logger;
+import org.springframework.stereotype.Service;
+import www.ucforward.com.serviceInter.HousesService;
+
+@Service("housesService")
+public class HousesServiceImpl implements HousesService {
+    protected final static Logger logger = Logger.getLogger(HousesServiceImpl.class);
+}

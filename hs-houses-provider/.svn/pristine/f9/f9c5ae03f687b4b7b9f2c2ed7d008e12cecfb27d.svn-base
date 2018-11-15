@@ -1,0 +1,134 @@
+package www.ucforward.com.serviceImpl;
+
+import org.apache.log4j.Logger;
+import org.springframework.stereotype.Service;
+import www.ucforward.com.dao.*;
+import www.ucforward.com.entity.*;
+import www.ucforward.com.serviceInter.HousesService;
+
+import javax.annotation.Resource;
+
+@Service("housesService")
+public class HousesServiceImpl implements HousesService {
+    protected final static Logger logger = Logger.getLogger(HousesServiceImpl.class);
+
+    @Resource
+    private HsOwnerHousingApplicationDao ownerHousingApplyDao;
+
+    @Resource
+    private HsOwnerHousingApplicationLogDao ownerHousingApplyLogDao;
+
+    @Resource
+    private HsHouseImgDao houseImgDao;
+
+    @Resource
+    private HsHouseLogDao houseLogDao;
+
+    @Resource
+    private HsMainHouseDao mainHouseDao;
+
+    @Override
+    public int delete(Integer id, Object o) {
+        int result = -2;//错误则返回-2
+       if(o instanceof HsOwnerHousingApplication){
+           result = ownerHousingApplyDao.deleteByPrimaryKey(id);
+       }else if(o instanceof HsOwnerHousingApplicationLog){
+           result = ownerHousingApplyLogDao.deleteByPrimaryKey(id);
+       }else if(o instanceof HsHouseImg){
+           result = houseImgDao.deleteByPrimaryKey(id);
+       }else if(o instanceof  HsHouseLog){
+           result = houseLogDao.deleteByPrimaryKey(id);
+       }else if(o instanceof HsMainHouse){
+           result = mainHouseDao.deleteByPrimaryKey(id);
+       }
+        return result;
+    }
+
+    @Override
+    public int insert(Object o) {
+        int result = -2;
+        if(o instanceof  HsOwnerHousingApplication){
+            result = ownerHousingApplyDao.insert((HsOwnerHousingApplication)o);
+        }else if(o instanceof  HsOwnerHousingApplicationLog){
+            result = ownerHousingApplyLogDao.insert((HsOwnerHousingApplicationLog)o);
+        }else if(o instanceof HsHouseImg){
+            result = houseImgDao.insert((HsHouseImg) o);
+        }else if(o instanceof  HsHouseLog){
+            result = houseLogDao.insert((HsHouseLog) o);
+        }else  if(o instanceof  HsMainHouse){
+            result = mainHouseDao.insert((HsMainHouse) o);
+        }
+        return result;
+    }
+
+    @Override
+    public int insertByChoose(Object o) {
+        int result = -2;
+        if(o instanceof  HsOwnerHousingApplication){
+            result = ownerHousingApplyDao.insertSelective((HsOwnerHousingApplication) o);
+            //插入数据成功，返回该条数据的主键ID
+            if(result > 0){
+              result =  ((HsOwnerHousingApplication) o).getId();
+            }
+        }else if(o instanceof  HsOwnerHousingApplicationLog){
+            result = ownerHousingApplyLogDao.insertSelective((HsOwnerHousingApplicationLog)o);
+        }else if(o instanceof  HsHouseImg){
+            result = houseImgDao.insertSelective((HsHouseImg) o);
+        }else if(o instanceof  HsHouseLog){
+            result = houseLogDao.insertSelective((HsHouseLog)o);
+        }else if(o instanceof  HsMainHouse){
+            result = mainHouseDao.insertSelective((HsMainHouse) o);
+        }
+        return result;
+    }
+
+    @Override
+    public Object selectListData(Integer id, Object o) {
+        if(o instanceof  HsOwnerHousingApplication){
+            return  ownerHousingApplyDao.selectByPrimaryKey(id);
+        }else if(o instanceof  HsOwnerHousingApplicationLog){
+            return ownerHousingApplyLogDao.selectByPrimaryKey(id);
+        }else if(o instanceof  HsHouseImg){
+            return houseImgDao.selectByPrimaryKey(id);
+        }else if(o instanceof  HsHouseLog){
+            return houseLogDao.selectByPrimaryKey(id);
+        }else if(o instanceof  HsMainHouse){
+            return mainHouseDao.selectByPrimaryKey(id);
+        }
+        return null;
+    }
+
+    @Override
+    public int updateByCondition(Object o) {
+        int result = -2;
+        if(o instanceof  HsOwnerHousingApplication){
+            result = ownerHousingApplyDao.updateByPrimaryKeySelective((HsOwnerHousingApplication)o);
+        }else if(o instanceof  HsOwnerHousingApplicationLog){
+            result = ownerHousingApplyLogDao.updateByPrimaryKeySelective((HsOwnerHousingApplicationLog)o);
+        }else if(o instanceof  HsHouseImg){
+            result = houseImgDao.updateByPrimaryKeySelective((HsHouseImg) o);
+        }else if(o instanceof  HsHouseLog){
+            result = houseLogDao.updateByPrimaryKeySelective((HsHouseLog) o);
+        }else if(o instanceof  HsMainHouse){
+            result = mainHouseDao.updateByPrimaryKeySelective((HsMainHouse) o);
+        }
+        return result;
+    }
+
+    @Override
+    public int update(Object o) {
+        int result = -2;
+        if(o instanceof  HsOwnerHousingApplication){
+            result = ownerHousingApplyDao.updateByPrimaryKey((HsOwnerHousingApplication)o);
+        }else  if(o instanceof  HsOwnerHousingApplicationLog){
+            result = ownerHousingApplyLogDao.updateByPrimaryKey((HsOwnerHousingApplicationLog)o);
+        }else  if(o instanceof  HsHouseImg){
+            result = houseImgDao.updateByPrimaryKey((HsHouseImg) o);
+        }else if(o instanceof  HsHouseLog){
+            result = houseLogDao.updateByPrimaryKey((HsHouseLog) o);
+        }else if(o instanceof  HsMainHouse){
+            result = mainHouseDao.updateByPrimaryKey((HsMainHouse) o);
+        }
+        return result;
+    }
+}

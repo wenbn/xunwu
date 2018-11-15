@@ -1,0 +1,62 @@
+package www.ucforward.com.dao.impl;
+
+import com.github.pagehelper.PageHelper;
+import com.github.pagehelper.PageInfo;
+import org.springframework.stereotype.Repository;
+import org.utils.StringUtil;
+import www.ucforward.com.dao.BaseDao;
+import www.ucforward.com.dao.HsOwnerHousingApplicationDao;
+import www.ucforward.com.entity.HsOwnerHousingApplication;
+
+import java.util.List;
+import java.util.Map;
+
+@Repository("ownerHousingApplyDao")
+public class HsOwnerHousingApplicationDaoImpl extends BaseDao implements HsOwnerHousingApplicationDao {
+    @Override
+    public int deleteByPrimaryKey(Integer id) {
+        return this.getSqlSession().delete("HsOwnerHousingApplicationDao.deleteByPrimaryKey",id);
+    }
+
+    @Override
+    public int insert(HsOwnerHousingApplication record) {
+        return insertSelective(record);
+    }
+
+    @Override
+    public int insertSelective(HsOwnerHousingApplication record) {
+        return this.getSqlSession().insert("HsOwnerHousingApplicationDao.insertSelective",record);
+    }
+
+    @Override
+    public HsOwnerHousingApplication selectByPrimaryKey(Integer id) {
+        return this.getSqlSession().selectOne("HsOwnerHousingApplicationDao.selectByPrimaryKey",id);
+    }
+
+    @Override
+    public int updateByPrimaryKeySelective(HsOwnerHousingApplication record) {
+        return this.getSqlSession().update("HsOwnerHousingApplicationDao.updateByPrimaryKeySelective",record);
+    }
+
+    @Override
+    public int updateByPrimaryKey(HsOwnerHousingApplication record) {
+        return updateByPrimaryKeySelective(record);
+    }
+
+    /**
+     * 查询列表数据
+     * @param condition 查询参数
+     * @param returnType 返回值类型，0 List<Map>  1 list<Entity>
+     * @return Map<Object,Object> result  key data,pageInfo
+     * @throws Exception
+     */
+    @Override
+    public Map<Object, Object> selectListByCondition(Map<Object, Object> condition, int returnType) {
+        //默认查询ListMap
+        String sql  = "HsOwnerHousingApplicationDao.selectHsOwnerHousingApplicationListMapByCondition";
+        if(returnType!=0){//查询实体
+            sql  = "HsOwnerHousingApplicationDao.selectHsOwnerHousingApplicationListByCondition";
+        }
+        return executeSql(condition,sql);
+    }
+}

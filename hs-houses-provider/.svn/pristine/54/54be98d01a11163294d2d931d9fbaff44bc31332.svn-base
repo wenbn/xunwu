@@ -1,0 +1,331 @@
+package www.ucforward.com.serviceImpl;
+
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.utils.StringUtil;
+import www.ucforward.com.constants.MessageConstant;
+import www.ucforward.com.constants.ResultConstant;
+import www.ucforward.com.dao.*;
+import www.ucforward.com.entity.*;
+import www.ucforward.com.index.message.HouseIndexMessage;
+import www.ucforward.com.serviceInter.HousesService;
+import www.ucforward.com.utils.JsonUtil;
+import www.ucforward.com.vo.ResultVo;
+
+import javax.annotation.Resource;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+@Service("housesService")
+public class HousesServiceImpl implements HousesService {
+    protected final static Logger logger = Logger.getLogger(HousesServiceImpl.class);
+
+    @Resource
+    private HsOwnerHousingApplicationDao ownerHousingApplyDao;
+    @Resource
+    private HsOwnerHousingApplicationLogDao ownerHousingApplyLogDao;
+    @Resource
+    private HsHouseImgDao houseImgDao;
+    @Resource
+    private HsHouseLogDao houseLogDao;
+    @Resource
+    private HsMainHouseDao mainHouseDao;
+    @Resource
+    private HsHouseComplainDao houseComplainDao;
+
+    //处理消息
+    @Autowired
+    private KafkaTemplate<String, String> kafkaTemplate;
+
+    @Override
+    public ResultVo delete(Integer id, Object o) throws Exception {
+        ResultVo vo = new ResultVo();
+        int result = -1;//
+        try{
+            if (o instanceof HsOwnerHousingApplication) {//
+                result = ownerHousingApplyDao.deleteByPrimaryKey(id);
+            } else if (o instanceof HsOwnerHousingApplicationLog) {
+                result = ownerHousingApplyLogDao.deleteByPrimaryKey(id);
+            } else if (o instanceof HsHouseImg) {
+                result = houseImgDao.deleteByPrimaryKey(id);
+            } else if (o instanceof HsHouseLog) {
+                result = houseLogDao.deleteByPrimaryKey(id);
+            } else if (o instanceof HsMainHouse) {
+                result = mainHouseDao.deleteByPrimaryKey(id);
+            } else if(o instanceof  HsHouseComplain){
+                result = houseComplainDao.deleteByPrimaryKey(id);
+            }
+            if(result>0){//操作成功
+                vo.setResult(ResultConstant.SYS_REQUIRED_SUCCESS);
+                vo.setMessage(ResultConstant.SYS_REQUIRED_SUCCESS_VALUE);
+            }
+        }catch (Exception e){
+            logger.error("HousesServiceImpl delete Exception message:"+e.getMessage());
+            vo.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            vo.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }finally {
+            return vo;
+        }
+    }
+
+    @Override
+    public ResultVo insert(Object o) throws Exception {
+        ResultVo vo = new ResultVo();
+        int result = -1;//
+        try{
+            if (o instanceof HsOwnerHousingApplication) {//
+                result = ownerHousingApplyDao.insert((HsOwnerHousingApplication)o);
+            } else if (o instanceof HsOwnerHousingApplicationLog) {
+                result = ownerHousingApplyLogDao.insert((HsOwnerHousingApplicationLog)o);
+            } else if (o instanceof HsHouseImg) {
+                result = houseImgDao.insert((HsHouseImg)o);
+            } else if (o instanceof HsHouseLog) {
+                result = houseLogDao.insert((HsHouseLog)o);
+            } else if (o instanceof HsMainHouse) {
+                result = mainHouseDao.insert((HsMainHouse)o);
+            } else if(o instanceof  HsHouseComplain){
+                result = houseComplainDao.insert((HsHouseComplain) o);
+            }
+            if(result>0){//操作成功
+                vo.setDataSet(o);
+                vo.setResult(ResultConstant.SYS_REQUIRED_SUCCESS);
+                vo.setMessage(ResultConstant.SYS_REQUIRED_SUCCESS_VALUE);
+            }
+        }catch (Exception e){
+            logger.error("HousesServiceImpl insert Exception message:"+e.getMessage());
+            vo.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            vo.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }finally {
+            return vo;
+        }
+    }
+
+    @Override
+    public ResultVo select(Integer id, Object o) throws Exception {
+        ResultVo vo = new ResultVo();
+        Object obj = null;
+        try{
+            if (o instanceof HsOwnerHousingApplication) {//
+                obj = ownerHousingApplyDao.selectByPrimaryKey(id);
+            } else if (o instanceof HsOwnerHousingApplicationLog) {
+                obj = ownerHousingApplyLogDao.selectByPrimaryKey(id);
+            } else if (o instanceof HsHouseImg) {
+                obj = houseImgDao.selectByPrimaryKey(id);
+            } else if (o instanceof HsHouseLog) {
+                obj = houseLogDao.selectByPrimaryKey(id);
+            } else if (o instanceof HsMainHouse) {
+                obj = mainHouseDao.selectByPrimaryKey(id);
+            } else if(o instanceof  HsHouseComplain){
+                obj = houseComplainDao.selectByPrimaryKey(id);
+            }
+            vo.setDataSet(obj);
+            vo.setResult(ResultConstant.SYS_REQUIRED_SUCCESS);
+            vo.setMessage(ResultConstant.SYS_REQUIRED_SUCCESS_VALUE);
+        }catch (Exception e){
+            logger.error("HousesServiceImpl select Exception message:"+e.getMessage());
+            vo.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            vo.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }finally {
+            return vo;
+        }
+    }
+
+    /**
+     * 查询列表数据
+     * @param o 查询的实体，用于控制查询的dao
+     * @param condition 查询参数
+     * @param returnType 返回值类型，0 List<Map>  1 list<Entity>
+     * @return Map<Object,Object> result  key data,pageInfo
+     * @throws Exception
+     */
+    @Override
+    public ResultVo selectList(Object o, Map<Object, Object> condition, int returnType) throws Exception {
+        ResultVo vo = new ResultVo();
+        List<Object> data = null;
+        Map<Object,Object> result = new HashMap<Object,Object>();
+        try{
+            if (o instanceof HsOwnerHousingApplication) {//
+                result = ownerHousingApplyDao.selectListByCondition(condition,returnType);
+            } else if (o instanceof HsOwnerHousingApplicationLog) {
+                //data = ownerHousingApplyLogDao.selectByPrimaryKey(id);
+            } else if (o instanceof HsHouseImg) {
+                result = houseImgDao.selectListByCondition(condition,returnType);
+            } else if (o instanceof HsHouseLog) {
+               // data = houseLogDao.selectByPrimaryKey(id);
+            } else if (o instanceof HsMainHouse) {
+                result = mainHouseDao.selectListByCondition(condition,returnType);
+            }
+            //下面的方法有样例，select**ListByCondition
+
+//            } else if (o instanceof HsSysDictcodeGroup) {
+//                data = hsSysDictcodeGroupDao.selectListByCondition(condition,returnType);
+//            } else if (o instanceof HsSysDictcodeItem) {
+//                data =  hsSysDictcodeItemDao.selectListByCondition(condition,returnType);
+//            }
+
+            vo.setResult(ResultConstant.SYS_REQUIRED_SUCCESS);
+            vo.setMessage(ResultConstant.SYS_REQUIRED_SUCCESS_VALUE);
+            vo.setDataSet(result.get("data"));
+            vo.setPageInfo(result.get("pageInfo"));
+        }catch (Exception e){
+            logger.error("HousesServiceImpl selectList Exception message:"+e.getMessage());
+            vo.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            vo.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }finally {
+            return vo;
+        }
+    }
+
+    @Override
+    public ResultVo update(Object o) throws Exception {
+        ResultVo vo = new ResultVo();
+        int result = -1;//
+        try{
+
+            if (o instanceof HsOwnerHousingApplication) {//
+                result = ownerHousingApplyDao.updateByPrimaryKeySelective((HsOwnerHousingApplication)o);
+            } else if (o instanceof HsOwnerHousingApplicationLog) {
+                result = ownerHousingApplyLogDao.updateByPrimaryKeySelective((HsOwnerHousingApplicationLog)o);
+            } else if (o instanceof HsHouseImg) {
+                result = houseImgDao.updateByPrimaryKeySelective((HsHouseImg)o);
+            } else if (o instanceof HsHouseLog) {
+                result = houseLogDao.updateByPrimaryKeySelective((HsHouseLog)o);
+            } else if (o instanceof HsMainHouse) {
+                result = mainHouseDao.updateByPrimaryKeySelective((HsMainHouse)o);
+            } else if(o instanceof  HsHouseComplain){
+                result = houseComplainDao.updateByPrimaryKey((HsHouseComplain) o);
+            }
+            if(result>0){//操作成功
+                vo.setResult(ResultConstant.SYS_REQUIRED_SUCCESS);
+                vo.setMessage(ResultConstant.SYS_REQUIRED_SUCCESS_VALUE);
+            }
+        }catch (Exception e){
+            logger.error("HousesServiceImpl update Exception message:"+e.getMessage());
+            vo.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            vo.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }finally {
+            return vo;
+        }
+    }
+
+    /**
+     * 获取房源位置
+     * @param condition
+     * @return
+     */
+    @Override
+    public List<Map<Object, Object>> loadHousesPosition(Map<Object, Object> condition) {
+        if(condition==null && condition.size()==0) return null;
+        return mainHouseDao.loadHousesPosition(condition);
+    }
+
+    /**
+     * 审核房源申请
+     */
+    @Transactional
+    @Override
+    public ResultVo checkHousingApplyTx(Map<Object, Object> condition) {
+        ResultVo vo = new ResultVo();
+        int state = -1;//
+        int mainHouseId = 0;
+        try{
+            int id = StringUtil.getAsInt(StringUtil.trim(condition.get("id")));
+            //获取房源列表;
+            HsOwnerHousingApplication housingApply = ownerHousingApplyDao.selectByPrimaryKey(id);
+            if(housingApply==null){
+                vo.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+                vo.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+                return vo;
+            }
+            //获取申请类型（0：自主完善，1：联系客服上传，2：业务员上传）
+            Integer applyType = housingApply.getApplyType();
+            HsOwnerHousingApplication _new  = new HsOwnerHousingApplication();
+            _new.setId(id);
+            _new.setIsCheck(2);
+            state = ownerHousingApplyDao.updateByPrimaryKeySelective(_new);
+            if(state<=0){//修改失败
+                vo.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+                vo.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+                return vo;
+            }
+            Date date = new Date();
+            if(applyType==0){
+                //插入房源信息表
+                HsMainHouse mainHouse = new HsMainHouse();
+                mainHouse.setLanguageVersion(housingApply.getLanguageVersion());//语言版本
+                mainHouse.setApplyId(id);//房源申请ID
+                mainHouse.setApplicantType(housingApply.getApplicantType());//申请人类型：0业主 1 poa
+                mainHouse.setPhoneNumber(housingApply.getPhoneNumber());//手机号
+                mainHouse.setHouseCode("");//房源编号
+                //mainHouse.setHouseName(housingApply.getHouse);房源名称
+                mainHouse.setVillageName(housingApply.getVillageName());//小区名称
+                //mainHouse.setUnitNumber("");单元数
+                mainHouse.setBuildingName(housingApply.getBuildingName());//楼名/别墅名
+                mainHouse.setRoomName(housingApply.getRoomName());//房间号
+                mainHouse.setHouseRent(housingApply.getHouseRent());//租金/或出售价
+                mainHouse.setHouseAcreage(housingApply.getHouseAcreage());//租金/或出售价
+                mainHouse.setPayNode(housingApply.getPayNode());//支付节点 , 1....12/月
+                mainHouse.setHouseTypeDictcode(housingApply.getHouseTypeDictcode());//户型
+                mainHouse.setHouseOrientationDictcode(housingApply.getHouseTypeDictcode());//房屋朝向
+                mainHouse.setHouseDecorationDictcode(housingApply.getHouseDecorationDictcode());//房屋装修
+                mainHouse.setHouseLabelDictcode(housingApply.getHouseLabelDictcode());//房源特色
+                mainHouse.setHouseFloorDictcode(housingApply.getHouseFloorDictcode());//房源楼层
+                mainHouse.setHouseConfigDictcode(housingApply.getHouseConfigDictcode());//房源配置
+                mainHouse.setHousingTypeDictcode(housingApply.getHousingTypeDictcode());//房屋类型
+                mainHouse.setCity(housingApply.getCity());//城市
+                mainHouse.setCommunity(housingApply.getCommunity());//社区
+                mainHouse.setSubCommunity(housingApply.getSubCommunity());//子社区
+                mainHouse.setProperty(housingApply.getProperty());//项目
+                mainHouse.setAddress(housingApply.getAddress());//所在位置
+                mainHouse.setParkingSpace(housingApply.getParkingSpace());//是否有停车位
+                mainHouse.setIsTemporary(0);//是否临时数据
+                mainHouse.setIsElevator(housingApply.getIsElevator());//是否有电梯
+
+                long time = 48*60*60*1000;//2天
+                Date afterDate = new Date(date.getTime() + time);//过期时间
+                mainHouse.setCreateTime(date);
+                mainHouse.setUpdateTime(date);
+                mainHouse.setExpireTime(afterDate);
+                state = mainHouseDao.insertSelective(mainHouse);
+                if(state<=0){
+                    new RuntimeException();
+                }
+                mainHouseId = mainHouse.getId();
+
+                //创建索引
+                HouseIndexMessage message = new HouseIndexMessage(mainHouseId, HouseIndexMessage.INDEX, 0);
+                kafkaTemplate.send(MessageConstant.CREATE_HOUSE_INDEX_TOPIC_MESSAGE, JsonUtil.toJson(message));
+
+            }
+            //添加日志信息
+            HsOwnerHousingApplicationLog log = new HsOwnerHousingApplicationLog();
+            log.setApplyId(id);
+            if(mainHouseId!=0){
+                log.setHouseId(mainHouseId);
+            }
+            log.setNodeType(1);
+            log.setCreateTime(date);
+            log.setRemarks("客服初审房源");
+            log.setOperatorType(3);
+            state = ownerHousingApplyLogDao.insert(log);
+            if(state<0){
+                new RuntimeException();
+            }
+            vo.setResult(ResultConstant.SYS_REQUIRED_SUCCESS);
+            vo.setMessage(ResultConstant.SYS_REQUIRED_SUCCESS_VALUE);
+            return vo;
+        }catch (Exception e){
+            logger.error("HousesServiceImpl checkHousingApplyTx Exception message:"+e.getMessage());
+            vo.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            vo.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+            return vo;
+        }
+
+
+    }
+}

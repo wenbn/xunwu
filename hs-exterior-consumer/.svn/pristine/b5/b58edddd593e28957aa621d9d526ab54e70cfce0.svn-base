@@ -1,0 +1,275 @@
+package www.ucforward.com.utils;
+
+import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
+import org.apache.log4j.Logger;
+import org.junit.Test;
+import redis.clients.jedis.*;
+import redis.clients.jedis.exceptions.JedisConnectionException;
+import www.ucforward.com.constants.RedisConstant;
+
+import java.io.IOException;
+import java.util.LinkedHashSet;
+import java.util.Properties;
+import java.util.Set;
+
+/**
+ * Created by huangcong on 2017/7/6.
+ */
+public class RedisUtil {
+
+    private static JedisPool pool = null;
+    private static Logger LOG = Logger.getLogger(RedisUtil.class);
+    private static Properties properties = new Properties();
+    static {
+        try{
+            properties.load(RedisUtil.class.getResourceAsStream("/redis/redis.properties"));
+        }catch (Exception e){
+            e.getMessage();
+        }
+    }
+
+    /**
+     * 建立集群连接池
+     *
+     */
+    @Test
+    public void createJedisClusterPool(){
+        JedisPoolConfig poolConfig = new JedisPoolConfig();
+        // 最大连接数
+        poolConfig.setMaxTotal(10);
+        // 最大空闲数
+        poolConfig.setMaxIdle(2);
+        // 最大允许等待时间，如果超过这个时间还未获取到连接，则会报JedisException异常：
+        // Could not get a resource from the pool
+        poolConfig.setMaxWaitMillis(1000);
+        Set<HostAndPort> nodes = new LinkedHashSet<HostAndPort>();
+        nodes.add(new HostAndPort("192.168.0.116", 6379));
+        nodes.add(new HostAndPort("192.168.0.116", 6380));
+        nodes.add(new HostAndPort("192.168.0.116", 6381));
+        nodes.add(new HostAndPort("192.168.0.116", 6382));
+        nodes.add(new HostAndPort("192.168.0.116", 6383));
+        nodes.add(new HostAndPort("192.168.0.116", 6384));
+        JedisCluster cluster = new JedisCluster(nodes, poolConfig);
+        cluster.set("name2","wenbn");
+        String name = cluster.get("name");
+        System.out.println(name);
+        cluster.set("age2", "18");
+        System.out.println(cluster.get("age"));
+        try {
+            cluster.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    /**
+     * 建立连接池 真实环境，一般把配置参数缺抽取出来。
+     *
+     */
+    private static void createJedisPool() {
+
+        JedisPoolConfig config = new JedisPoolConfig();
+
+        //连接耗尽时是否阻塞, false报异常,ture阻塞直到超时, 默认true
+        config.setBlockWhenExhausted(false);
+
+        //设置的逐出策略类名, 默认DefaultEvictionPolicy(当连接超过最大空闲时间,或连接数超过最大空闲连接数)
+        config.setEvictionPolicyClassName("org.apache.commons.pool2.impl.DefaultEvictionPolicy");
+
+        //是否启用pool的jmx管理功能, 默认true
+        config.setJmxEnabled(true);
+
+        //MBean ObjectName = new ObjectName("org.apache.commons.pool2:type=GenericObjectPool,name=" + "pool" + i); 默认为"pool", JMX不熟,具体不知道是干啥的...默认就好.
+        config.setJmxNamePrefix("pool");
+
+        //是否启用后进先出, 默认true
+        config.setLifo(true);
+
+        //最大空闲连接数, 默认8个
+        config.setMaxIdle(10);
+
+        //最大连接数, 默认8个
+        config.setMaxTotal(10);
+
+
+        //获取连接时的最大等待毫秒数(如果设置为阻塞时BlockWhenExhausted),如果超时就抛异常, 小于零:阻塞不确定的时间,  默认-1
+        config.setMaxWaitMillis(5000);
+
+        //逐出连接的最小空闲时间 默认1800000毫秒(50s)
+        config.setMinEvictableIdleTimeMillis(50*1000);
+
+        //最小空闲连接数, 默认0
+        config.setMinIdle(0);
+
+        //每次逐出检查时 逐出的最大数目 如果为负数就是 : 1/abs(n), 默认3
+        config.setNumTestsPerEvictionRun(3);
+
+        //对象空闲多久后逐出, 当空闲时间>该值 且 空闲连接>最大空闲数 时直接逐出,不再根据MinEvictableIdleTimeMillis判断  (默认逐出策略)
+        //config.setSoftMinEvictableIdleTimeMillis(50*1000);
+
+        //在获取连接的时候检查有效性, 默认false
+        config.setTestOnBorrow(true);
+
+        config.setTestOnReturn(true);
+        //自动测试池中的空闲连接是否都是可用连接
+
+        //在空闲时检查有效性, 默认false
+        config.setTestWhileIdle(true);
+
+        //逐出扫描的时间间隔(毫秒) 如果为负数,则不运行逐出线程, 默认-1
+        config.setTimeBetweenEvictionRunsMillis(-1);
+        System.out.println(properties.getProperty("redis.host")+"=="+properties.getProperty("redis.port")+"=="+properties.getProperty("redis.pwd"));
+        pool = new JedisPool(config, properties.getProperty("redis.host"),
+                Integer.parseInt(properties.getProperty("redis.port")), 5000, properties.getProperty("redis.pwd"));
+        LOG.info("request redis server:"+properties.getProperty("redis.host"));
+    }
+
+    /**
+     * 在多线程环境同步初始化
+     */
+    private static synchronized void poolInit() {
+        if (pool == null)
+            createJedisPool();
+    }
+
+
+    /**
+     * 获取一个jedis 对象
+     *
+     * @return
+     */
+    public static synchronized Jedis getJedis() {
+
+        try{
+            if (pool == null){
+                poolInit();
+            }
+            return pool.getResource();
+        }catch ( JedisConnectionException e){
+            e.printStackTrace();
+            pool.destroy();
+            poolInit();
+        }
+        return pool.getResource();
+    }
+
+    /**
+     * 归还一个连接
+     *
+     * @param jedis
+     */
+    public static synchronized void returnRes(Jedis jedis) {
+        close(jedis);
+    }
+
+    public static void close(Jedis jedis) {
+        if(jedis!=null){
+            jedis.close();
+        }
+
+    }
+
+    /**
+     * 安全获取value
+     *
+     * @param key
+     */
+    public static String safeGet(String key) {
+        Jedis jedis = null;
+        String value = null;
+        try {
+            jedis = getJedis();
+
+            while (true) {
+                if (null != jedis) {
+                    jedis.auth(properties.getProperty("redis.pwd"));
+                    break;
+                } else {
+                    jedis = getJedis();
+                }
+            }
+            value = jedis.get(key);
+        }catch (Exception e){
+            LOG.info("Redis safeGet is error:"+e.getMessage());
+        }finally {
+            returnRes(jedis);
+        }
+        return value;
+    }
+
+    /**
+     * 绝对设置方法（保证一定能够使用可用的链接设置 数据）
+     * Jedis连接使用后返回连接池
+     * @param key
+     * @param time
+     * @param value
+     */
+    public static void safeSet(String key, String value, int time) {
+        Jedis jedis = null;
+        try {
+                jedis = getJedis();
+
+            while (true) {
+                if (null != jedis) {
+                    jedis.auth(properties.getProperty("redis.pwd"));
+                    break;
+                } else {
+                    jedis = getJedis();
+                }
+            }
+
+            if (time > 0) {
+                jedis.setex(key, time, value);
+            }
+        }catch (Exception e){
+            LOG.info("Redis safeSet is error:"+e.getMessage());
+        }finally {
+            returnRes(jedis);
+        }
+    }
+
+    /**
+     * 删除缓存值
+     * @param key
+     */
+    public static void safeDel(String key){
+        Jedis jedis = null;
+        String value = null;
+        try {
+            jedis = getJedis();
+            jedis.del(key);
+        }catch (Exception e){
+            LOG.info("Redis safeGet is error:"+e.getMessage());
+        }finally {
+            returnRes(jedis);
+        }
+    }
+
+    public static Boolean existKey(final String key) {
+        Jedis jedis = null;
+        String value = null;
+        try {
+            jedis = getJedis();
+            return jedis.exists(key);
+        }catch (Exception e){
+            LOG.info("Redis safeGet is error:"+e.getMessage());
+            return false;
+        }finally {
+            returnRes(jedis);
+        }
+    }
+
+
+    public static boolean isExistCache(String key) {
+        boolean result = false;
+        if (key!=null && !key.equals("")) {
+            result = existKey(key).booleanValue();
+        }
+        return result;
+    }
+
+    public static void main(String[] args) {
+       RedisUtil.safeSet("jwjwj","kekek",6000*30);
+    }
+}

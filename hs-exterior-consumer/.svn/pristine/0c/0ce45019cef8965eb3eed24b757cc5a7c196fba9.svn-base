@@ -1,0 +1,503 @@
+package www.ucforward.com.manager.impl;
+
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.utils.StringUtil;
+import www.ucforward.com.constants.ResultConstant;
+import www.ucforward.com.controller.MsgController;
+import www.ucforward.com.entity.*;
+import www.ucforward.com.manager.HousesManager;
+import www.ucforward.com.manager.MsgManager;
+import www.ucforward.com.serviceInter.CommonService;
+import www.ucforward.com.serviceInter.HousesService;
+import www.ucforward.com.serviceInter.MemberService;
+import www.ucforward.com.utils.JsonUtil;
+import www.ucforward.com.vo.ResultVo;
+
+import javax.annotation.Resource;
+import java.text.SimpleDateFormat;
+import java.util.*;
+import java.util.stream.Collectors;
+
+/**
+ * @Auther: lsq
+ * @Date: 2018/8/26 17:03
+ * @Description:
+ */
+@Service("exteriorMsgManager")
+public class MsgManagerImpl implements MsgManager {
+    /**
+     * 日志记录器
+     */
+    private static Logger logger = LoggerFactory.getLogger(MsgManagerImpl.class);
+
+    @Resource
+    private CommonService commonService;
+    @Resource
+    private MemberService memberService;
+    @Resource
+    private HousesManager housesManager;
+    @Resource
+    private HousesService housesService;
+
+
+    @Override
+    public ResultVo getMsgList(Map<Object,Object> condition) {
+        ResultVo result = new ResultVo();
+        Map<String,Object> resultMap = new HashMap<>();
+        try {
+            //用户id
+            int userId = StringUtil.getAsInt(StringUtil.trim(condition.get("userId")));
+            //获取消息列表
+            ResultVo msgResultVo = commonService.getMsgList(condition);
+            if(msgResultVo.getResult() != ResultConstant.SYS_REQUIRED_SUCCESS){
+                return msgResultVo;
+            }
+            List<Map<Object, Object>> msgList = (List<Map<Object, Object>>) msgResultVo.getDataSet();
+            if(msgList == null){
+                return result;
+            }
+
+            //查询每个消息类型对应有多少未读消息
+            List<String> queryColumn = new ArrayList<>();
+            queryColumn.add("USER_NAME userName");
+            queryColumn.add("MSG_CODE msgCode");
+            queryColumn.add("COUNT(1) `count`");
+            condition.put("queryColumn",queryColumn);
+            condition.put("isDel",0);
+            condition.put("isRead",0);
+            condition.put("groupBy","MSG_CODE");
+            ResultVo noReadResultVo = commonService.selectCustomColumnNamesList(HsMsgRecord.class, condition);
+            if(noReadResultVo.getResult() != ResultConstant.SYS_REQUIRED_SUCCESS){
+                return noReadResultVo;
+            }
+            List<Map<Object, Object>> noReadResultList = (List<Map<Object, Object>>) noReadResultVo.getDataSet();
+            //根据id 将id对应的未读消息数量封装进结果集
+            List<Map<Object,Object>> pushList = new ArrayList<>();
+            for (Map<Object, Object> msgMap : msgList) {
+                String msgId = StringUtil.trim(msgMap.get("id"));
+                int count = 0;
+                for (Map<Object, Object> noReadResultMap : noReadResultList) {
+                    String noReadResultId = StringUtil.trim(noReadResultMap.get("id"));
+                    if(msgId.equals(noReadResultId)){
+                        count = StringUtil.getAsInt(StringUtil.trim(noReadResultMap.get("count")));
+                        break;
+                    }
+                }
+                msgMap.put("noReadResultNum",count);
+                pushList.add(msgMap);
+            }
+            //获取系统消息
+            condition.put("pageIndex",1);
+            condition.put("pageSize",1);
+            Map msgMap = commonService.getSysMsg(condition);
+            List<Map<Object,Object>> sysMsg = (List<Map<Object,Object>>)msgMap.get("data");
+            if(sysMsg != null && sysMsg.size() > 0){
+                Map<Object, Object> sysMsgMap = sysMsg.get(0);
+                String detailsStr = StringUtil.trim(sysMsgMap.get("details"));
+                JSONObject details = JSON.parseObject(detailsStr);
+                sysMsgMap.put("details",details);
+                pushList.add(sysMsgMap);
+            }
+            resultMap.put("push",pushList);
+            //获取用户code
+            //获取用户信息
+            ResultVo memberResultVo = memberService.select(userId, new HsMember());
+            if(memberResultVo.getResult() != ResultConstant.SYS_REQUIRED_SUCCESS || memberResultVo.getDataSet() == null){
+                logger.error("lsg:消息列表获取用户信息失败");
+                return result;
+            }
+            HsMember member = (HsMember) memberResultVo.getDataSet();
+            String memberCode = StringUtil.trim(member.getMemberCode());
+            Map<Object, Object> bargainAndApplication = getMsgList(memberCode);
+            List<Map> bargain = (List<Map>)bargainAndApplication.get("bargain");
+            List<Map> application = (List<Map>)bargainAndApplication.get("application");
+            resultMap.put("bargain",bargain);
+            resultMap.put("application",application);
+            result.setDataSet(resultMap);
+
+        }catch (Exception e){
+            e.printStackTrace();
+            result.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            result.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return result;
+    }
+
+    @Override
+    public ResultVo getMsgHistory(Map<Object, Object> condition){
+        ResultVo result = new ResultVo();
+        try {
+            String msgCode = StringUtil.trim(condition.get("msgCode"));
+            //系统消息
+            if("1".equals(msgCode)){
+                //获取系统消息
+                int pageIndex = StringUtil.getAsInt(StringUtil.trim(condition.get("pageIndex")));
+                condition.put("pageIndex", pageIndex - 1);
+                Map msgMap = commonService.getSysMsg(condition);
+                if(msgMap != null){
+                    List<Map<Object,Object>> sysMsg = (List<Map<Object,Object>>)msgMap.get("data");
+                    List<Map<Object, Object>> list = new ArrayList<>();
+                    if(sysMsg != null){
+                        for (Map<Object, Object> sysMsgMap : sysMsg) {
+                            String detailsStr = StringUtil.trim(sysMsgMap.get("details"));
+                            JSONObject details = JSON.parseObject(detailsStr);
+                            sysMsgMap.put("details",details);
+                            list.add(sysMsgMap);
+                        }
+                    }
+
+                    result.setDataSet(list);
+                    result.setPageInfo(msgMap.get("pageInfo"));
+                    return result;
+                }
+            }
+            ResultVo recordResultVo = commonService.selectList(new HsMsgRecord(), condition, 0);
+            if (recordResultVo.getResult() != ResultConstant.SYS_REQUIRED_SUCCESS) {
+                return recordResultVo;
+            }
+            List<Map<Object, Object>> recordList = (List<Map<Object, Object>>) recordResultVo.getDataSet();
+            if (recordList == null || recordList.size() < 1) {
+                return result;
+            }
+            List<Integer> ids = recordList.stream().map(map -> StringUtil.getAsInt(StringUtil.trim(map.get("id")))).collect(Collectors.toList());
+            //将消息全部设置为为已读
+            List<String> setColumn = new ArrayList<>();
+            setColumn.add("IS_READ = 1");
+            condition.clear();
+            condition.put("setColumn",setColumn);
+            condition.put("ids", ids);
+            condition.put("isDel", 0);
+            Integer updateInt = commonService.updateCustomColumnByCondition(new HsMsgRecord(), condition);
+            if (updateInt < 1) {
+                result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+                result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE + ":更新消息状态失败");
+                return result;
+            }
+            List<Map<Object, Object>> resultList = recordList.stream().map(map -> {
+                String detailsStr = StringUtil.trim(map.get("details"));
+                //将消息详情转换为jsond对象
+                JSONObject details = JSON.parseObject(detailsStr);
+                map.put("details", details);
+                return map;
+            }).collect(Collectors.toList());
+            result.setDataSet(resultList);
+            result.setPageInfo(recordResultVo.getPageInfo());
+        }catch (Exception e){
+            e.printStackTrace();
+            result.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            result.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return result;
+    }
+
+    /**
+     *
+     * @param type 类型 1外部 2外获 3外看 4区域长
+     * @return
+     */
+    @Override
+    public ResultVo getMsgType(String type) {
+        ResultVo result = new ResultVo();
+        try {
+            return commonService.getMsgType(type);
+        }catch (Exception e){
+            e.printStackTrace();
+            result.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            result.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return result;
+    }
+
+    @Override
+    public ResultVo getMemMsgSetting(Map<Object, Object> condition) {
+        ResultVo result = new ResultVo();
+        try {
+            ResultVo resultVo = commonService.selectList(new HsMsgSetting(), condition, 0);
+            if(resultVo.getResult() != ResultConstant.SYS_REQUIRED_SUCCESS){
+                result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+                result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+                return result;
+            }
+            List<Map<Object, Object>> settingList = (List<Map<Object, Object>>) resultVo.getDataSet();
+            if(settingList == null){
+                return result;
+            }
+            if(settingList.size() > 0){
+                result.setDataSet(settingList.get(0));
+                return result;
+            }
+
+        }catch (Exception e){
+            e.printStackTrace();
+            result.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            result.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return result;
+    }
+
+    @Override
+    public ResultVo setMemMsgSetting(HsMsgSetting hsMsgSetting) {
+        ResultVo result = new ResultVo();
+        try {
+            Integer id = hsMsgSetting.getId();
+            if(id == null){
+                //新增
+                return commonService.insert(hsMsgSetting);
+            }
+            //更新
+            return commonService.update(hsMsgSetting);
+        }catch (Exception e){
+            e.printStackTrace();
+            result.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            result.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return result;
+    }
+
+    /**
+     * 获取议价及预约看房聊天列表
+     * @param memberCode 用户code
+     * @return
+     */
+    public Map<Object,Object> getMsgList(String memberCode) throws Exception {
+        Map<Object,Object> resultMap = new HashMap<>(2);
+        //议价聊天列表
+        List<Map> bargainResult = new ArrayList<>();
+        //预约看房聊天列表
+        List<Map> applicationResult = new ArrayList<>();
+        //当前用户所在群组列表
+        List<Map> groupsByMemberCode = housesManager.getGroupsByMemberCode(memberCode);
+        if(groupsByMemberCode.size() < 1){
+            return resultMap;
+        }
+        //修改返回参数名。默认返回参数名为groupid、groupname修改为驼峰命名groupId、groupName
+        List<Map> groups = new ArrayList<>();
+        List<String> houseIds = new ArrayList<>();
+        List<String> groupIds = new ArrayList<>();
+        for (Map map : groupsByMemberCode) {
+            Map groupMap = new HashMap(2);
+            String groupName = StringUtil.trim(map.get("groupname"));
+            String groupId = StringUtil.trim(map.get("groupid"));
+            //根据群名称获取户主及客户id
+            String[] split = groupName.split("_");
+            if (split.length < 2) {
+                logger.error("lsq:环信群组id错误");
+                return resultMap;
+            }
+            String houseId = split[0];
+            houseIds.add(houseId);
+            groupIds.add(groupId);
+            groupMap.put("groupId", groupId);
+            groupMap.put("groupName", groupName);
+            groups.add(groupMap);
+        }
+        //获取议价信息
+        Map<Object,Object> condition = new HashMap<>(16);
+        List<String> queryColumn = new ArrayList<>();
+        queryColumn.add("ID id");
+        queryColumn.add("BARGAIN_STATUS bargainStatus");
+        queryColumn.add("GROUP_ID groupId");
+        condition.put("queryColumn",queryColumn);
+        condition.put("groupIds",groupIds);
+        condition.put("isDel",0);
+        ResultVo bargainResultVo = housesManager.getBargainList(condition);
+        if(bargainResultVo == null || bargainResultVo.getResult() != ResultConstant.SYS_REQUIRED_SUCCESS){
+            logger.error("lsq:获取议价信息失败");
+            return resultMap;
+        }
+        List<Map<Object, Object>> housingBargainList = (List<Map<Object, Object>>) bargainResultVo.getDataSet();
+        //获取预约看房聊天记录
+        condition.clear();
+        condition.put("groupIds",groupIds);
+        ResultVo reservationMessageResultVo = housesManager.getReservationMessageList(condition);
+        if(reservationMessageResultVo.getResult() != ResultConstant.SYS_REQUIRED_SUCCESS){
+            logger.error("lsq:获取议价记录失败");
+            return resultMap;
+        }
+        List<Map<Object, Object>> reservationMessageList = (List<Map<Object, Object>>) reservationMessageResultVo.getDataSet();
+        //获取预约看房信息
+        condition.clear();
+        condition.put("groupIds",groupIds);
+        condition.put("isDel",0);
+        ResultVo reservationResultVo = housesManager.getReservationList(condition);
+        if(reservationResultVo.getResult() != ResultConstant.SYS_REQUIRED_SUCCESS){
+            logger.error("lsq:获取预约看房信息失败");
+            return resultMap;
+        }
+        //获取房源信息
+        List<Map<Object, Object>> mainHouseList = housesManager.getMainHouseList(houseIds);
+        //封装房源、groupId、groupName、bargainId等基本信息
+        //议价idList
+        List<Integer> bargainIdList = new ArrayList<>();
+        //预约看房GroupIdLis
+        List<String> applicationGroupIdLis = new ArrayList<>();
+        //议价聊天列表
+        List<Map> bargainList = new ArrayList<>();
+        //预约看房聊天列表
+        List<Map> applicationList = new ArrayList<>();
+        groups.forEach(map -> {
+            String groupName = map.get("groupName").toString();
+            String groupId = map.get("groupId").toString();
+            String[] split = groupName.split("_");
+            String houseId = split[0];
+            Map<Object, Object> mainHouseMap = null;
+            for (Map<Object, Object> mainHouse : mainHouseList) {
+                String id = mainHouse.get("id").toString();
+                if(houseId.equals(id)){
+                    mainHouseMap = mainHouse;
+                    break;
+                }
+            }
+            map.put("mainHouse", mainHouseMap);
+            //议价id
+            Integer bargainId = -1;
+            //是否议价中
+            boolean isNegotiating = false;
+            for (Map<Object, Object> bargainMap : housingBargainList) {
+                String id = StringUtil.trim(bargainMap.get("id"));
+                //议价状态（0 议价中 1 议价成功 2 议价失败）
+                String bargainStatus = StringUtil.trim(bargainMap.get("bargainStatus"));
+                String groupId1 = StringUtil.trim(bargainMap.get("groupId"));
+                if(groupId.equals(groupId1)){
+                    bargainId = StringUtil.getAsInt(id);
+                    if("0".equals(bargainStatus)){
+                        isNegotiating = true;
+                    }
+                    break;
+                }
+            }
+            map.put("bargainId",bargainId);
+
+            //大于0表示有聊天记录 说明该groupId对应的聊天群正在预约中或者聊天已经完成
+            long groupIdCount = reservationMessageList.stream().filter(reservation -> groupId.equals(reservation.get("groupId"))).count();
+            //小于1表示预约已经完成 说明该groupId对应的聊天群 预约看房完成
+            long successCount = reservationMessageList.stream().filter(reservation ->
+                    ("1".equals(StringUtil.trim(reservation.get("operateStatus"))) || "2".equals(StringUtil.trim(reservation.get("operateStatus"))))).count();
+            //正在预约看房中
+            boolean inChat = (groupIdCount > 0 && successCount < 1);
+            //正在议价中，或者正在预约看房中才加入返回结果集
+            if(isNegotiating){
+                //议价列表
+                bargainList.add(map);
+                bargainIdList.add(bargainId);
+
+            }
+            if(inChat){
+                //预约看房列表
+                applicationList.add(map);
+                applicationGroupIdLis.add(groupId);
+            }
+        });
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        /*议价相关返回值封装*/
+        if(bargainList.size() > 0){
+            //获取议价最后一条信息
+            queryColumn.clear();
+            queryColumn.add("BARGAIN_ID bargainId");
+            queryColumn.add("CREATE_TIME createTime");
+            condition.clear();
+            condition.put("queryColumn",queryColumn);
+            condition.put("bargainIds",bargainIdList);
+            //最后一条消息列表
+            List<Map<String,Object>> lastMsg = memberService.getLastMsg(new HsMemberHousingBargainMessage(),condition);
+
+            //获取议价消息未读数量
+            queryColumn.clear();
+            queryColumn.add("BARGAIN_ID bargainId");
+            queryColumn.add("COUNT(1) `count`");
+            condition.clear();
+            condition.put("queryColumn",queryColumn);
+            condition.put("isDel",0);
+            condition.put("isOpen",0);
+            condition.put("bargainIds",bargainIdList);
+            condition.put("groupBy","BARGAIN_ID");
+            ResultVo unreadResultVo = memberService.selectCustomColumnNamesList(HsMemberHousingBargainMessage.class, condition);
+            if(unreadResultVo.getResult() != ResultConstant.SYS_REQUIRED_SUCCESS || unreadResultVo.getDataSet() == null){
+                logger.error("lsq:获取议价未读消息数量失败");
+                return resultMap;
+            }
+            //未读消息数量列表
+            List<Map<Object, Object>> unreadList = (List<Map<Object, Object>>) unreadResultVo.getDataSet();
+            //封装议价最后一条消息信息及未读消息数量
+            bargainList.forEach(bargainMap->{
+                //封装最后一条信息创建时间
+                String createTime = "";
+                String bargainId = StringUtil.trim(bargainMap.get("bargainId"));
+                Optional<Map<String, Object>> lastOptional = lastMsg.stream().filter(lastMap -> StringUtil.trim(lastMap.get("bargainId")).equals(bargainId)).findFirst();
+                if(lastOptional.isPresent()){
+                    Map<String, Object> lastMap = lastOptional.get();
+                    createTime = sdf.format(lastMap.get("createTime"));
+                }
+                bargainMap.put("createTime",createTime);
+                //封装未读消息数量
+                int unreadNum = 0;
+                Optional<Map<Object, Object>> unreadOptional = unreadList.stream().filter(unreadMap -> StringUtil.trim(unreadMap.get("bargainId")).equals(bargainId)).findFirst();
+                if(unreadOptional.isPresent()){
+                    Map<Object, Object> unreadMap = unreadOptional.get();
+                    unreadNum = StringUtil.getAsInt(StringUtil.trim(unreadMap.get("count")));
+                }
+                bargainMap.put("unreadNum",unreadNum);
+                bargainResult.add(bargainMap);
+            });
+        }
+        /*预约看房相关返回值封装*/
+        if(applicationList.size() > 0){
+            //获取最后一条预约看房消息
+            queryColumn.clear();
+            queryColumn.add("GROUP_ID groupId");
+            queryColumn.add("CREATE_TIME createTime");
+            condition.clear();
+            condition.put("queryColumn",queryColumn);
+            condition.put("groupIds",applicationGroupIdLis);
+            //最后一条消息列表
+            List<Map<String,Object>> appLastMsg = memberService.getLastMsg(new HsMemberHousingApplicationMessage(), condition);
+            //获取预约看房消息未读数量
+            queryColumn.clear();
+            queryColumn.add("GROUP_ID groupId");
+            queryColumn.add("COUNT(1) `count`");
+            condition.clear();
+            condition.put("queryColumn",queryColumn);
+            condition.put("isDel",0);
+            condition.put("isRead",0);
+            condition.put("groupIds",applicationGroupIdLis);
+            condition.put("groupBy","GROUP_ID");
+            ResultVo appResultVo = memberService.selectCustomColumnNamesList(HsMemberHousingApplicationMessage.class, condition);
+            if(appResultVo.getResult() != ResultConstant.SYS_REQUIRED_SUCCESS || appResultVo.getDataSet() == null){
+                logger.error("lsq:获取预约看房未读消息数量失败");
+                return resultMap;
+            }
+            //预约看房未读消息数量列表
+            List<Map<Object, Object>> appUnreadList = (List<Map<Object, Object>>) appResultVo.getDataSet();
+            //封装预约看房最后一条消息信息及未读消息数量
+            applicationList.forEach(appMap->{
+                //封装最后一条信息创建时间
+                String createTime = "";
+                String groupId = StringUtil.trim(appMap.get("groupId"));
+                Optional<Map<String, Object>> lastOptional = appLastMsg.stream().filter(lastMap -> StringUtil.trim(lastMap.get("groupId")).equals(groupId)).findFirst();
+                if(lastOptional.isPresent()){
+                    Map<String, Object> lastMap = lastOptional.get();
+                    createTime = sdf.format(lastMap.get("createTime"));
+                }
+                appMap.put("createTime",createTime);
+                //封装未读消息数量
+                int unreadNum = 0;
+                Optional<Map<Object, Object>> unreadOptional = appUnreadList.stream().filter(unreadMap -> StringUtil.trim(unreadMap.get("groupId")).equals(groupId)).findFirst();
+                if(unreadOptional.isPresent()){
+                    Map<Object, Object> unreadMap = unreadOptional.get();
+                    unreadNum = StringUtil.getAsInt(StringUtil.trim(unreadMap.get("count")));
+                }
+                appMap.put("unreadNum",unreadNum);
+                applicationResult.add(appMap);
+            });
+        }
+
+        resultMap.put("bargain",bargainResult);
+        resultMap.put("application",applicationResult);
+        return resultMap;
+    }
+}

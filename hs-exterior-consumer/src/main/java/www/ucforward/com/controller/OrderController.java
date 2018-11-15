@@ -1,0 +1,184 @@
+package www.ucforward.com.controller;
+
+import com.alibaba.fastjson.JSON;
+import com.google.common.collect.Maps;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.utils.StringUtil;
+import www.ucforward.com.constants.AppRquestParamsConstant;
+import www.ucforward.com.constants.RedisConstant;
+import www.ucforward.com.constants.ResultConstant;
+import www.ucforward.com.manager.OrderManager;
+import www.ucforward.com.utils.JsonUtil;
+import www.ucforward.com.utils.RedisUtil;
+import www.ucforward.com.utils.RequestUtil;
+import www.ucforward.com.vo.ResultVo;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * @Auther: lsq
+ * @Date: 2018/8/23 10:34
+ * @Description:
+ */
+@Controller
+@RequestMapping("order")
+public class OrderController {
+    // 日志记录
+    private static Logger logger = LoggerFactory.getLogger(MemberController.class);
+
+    @Resource
+    private OrderManager orderManager;
+
+    @RequestMapping(value = "getOrderList",method = RequestMethod.POST)
+    @ResponseBody
+    public String getOrderList(HttpServletRequest request){
+        ResultVo result = new ResultVo();
+        try {
+            Map map = RequestUtil.getParameterMap(request);
+            //登录token
+            String token = request.getParameter("token");
+            String memberId = RequestUtil.analysisToken(token).getUserId();
+            //当前页
+            String pageIndex = StringUtil.trim(map.get("pageIndex"), "1");
+            Map<Object,Object> condition = Maps.newHashMap();
+            //用户或户主id
+            condition.put("memberId",memberId);
+            //是否删除 0:不删除，1：删除
+            condition.put("isDel",0);
+            //是否取消0:不取消，1：用户取消 2：业主取消  没有要求只展示正在交易中的，暂时返回所有订单
+//            condition.put("isCancel",0);
+            //当前页
+            condition.put("pageIndex", pageIndex);
+            //每页显示条数
+            condition.put("pageSize", AppRquestParamsConstant.APP_PAGE_SIZE);
+            condition.put("needSort",1);
+            condition.put("orderBy","ID");
+            result = orderManager.getOrderList(condition);
+        }catch (Exception e){
+            logger.error("OrderController getOrderList Exception message:"+e.getMessage());
+            result.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            result.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return JsonUtil.toJson(result);
+    }
+
+    /**
+     * 获取合同信息
+     * @param request
+     * @return
+     */
+    @RequestMapping(value = "getContract",method = RequestMethod.POST)
+    @ResponseBody
+    public String getContract(HttpServletRequest request){
+        ResultVo result = new ResultVo();
+        try {
+            String orderIdStr = request.getParameter("orderId");
+            if(!StringUtil.hasText(orderIdStr)){
+                result.setResult(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR);
+                result.setMessage(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE);
+                return JsonUtil.toJson(result);
+            }
+            int orderId = StringUtil.getAsInt(orderIdStr);
+            result = orderManager.getContract(orderId);
+        }catch (Exception e){
+            logger.error("OrderController getContract Exception message:"+e.getMessage());
+            result.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            result.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return JsonUtil.toJson(result);
+    }
+
+    /**
+     * 获取订单状态 字典表dict_order_status
+     * @param request
+     * @return
+     */
+    @RequestMapping(value = "getOrderStatus",method = RequestMethod.POST)
+    @ResponseBody
+    public String getOrderStatus(HttpServletRequest request){
+        ResultVo result = new ResultVo();
+        try {
+            if(RedisUtil.existKey(RedisConstant.ORDER_STATUS)){
+                //缓存存在从缓存中获取
+                String orderStatus = RedisUtil.safeGet(RedisConstant.ORDER_STATUS);
+                result.setDataSet(JSON.parseArray(orderStatus));
+            }
+            result = orderManager.getOrderStatus();
+        }catch (Exception e){
+            logger.error("OrderController getOrderStatus Exception message:"+e.getMessage());
+            result.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            result.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return JsonUtil.toJson(result);
+    }
+
+    /**
+     * 客户确认合同
+     * @param request
+     * @return
+     */
+    @RequestMapping(value = "confirmationContract",method = RequestMethod.POST)
+    @ResponseBody
+    public String confirmationContract(HttpServletRequest request){
+        ResultVo result = new ResultVo();
+        try {
+            //登录token
+            String token = request.getParameter("token");
+            Integer memberId = StringUtil.getAsInt(RequestUtil.analysisToken(token).getUserId());
+            String orderIdStr = request.getParameter("orderId");
+            if(!StringUtil.hasText(orderIdStr)){
+                result.setResult(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR);
+                result.setMessage(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE);
+                return JsonUtil.toJson(result);
+            }
+            int orderId = StringUtil.getAsInt(orderIdStr);
+            result = orderManager.confirmationContract(memberId,orderId);
+        }catch (Exception e){
+            logger.error("OrderController confirmationContract Exception message:"+e.getMessage());
+            result.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            result.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return JsonUtil.toJson(result);
+    }
+
+    /**
+     * 取消订单
+     * @param request
+     * @return
+     */
+    @RequestMapping(value="/cancel/order",method = RequestMethod.POST)
+    @ResponseBody
+    public String cancelOrder(HttpServletRequest request){
+        ResultVo vo = null;
+        Map<Object,Object> condition = new HashMap<Object,Object>(5);
+        //订单ID
+        int orderId = StringUtil.getAsInt(StringUtil.trim(request.getParameter("orderId")));
+        String orderCode = StringUtil.trim(request.getParameter("orderCode"));
+        //是否取消0:不取消，1：用户取消 2：业主取消
+        int isCancel = StringUtil.getAsInt(StringUtil.trim(request.getParameter("isCancel")));
+        String remark = StringUtil.trim(request.getParameter("remark"));
+        if( isCancel == -1){
+            return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR,ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE));
+        }
+        //登录token
+        String token = request.getParameter("token");
+        Integer memberId = StringUtil.getAsInt(RequestUtil.analysisToken(token).getUserId());
+//        condition.put("id",orderId);
+        condition.put("orderCode",orderCode);
+        condition.put("userId",memberId);
+        condition.put("isCancel",isCancel);
+        condition.put("remark",remark);
+        vo = orderManager.cancelOrder(condition);
+        return JsonUtil.toJson(vo);
+    }
+
+}

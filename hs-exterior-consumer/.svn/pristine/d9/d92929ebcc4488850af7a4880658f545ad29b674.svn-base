@@ -1,0 +1,242 @@
+package www.ucforward.com.manager;
+
+import org.springframework.stereotype.Service;
+import www.ucforward.com.entity.*;
+import www.ucforward.com.index.entity.HouseSearchCondition;
+import www.ucforward.com.index.form.MapSearch;
+import www.ucforward.com.vo.ResultVo;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+
+@Service
+public interface HousesManager {
+
+  /**
+   * 业主提交预约获取房源申请
+   * @param apply
+   * @return
+   */
+  ResultVo addOwnerHousingApply(HsOwnerHousingApplication apply,HsHouseCredentialsData houseCredentialsData);
+
+  /**
+   * 查询房源数据字典数据
+   * @return
+   */
+  ResultVo getHouseDictcode();
+
+  /**
+   * 查詢租客/買家房源列表信息
+   * @param condition
+   * @return
+   */
+  ResultVo getRenterOrBuyersHousing(Map<Object,Object> condition);
+
+  /**
+   * 獲取房源詳情信息
+   * @param condition
+   * @return
+   */
+  ResultVo getHouseDetail(Map<Object,Object> condition);
+
+  /**
+   * 获取房源图片信息
+   * @param condition
+   * @return
+   */
+  ResultVo getHousesImg(Map<Object,Object> condition);
+
+  /**
+   * 获取房源对比信息
+   * @param condition
+   * @return
+   */
+  ResultVo getHousingCompare(Map<Object,Object> condition);
+
+  /**
+   * 新增房源相关信息
+   * @param object
+   * @return
+   */
+  ResultVo addHousingRelationInfo(Object object);
+
+
+  /**
+   * 创建订单
+   * @param condition
+   * @return
+   */
+  ResultVo createOrder(Map<String, Object> condition);
+
+  /**
+   * 获取进度流程
+   * @param type
+   * @return
+   */
+  List<Map<String, Object>> findProgressList(String type);
+
+  /**
+   * 获取房源状态信息
+   * @param condition
+   * @return
+   */
+  ResultVo getHousingStatusInfo(Map<Object,Object> condition);
+
+  /**
+   * 设置自动应答
+   * @param houseAutoReplySetting
+   * @return
+   */
+  ResultVo addAutoReplySetting(HsHouseAutoReplySetting houseAutoReplySetting);
+
+  /**
+   * 删除自动应答
+   * @param autoReplyId
+   * @return
+   */
+  ResultVo deleteAutoReply(String autoReplyId);
+
+  /**
+   * 检查房源钥匙是否过期
+   * @return
+   */
+    ResultVo checkKeyIsExpire(int houseId, String memberId);
+
+  /**
+   * 议价
+   * @param groupName 群组名称
+   * @param houseId 房源id
+   * @return
+   */
+  ResultVo bargain(String groupName, String houseId,Integer languageVersion);
+
+  /**
+   * 创建环信群
+   * 如果环信群存在 直接返回群信息
+   * @param groupName 群名称
+   * @param houseId   房源id
+   * @return
+   * @throws Exception  异常信息
+   */
+  Map<String, Object> createGroup(String groupName, String houseId)throws Exception;
+  /**
+   * 根据用户code获取该用户下所有聊天群组
+   * @param memberCode 用户code
+   * @return
+   */
+  List<Map> getGroupsByMemberCode(String memberCode);
+
+  /**
+   * 查询业主设置预约时间
+   * @param condition
+   * @return
+   */
+  ResultVo getHouseSettingTime(Map<Object,Object> condition);
+
+  /**
+   * 搜索房源信息
+   * @param condition
+   * @return
+   */
+    ResultVo searchHouse(HouseSearchCondition condition);
+
+  /**
+   * 获取自动应答开关设置
+   * @param condition
+   * @return
+   */
+  ResultVo getAutoReplySetting(Map<Object,Object> condition);
+
+  /**
+   * 查询今日可看房源列表信息
+   * @param condition
+   * @return
+   */
+  ResultVo getTodayLookHouseList(Map<Object,Object> condition);
+
+  /**
+   * 获取房源信息
+   * @param houseIds
+   * @return
+   */
+  List<Map<Object,Object>> getMainHouseList(List<String> houseIds);
+
+  /**
+   * 获取议价信息
+   * @param condition
+   * @return
+   */
+  ResultVo getBargainList(Map<Object,Object> condition);
+
+  /**
+   * 获取预约看房聊天记录
+   * @param condition
+   * @return
+   */
+  ResultVo getReservationMessageList(Map<Object,Object> condition);
+
+  ResultVo getReservationList(Map<Object,Object> condition);
+
+
+  /**
+   * 自动补全接口
+   */
+  ResultVo suggest(String prefix);
+
+
+  /**
+   * 地图选房入口
+   * @param condition
+   * @return
+   */
+  ResultVo rentHouseMap(Map<Object, Object> condition);
+
+  /**
+   * 地图选房
+   * @param mapSearch
+   * @return
+   */
+  ResultVo rentMapHouses(MapSearch mapSearch);
+
+  /**
+   * 新增人员申购信息
+   * @param buildingMemberApply
+   * @return
+   */
+  ResultVo addPurchase(HsHouseNewBuildingMemberApply buildingMemberApply);
+
+  /**
+   * 新增直售楼盘信息
+   * @param hsHouseNewBuilding
+   * @return
+   */
+  ResultVo addDirectSalesProperty(HsHouseNewBuilding hsHouseNewBuilding);
+
+  /**
+   * 获取楼盘区域
+   * @return
+   */
+  ResultVo getPropertyArea();
+
+  /**
+   * 获取开发商列表
+   * @return
+   */
+  ResultVo getDevelopers();
+
+  /**
+   * 获取楼盘详情
+   * @param id
+   * @return
+   */
+  ResultVo getDirectSalesDetails(Integer id,Integer memberId);
+
+  /**
+   * 获取直售楼盘列表
+   * @param condition
+   * @return
+   */
+  ResultVo getDirectSalesPropertyList(Map<Object, Object> condition);
+}

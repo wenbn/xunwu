@@ -1,0 +1,43 @@
+package www.ucforward.com.manager;
+
+import org.springframework.stereotype.Service;
+import www.ucforward.com.vo.ResultVo;
+
+import java.util.Map;
+
+/**
+ * @Auther: lsq
+ * @Date: 2018/8/23 10:35
+ * @Description:
+ */
+@Service
+public interface OrderManager {
+
+    /**
+     * 获取订单列表
+     * @param condition
+     * @return
+     */
+    ResultVo getOrderList(Map<Object, Object> condition);
+
+    /**
+     * 获取合同信息
+     * @param orderId
+     * @return
+     */
+    ResultVo getContract(int orderId);
+
+    /**
+     * 客户确认合同
+     * @param memberId 当前登陆人员id
+     * @param orderId 合同订单id
+     * @return
+     */
+    ResultVo confirmationContract(Integer memberId,Integer orderId);
+
+    /**
+     * 获取订单状态 字典表dict_order_status
+     * @return
+     */
+    ResultVo getOrderStatus();
+}

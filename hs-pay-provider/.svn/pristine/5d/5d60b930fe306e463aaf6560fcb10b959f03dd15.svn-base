@@ -1,0 +1,8 @@
+package www.ucforward.com.serviceImpl;
+
+import org.springframework.stereotype.Service;
+import www.ucforward.com.serviceInter.PayService;
+
+@Service("payService")
+public class PayServiceImpl implements PayService{
+}

@@ -1,0 +1,4 @@
+jdbc.driver=com.mysql.jdbc.Driver
+jdbc.url=jdbc:mysql://rm-wz915v6h88li3v7m0.mysql.rds.aliyuncs.com:3306/db_digital_mall?useUnicode=true&characterEncoding=utf8&allowMultiQueries=true
+jdbc.username=root
+jdbc.password=Trade^2017

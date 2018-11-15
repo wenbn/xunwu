@@ -1,0 +1,7 @@
+package www.ucforward.com.serviceImpl;
+
+import org.springframework.stereotype.Service;
+
+@Service("payService")
+public class PayServiceImpl {
+}

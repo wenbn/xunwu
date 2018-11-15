@@ -1,0 +1,5 @@
+www\ucforward\com\dao\HsHousingOrderPaymentOnlineSerialDao.class
+www\ucforward\com\dao\impl\HsHousingOrderPaymentOnlineSerialDaoImpl.class
+www\ucforward\com\dao\HsHousingOrderPaymentRecordDao.class
+www\ucforward\com\serviceImpl\PayServiceImpl.class
+www\ucforward\com\dao\impl\HsHousingOrderPaymentRecordDaoImpl.class

@@ -1,0 +1,111 @@
+package www.ucforward.com.controller.city;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.utils.StringUtil;
+import www.ucforward.com.constants.RedisConstant;
+import www.ucforward.com.constants.ResultConstant;
+import www.ucforward.com.manager.CommonAdminManager;
+import www.ucforward.com.utils.JsonUtil;
+import www.ucforward.com.utils.RedisUtil;
+import www.ucforward.com.vo.ResultVo;
+
+import javax.annotation.Resource;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * @author wenbn
+ * @version 1.0
+ * @date 2018/8/27
+ */
+@Controller
+public class CityInterController {
+    private static Logger logger = LoggerFactory.getLogger(CityInterController.class); // 日志记录
+
+    @Resource
+    private CommonAdminManager commonManager;
+
+    /**
+     * 获取支持的城市信息
+     * @return
+     */
+    @RequestMapping(value="/support/cities")
+    @ResponseBody
+    public String getCities(){
+        ResultVo result = null;
+        //查询缓存
+        if(RedisUtil.existKey(RedisConstant.SYS_SUPPORT_CITIES_CACHE_KEY_KEY)) {
+            List<Map<Object, Object>> citys = JsonUtil.parseJSON2List(RedisUtil.safeGet(RedisConstant.SYS_SUPPORT_CITIES_CACHE_KEY_KEY));
+            result = ResultVo.success();
+            result.setDataSet(citys);
+            return JsonUtil.toJson(result);
+        }
+        Map<Object, Object> condition = Maps.newHashMap();
+        try {
+            condition.put("level",1);
+            condition.put("isDel",0);
+            result = commonManager.getSupportCities(condition);
+            if(result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                List<Map<Object, Object>> citys = (List<Map<Object, Object>>) result.getDataSet();
+                List<Integer> cityIds = Lists.newArrayList();
+                for (Map<Object, Object> city : citys) {//获取城市信息
+                    cityIds.add(StringUtil.getAsInt(StringUtil.trim(city.get("id"))));
+                }
+                condition.put("level",2);
+                condition.put("pids",cityIds);
+                result = commonManager.getSupportCities(condition);
+                if(result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                    List<Map<Object, Object>> communities = (List<Map<Object, Object>>) result.getDataSet();
+                    List<Integer> communityIds = Lists.newArrayList();
+                    for (Map<Object, Object> community : communities) {//获取社区信息
+                        communityIds.add(StringUtil.getAsInt(StringUtil.trim(community.get("id"))));
+                    }
+                    condition.put("level",3);
+                    condition.put("pids",communityIds);
+                    result = commonManager.getSupportCities(condition);
+                    if(result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS) {//查询子社区信息
+                        List<Map<Object, Object>> subCommunities = (List<Map<Object, Object>>) result.getDataSet();
+                        for (Map<Object, Object> community : communities) {
+                            int communityId = StringUtil.getAsInt(StringUtil.trim(community.get("id")));
+                            List<Map<Object, Object>> data = Lists.newArrayList();//新社区数据
+                            for (Map<Object, Object> subCommunity : subCommunities) {
+                                int _communityId = StringUtil.getAsInt(StringUtil.trim(subCommunity.get("pid")));
+                                if(communityId == _communityId){
+                                    data.add(subCommunity);
+                                }
+                            }
+                            community.put("sub",data);
+                        }
+                        for (Map<Object, Object> city : citys) {//封装城市信息
+                            int cityId = StringUtil.getAsInt(StringUtil.trim(city.get("id")));
+                            List<Map<Object, Object>> data = Lists.newArrayList();//新社区数据
+                            for (Map<Object, Object> community : communities) {
+                                int _cityId = StringUtil.getAsInt(StringUtil.trim(community.get("pid")));
+                                if(cityId == _cityId){
+                                    data.add(community);
+                                }
+                            }
+                            city.put("sub",data);
+                        }
+                        RedisUtil.safeSet( RedisConstant.SYS_SUPPORT_CITIES_CACHE_KEY_KEY, JsonUtil.toJson(citys), RedisConstant.SYS_SUPPORT_CITIES_CACHE_KEY_TIME);
+                        result.setDataSet(citys);
+
+                    }
+                }
+            }
+        } catch (Exception e) {
+            logger.error("CityController controller: getSupportCities Exception message:" + e.getMessage());
+            System.out.println(e.getMessage());
+            result.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            result.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        condition = null;
+        return JsonUtil.toJson(result);
+    }
+}

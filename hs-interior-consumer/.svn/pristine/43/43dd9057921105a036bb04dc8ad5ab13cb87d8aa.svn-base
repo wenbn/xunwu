@@ -1,0 +1,1197 @@
+package www.ucforward.com.controller.interior;
+
+import com.google.common.collect.Maps;
+import net.sf.json.util.JSONUtils;
+import org.apache.shiro.SecurityUtils;
+import org.apache.shiro.authz.annotation.RequiresUser;
+import org.apache.shiro.session.Session;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Controller;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.utils.StringUtil;
+import sun.misc.Request;
+import www.ucforward.com.constants.AppRquestParamsConstant;
+import www.ucforward.com.constants.ResultConstant;
+import www.ucforward.com.entity.*;
+import www.ucforward.com.manager.MemberAdminManager;
+import www.ucforward.com.manager.OrderAdminManager;
+import www.ucforward.com.utils.JsonUtil;
+import www.ucforward.com.utils.RedisUtil;
+import www.ucforward.com.utils.RequestUtil;
+import www.ucforward.com.vo.ResultVo;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.validation.Valid;
+import java.util.*;
+
+/**
+ * 业务员控制器
+ * Created by Administrator on 2018/7/12.
+ */
+@Controller
+@RequestMapping("salesman")
+public class SalesmanController {
+
+    private static Logger logger = LoggerFactory.getLogger(SalesmanController.class); // 日志记录
+
+    @Resource
+    private MemberAdminManager memberAdminManager;
+    @Resource
+    private OrderAdminManager orderAdminManager;
+
+    /**
+     * 查询外货业务员派单列表信息
+     * @param request
+     * @param response
+     * @return
+     */
+    @RequestMapping(value = "getOutGainDispatchOrder",method = RequestMethod.POST)
+    @ResponseBody
+    public String getOutGainDispatchOrder(HttpServletRequest request, HttpServletResponse response){
+        ResultVo result = new ResultVo();
+        Map<Object,Object> condition = new HashMap<>();
+        try {
+            Map map = RequestUtil.getParameterMap(request);
+            ActiveUser user = (ActiveUser) SecurityUtils.getSubject().getPrincipal();
+            List<Map<Object, Object>> roleList = user.getRoleList();
+            boolean isTrue = false;
+            for(Map<Object,Object> role : roleList){
+                if(StringUtil.trim(role.get("roleName")).equals("外获业务员")){
+                    isTrue = true;
+                }
+            }
+            if(!isTrue){
+                //没有操作权限
+                result = ResultVo.error(ResultConstant.SYS_REQUIRED_UNOPERATION_ERROR,ResultConstant.SYS_REQUIRED_UNOPERATION_ERROR_VALUE);
+                return JsonUtil.toJson(result);
+            }
+
+            String pageIndex = StringUtil.trim(map.get("pageIndex"),"1"); //当前页
+            int languageVersion = StringUtil.getAsInt(StringUtil.trim(map.get("languageVersion"),"0")); //语言版本
+            condition.put("isFinished",0);//是否完成 0：未完成，1：已完成
+            condition.put("isDel",0); //是否删除 0 ：未删除，1：已删除
+            condition.put("pageIndex",pageIndex);
+            condition.put("pageSize", AppRquestParamsConstant.APP_PAGE_SIZE); //页显示条数
+            condition.put("languageVersion",languageVersion);
+            condition.put("userId",user.getUserid());
+            condition.put("taskType",0); //0：外获任务 1：外看任务 2：合同任务
+            condition.putAll(map);
+            result = memberAdminManager.getOutGainDispatchOrder(condition);
+        } catch (Exception e) {
+            logger.error("SalesmanController getDispatchOrder Exception message:"+e.getMessage());
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+
+        return JsonUtil.toJson(result);
+    }
+
+    /**
+     * 批量转单操作
+     * @param request
+     * @param response
+     * @return
+     */
+    @RequestMapping(value = "batchDispathOrder",method = RequestMethod.POST)
+    @ResponseBody
+    public String batchDispathOrder(HttpServletRequest request,HttpServletResponse response){
+        ResultVo result = new ResultVo();
+        Map<Object,Object> condition = new HashMap<Object,Object>();
+        try {
+            Map map = RequestUtil.getParameterMap(request);
+            String ids = StringUtil.trim(map.get("ids")); //任务ids
+            String times = StringUtil.trim(map.get("times")); //任务开始时间，以逗号分隔
+            String taskType = StringUtil.trim(map.get("taskType")); //任务类型： 0：外获，1：外看
+            ActiveUser user = (ActiveUser) SecurityUtils.getSubject().getPrincipal();
+            List<Map<Object, Object>> roleList = user.getRoleList();
+
+            boolean isTrue = false;
+            for(Map<Object,Object> role : roleList){
+                if(StringUtil.trim(role.get("roleName")).equals("外获业务员") || StringUtil.trim(role.get("roleName")).equals("外看业务员") || StringUtil.trim(role.get("roleName")).equals("钥匙管理员")){
+                    isTrue = true;
+                }
+            }
+            if(!isTrue){
+                //没有操作权限
+                result = ResultVo.error(ResultConstant.SYS_REQUIRED_UNOPERATION_ERROR,ResultConstant.SYS_REQUIRED_UNOPERATION_ERROR_VALUE);
+                return JsonUtil.toJson(result);
+            }
+            if(!StringUtil.hasText(ids) || !StringUtil.hasText(times) || !StringUtil.hasText(taskType)){
+                result.setResult(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR);
+                result.setMessage(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE);
+                return JsonUtil.toJson(result);
+            }
+            condition.put("userId",user.getUserid());
+            condition.putAll(map);
+
+            result = memberAdminManager.batchDispathOrder(condition);
+        } catch (Exception e) {
+            logger.error("SalesmanController batchDispathOrder Exception message:"+e.getMessage());
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return JsonUtil.toJson(result);
+    }
+
+    /**
+     * 外获任务详情信息
+     * @param request
+     * @param response
+     * @return
+     */
+    @RequestMapping(value = "outGainOrderDetail",method = RequestMethod.POST)
+    @ResponseBody
+    public String outGainOrderDetail(HttpServletRequest request,HttpServletResponse response){
+        ResultVo result = new ResultVo();
+        Map<Object,Object> condition = new HashMap<>();
+        try {
+            Map map = RequestUtil.getParameterMap(request);
+            String taskId = StringUtil.trim(map.get("taskId")); //任务ID
+            String applyId = StringUtil.trim(map.get("applyId")); //申请ID
+            String poolId = StringUtil.trim(map.get("poolId")); //订单池ID
+            ActiveUser user = (ActiveUser) SecurityUtils.getSubject().getPrincipal();
+            List<Map<Object, Object>> roleList = user.getRoleList();
+
+            boolean isTrue = false;
+            for(Map<Object,Object> role : roleList){
+                if(StringUtil.trim(role.get("roleName")).equals("外获业务员") || StringUtil.trim(role.get("roleName")).equals("钥匙管理员")){
+                    isTrue = true;
+                }
+            }
+            if(!isTrue){
+                //没有操作权限
+                result = ResultVo.error(ResultConstant.SYS_REQUIRED_UNOPERATION_ERROR,ResultConstant.SYS_REQUIRED_UNOPERATION_ERROR_VALUE);
+                return JsonUtil.toJson(result);
+            }
+
+            if(!StringUtil.hasText(taskId) || !StringUtil.hasText(applyId) || !StringUtil.hasText(poolId)){
+                result.setResult(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR);
+                result.setMessage(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE);
+                return JsonUtil.toJson(result);
+            }
+            condition.putAll(map);
+
+            result = memberAdminManager.outGainOrderDetail(condition);
+        } catch (Exception e) {
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+
+        return JsonUtil.toJson(result);
+    }
+
+    /**
+     * 到达客户
+     * @param request
+     * @param response
+     * @return
+     */
+    @RequestMapping(value = "arriveAtCustomer",method = RequestMethod.POST)
+    @ResponseBody
+    public String arriveAtCustomer(HttpServletRequest request, HttpServletResponse response){
+        ResultVo result = new ResultVo();
+        Map<Object,Object> condition = new HashMap<>();
+        try {
+            Map map = RequestUtil.getParameterMap(request);
+            String id = StringUtil.trim(map.get("id")); //任务ID
+            ActiveUser user = (ActiveUser) SecurityUtils.getSubject().getPrincipal();
+            List<Map<Object, Object>> roleList = user.getRoleList();
+
+            boolean isTrue = false;
+            for(Map<Object,Object> role : roleList){
+                if(StringUtil.trim(role.get("roleName")).equals("外获业务员") || StringUtil.trim(role.get("roleName")).equals("外看业务员") || StringUtil.trim(role.get("roleName")).equals("钥匙管理员")){
+                    isTrue = true;
+                }
+            }
+            if(!isTrue){
+                //没有操作权限
+                result = ResultVo.error(ResultConstant.SYS_REQUIRED_UNOPERATION_ERROR,ResultConstant.SYS_REQUIRED_UNOPERATION_ERROR_VALUE);
+                return JsonUtil.toJson(result);
+            }
+
+            if(!StringUtil.hasText(id)){
+                result.setResult(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR);
+                result.setMessage(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE);
+                return JsonUtil.toJson(result);
+            }
+            condition.putAll(map);
+            condition.put("memberId",user.getUserid());
+            condition.put("isArrive",1); //是否到达 0：未到达 1；已到达
+
+            result = memberAdminManager.operateUserOrderTask(condition);
+        } catch (Exception e) {
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return JsonUtil.toJson(result);
+    }
+
+    /**
+     * 客户取消预约操作
+     * @param request
+     * @param response
+     * @return
+     */
+    @RequestMapping(value = "customerCancelAppointment" ,method = RequestMethod.POST)
+    @ResponseBody
+    public String customerCancelAppointment(HttpServletRequest request,HttpServletResponse response){
+        ResultVo result = new ResultVo();
+        Map<Object,Object> condition = new HashMap<>();
+        try {
+            Map map = RequestUtil.getParameterMap(request);
+            ActiveUser user = (ActiveUser) SecurityUtils.getSubject().getPrincipal();
+            List<Map<Object, Object>> roleList = user.getRoleList();
+
+            String taskId = StringUtil.trim(map.get("taskId")); //任务ID
+            String taskType = StringUtil.trim(map.get("taskType")); //任务类型（0：外获任务，1：外看任务）
+            String cancelType = StringUtil.trim(map.get("cancelType")); //取消预约类型（0：业主取消预约，1：租客/买家取消预约）
+            String feedbackType = StringUtil.trim(map.get("feedbackType")); //反馈类型
+            String feedbackDesc = StringUtil.trim(map.get("feedbackDesc")); //反馈描述
+
+            boolean isTrue = false;
+            for(Map<Object,Object> role : roleList){
+                if(StringUtil.trim(role.get("roleName")).equals("外获业务员") || StringUtil.trim(role.get("roleName")).equals("外看业务员") || StringUtil.trim(role.get("roleName")).equals("钥匙管理员")){
+                    isTrue = true;
+                }
+            }
+            if(!isTrue){
+                //没有操作权限
+                result = ResultVo.error(ResultConstant.SYS_REQUIRED_UNOPERATION_ERROR,ResultConstant.SYS_REQUIRED_UNOPERATION_ERROR_VALUE);
+                return JsonUtil.toJson(result);
+            }
+
+            if(!StringUtil.hasText(taskId) || !StringUtil.hasText(taskType) || !StringUtil.hasText(cancelType) || !StringUtil.hasText(feedbackType) || !StringUtil.hasText(feedbackDesc)){
+                result.setResult(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR);
+                result.setMessage(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE);
+                return JsonUtil.toJson(result);
+            }
+            condition.putAll(map);
+            condition.put("memberId",user.getUserid());
+            result = memberAdminManager.cancelAppointment(condition);
+        } catch (Exception e) {
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return JsonUtil.toJson(result);
+    }
+
+    /**
+     * 获取已上传房源列表
+     * @param request
+     * @param response
+     * @return
+     */
+    @RequestMapping(value = "getUploadedHousingList",method = RequestMethod.POST)
+    @ResponseBody
+    public String getUploadedHousingList(HttpServletRequest request,HttpServletResponse response){
+        ResultVo result = new ResultVo();
+        Map<Object,Object> condition = new HashMap<>();
+        try {
+            Map map = RequestUtil.getParameterMap(request);
+            ActiveUser user = (ActiveUser) SecurityUtils.getSubject().getPrincipal();
+            List<Map<Object, Object>> roleList = user.getRoleList();
+            boolean isTrue = false;
+            for(Map<Object,Object> role : roleList){
+                if(StringUtil.trim(role.get("roleName")).equals("外获业务员") || StringUtil.trim(role.get("roleName")).equals("钥匙管理员") ){
+                    isTrue = true;
+                }
+            }
+            if(!isTrue){
+                //没有操作权限
+                result = ResultVo.error(ResultConstant.SYS_REQUIRED_UNOPERATION_ERROR,ResultConstant.SYS_REQUIRED_UNOPERATION_ERROR_VALUE);
+                return JsonUtil.toJson(result);
+            }
+
+            String pageIndex = StringUtil.trim(map.get("pageIndex"),"1"); //当前页
+            int languageVersion = StringUtil.getAsInt(StringUtil.trim(map.get("languageVersion"),"0")); //语言版本
+            condition.put("userId",user.getUserid());
+            condition.put("isDel",0); //未删除
+            condition.put("pageIndex",pageIndex);
+            condition.put("pageSize", AppRquestParamsConstant.APP_PAGE_SIZE); //页显示条数
+            condition.put("languageVersion",languageVersion);
+            result = memberAdminManager.getUploadedHousingList(condition);
+        } catch (Exception e) {
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return JsonUtil.toJson(result);
+    }
+
+    /**
+     * 获取申请详细信息(上传房源页面)
+     * @param request
+     * @param response
+     * @return
+     */
+    @RequestMapping(value = "getApplicationDetails",method = RequestMethod.POST)
+    @ResponseBody
+    public String getApplicationDetails(HttpServletRequest request,HttpServletResponse response){
+        ResultVo result = new ResultVo();
+        //TODO 查询图片
+        Map<Object,Object> condition = new HashMap<>();
+        try {
+            Map map = RequestUtil.getParameterMap(request);
+            ActiveUser user = (ActiveUser) SecurityUtils.getSubject().getPrincipal();
+            List<Map<Object,Object>> roleList = user.getRoleList();
+            boolean isTrue = false;
+            for(Map<Object,Object> role : roleList){
+                if(StringUtil.trim(role.get("roleName")).equals("外获业务员") || StringUtil.trim(role.get("roleName")).equals("钥匙管理员")){
+                    isTrue = true;
+                }
+            }
+            if(!isTrue){
+                result = ResultVo.error(ResultConstant.SYS_REQUIRED_UNAUTHORIZED_ERROR,ResultConstant.SYS_REQUIRED_UNAUTHORIZED_ERROR_VALUE);
+                return JsonUtil.toJson(result);
+            }
+            String applyId = StringUtil.trim(map.get("applyId")); //申请ID
+            if(!StringUtil.hasText(applyId)){
+                result.setResult(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR);
+                result.setMessage(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE);
+                return JsonUtil.toJson(result);
+            }
+            condition.putAll(map);
+            result = memberAdminManager.getApplicationDetails(condition);
+
+        } catch (Exception e) {
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+
+        return JsonUtil.toJson(result);
+    }
+
+    /**
+     * 上传房源
+     * @param request
+     * @param response
+     * @return
+     */
+    @RequestMapping(value = "uploadHousing",method = RequestMethod.POST)
+    @ResponseBody
+    public String uploadHousing(HttpServletRequest request, HttpServletResponse response, HsMainHouse hsMainHouse, HsHouseCredentialsData hsHouseCredentialsData,HsHouseImg hsHouseImg){
+        ResultVo result = new ResultVo();
+        try {
+            //TODO 上传图片
+            ActiveUser user = (ActiveUser) SecurityUtils.getSubject().getPrincipal();
+            List<Map<Object,Object>> roleList = user.getRoleList();
+            Object houseObj = RequestUtil.handleRequestBeanData(hsMainHouse);
+            HsMainHouse mainHouse = (HsMainHouse) houseObj;
+
+            Object credentialsObj = RequestUtil.handleRequestBeanData(hsHouseCredentialsData);
+            HsHouseCredentialsData houseCredentialsData = (HsHouseCredentialsData) credentialsObj;
+
+            Object imgObj = RequestUtil.handleRequestBeanData(hsHouseImg);
+            HsHouseImg houseImg = (HsHouseImg) imgObj;
+
+            String taskId = request.getParameter("taskId"); //任务ID
+
+            boolean isTrue = false;
+            for(Map<Object,Object> role : roleList){
+                if(StringUtil.trim(role.get("roleName")).equals("外获业务员") || StringUtil.trim(role.get("roleName")).equals("钥匙管理员")){
+                    isTrue = true;
+                }
+            }
+            if(!isTrue){
+                //没有操作权限
+                result = ResultVo.error(ResultConstant.SYS_REQUIRED_UNOPERATION_ERROR,ResultConstant.SYS_REQUIRED_UNOPERATION_ERROR_VALUE);
+                return JsonUtil.toJson(result);
+            }
+
+            if(!StringUtil.hasText(taskId)){
+                result.setResult(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR);
+                result.setMessage(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE);
+                return JsonUtil.toJson(result);
+            }
+
+            mainHouse.setCreateBy(user.getUserid());
+            result = memberAdminManager.uploadHousing(mainHouse,houseCredentialsData,houseImg);
+
+        } catch (Exception e) {
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return JsonUtil.toJson(result);
+    }
+
+    /**
+     * 获取外获人员个人绩效
+     * @param request
+     * @param response
+     * @return
+     */
+    @RequestMapping(value = "getOutGainPersonalPerformance",method = RequestMethod.POST)
+    @ResponseBody
+    public String getOutGainPersonalPerformance(HttpServletRequest request,HttpServletResponse response){
+        ResultVo result = new ResultVo();
+        Map<Object,Object> condition = new HashMap<>();
+        try {
+            ActiveUser user = (ActiveUser) SecurityUtils.getSubject().getPrincipal();
+            List<Map<Object,Object>> roleList = user.getRoleList();
+            boolean isTrue = false;
+            for(Map<Object,Object> role : roleList){
+                if(StringUtil.trim(role.get("roleName")).equals("外获业务员") ){
+                    isTrue = true;
+                }
+            }
+            if(!isTrue){
+                //没有操作权限
+                result = ResultVo.error(ResultConstant.SYS_REQUIRED_UNOPERATION_ERROR,ResultConstant.SYS_REQUIRED_UNOPERATION_ERROR_VALUE);
+                return JsonUtil.toJson(result);
+            }
+
+            condition.put("userId",user.getUserid()); //业务员ID
+            condition.put("taskType",0); //0外获任务
+
+            result = memberAdminManager.getOutGainPersonalPerformance(condition);
+        } catch (Exception e) {
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return JsonUtil.toJson(result);
+    }
+
+    /**
+     * 获取外看人员派单列表信息
+     * @param request
+     * @param response
+     * @return
+     */
+    @RequestMapping(value = "getOutLookDispatchOrder",method = RequestMethod.POST)
+    @ResponseBody
+    public String getOutLookDispatchOrder(HttpServletRequest request,HttpServletResponse response){
+        ResultVo result = new ResultVo();
+        Map<Object,Object> condition = new HashMap<>();
+        try {
+            Map map = RequestUtil.getParameterMap(request);
+            ActiveUser user = (ActiveUser) SecurityUtils.getSubject().getPrincipal();
+            List<Map<Object, Object>> roleList = user.getRoleList();
+            boolean isTrue = false;
+            for(Map<Object,Object> role : roleList){
+                if(StringUtil.trim(role.get("roleName")).equals("外看业务员") || StringUtil.trim(role.get("roleName")).equals("钥匙管理员")){
+                    isTrue = true;
+                }
+            }
+            if(!isTrue){
+                //没有操作权限
+                result = ResultVo.error(ResultConstant.SYS_REQUIRED_UNOPERATION_ERROR,ResultConstant.SYS_REQUIRED_UNOPERATION_ERROR_VALUE);
+                return JsonUtil.toJson(result);
+            }
+
+            String pageIndex = StringUtil.trim(map.get("pageIndex"),"1"); //当前页
+            int languageVersion = StringUtil.getAsInt(StringUtil.trim(map.get("languageVersion"),"0")); //语言版本
+            condition.put("isFinished",0);//是否完成 0：未完成，1：已完成
+            condition.put("isDel",0); //是否删除 0 ：未删除，1：已删除
+            condition.put("pageIndex",pageIndex);
+            condition.put("pageSize", AppRquestParamsConstant.APP_PAGE_SIZE); //页显示条数
+            condition.put("languageVersion",languageVersion);
+            condition.put("userId",user.getUserid());
+            condition.put("taskType",1); ////任务类型（0外获任务；1：外看任务；2合同任务）
+            condition.putAll(map);
+            result = memberAdminManager.getOutLookDispatchOrder(condition);
+        } catch (Exception e) {
+            logger.error("SalesmanController getDispatchOrder Exception message:"+e.getMessage());
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return JsonUtil.toJson(result);
+    }
+
+    /**
+     * 获取外看派单任务详情
+     * @param request
+     * @param response
+     * @return
+     */
+    @RequestMapping(value = "getOutLookDispatchOrderDetail",method = RequestMethod.POST)
+    @ResponseBody
+    public String getOutLookDispatchOrderDetail(HttpServletRequest request,HttpServletResponse response){
+        ResultVo result = new ResultVo();
+        Map<Object,Object> condition = new HashMap<>();
+        try {
+            Map map = RequestUtil.getParameterMap(request);
+            String taskId = StringUtil.trim(map.get("taskId")); //任务ID
+            String poolId = StringUtil.trim(map.get("poolId")); //订单池ID
+            String houseId = StringUtil.trim(map.get("houseId")); //房源主信息ID
+            ActiveUser user = (ActiveUser) SecurityUtils.getSubject().getPrincipal();
+            List<Map<Object, Object>> roleList = user.getRoleList();
+            boolean isTrue = false;
+            for(Map<Object,Object> role : roleList){
+                if(StringUtil.trim(role.get("roleName")).equals("外看业务员") || StringUtil.trim(role.get("roleName")).equals("钥匙管理员")){
+                    isTrue = true;
+                }
+            }
+            if(!isTrue){
+                //没有操作权限
+                result = ResultVo.error(ResultConstant.SYS_REQUIRED_UNOPERATION_ERROR,ResultConstant.SYS_REQUIRED_UNOPERATION_ERROR_VALUE);
+                return JsonUtil.toJson(result);
+            }
+
+            if(!StringUtil.hasText(taskId) || !StringUtil.hasText(poolId) || !StringUtil.hasText(houseId)){
+                result.setResult(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR);
+                result.setMessage(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE);
+                return JsonUtil.toJson(result);
+            }
+
+            condition.putAll(map);
+            result = memberAdminManager.getOutLookDispatchOrderDetail(condition);
+        } catch (Exception e) {
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return JsonUtil.toJson(result);
+    }
+
+    /**
+     * 完成看房
+     * @param request
+     * @param response
+     * @return
+     */
+    @RequestMapping(value = "finishedLookHouse",method = RequestMethod.POST)
+    @ResponseBody
+    public String finishedLookHouse(HttpServletRequest request,HttpServletResponse response){
+        ResultVo result = new ResultVo();
+        Map<Object,Object> condition = new HashMap<>();
+        try {
+            Map map = RequestUtil.getParameterMap(request);
+            String id = StringUtil.trim(map.get("id")); //任务ID
+            ActiveUser user = (ActiveUser) SecurityUtils.getSubject().getPrincipal();
+            List<Map<Object, Object>> roleList = user.getRoleList();
+
+            boolean isTrue = false;
+            for(Map<Object,Object> role : roleList){
+                if(StringUtil.trim(role.get("roleName")).equals("外看业务员") || StringUtil.trim(role.get("roleName")).equals("钥匙管理员")){
+                    isTrue = true;
+                }
+            }
+            if(!isTrue){
+                //没有操作权限
+                result = ResultVo.error(ResultConstant.SYS_REQUIRED_UNOPERATION_ERROR,ResultConstant.SYS_REQUIRED_UNOPERATION_ERROR_VALUE);
+                return JsonUtil.toJson(result);
+            }
+
+            if(!StringUtil.hasText(id)){
+                result.setResult(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR);
+                result.setMessage(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE);
+                return JsonUtil.toJson(result);
+            }
+            condition.putAll(map);
+            condition.put("memberId",user.getUserid());
+            condition.put("isFinished",1); //是否完成看房 0：未完成 1:已完成
+
+            result = memberAdminManager.operateUserOrderTask(condition);
+        } catch (Exception e) {
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return JsonUtil.toJson(result);
+    }
+
+
+    /**
+     * 获取上传房源详细信息(编辑上传页面)
+     * @param request
+     * @param response
+     * @return
+     */
+    @RequestMapping(value = "getUploadHouseDetail",method = RequestMethod.POST)
+    @ResponseBody
+    public String getUploadHouseDetail(HttpServletRequest request,HttpServletResponse response){
+        ResultVo result = new ResultVo();
+        Map<Object,Object> condition = new HashMap<>();
+
+        try {
+            Map map = RequestUtil.getParameterMap(request);
+            ActiveUser user = (ActiveUser) SecurityUtils.getSubject().getPrincipal();
+            List<Map<Object,Object>> roleList = user.getRoleList();
+            boolean isTrue = false;
+            for(Map<Object,Object> role : roleList){
+                if(StringUtil.trim(role.get("roleName")).equals("外获业务员") || StringUtil.trim(role.get("roleName")).equals("钥匙管理员")){
+                    isTrue = true;
+                }
+            }
+            if(!isTrue){
+                result = ResultVo.error(ResultConstant.SYS_REQUIRED_UNAUTHORIZED_ERROR,ResultConstant.SYS_REQUIRED_UNAUTHORIZED_ERROR_VALUE);
+                return JsonUtil.toJson(result);
+            }
+            String houseId = StringUtil.trim(map.get("houseId")); //房源ID
+            if(!StringUtil.hasText(houseId)){
+                result.setResult(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR);
+                result.setMessage(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE);
+                return JsonUtil.toJson(result);
+            }
+            condition.putAll(map);
+            result = memberAdminManager.getUploadHouseDetail(condition);
+        } catch (Exception e) {
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+
+        return JsonUtil.toJson(result);
+    }
+
+    /**
+     * 修改已上传的房源
+     * @param request
+     * @param response
+     * @param hsMainHouse
+     * @param hsHouseCredentialsData
+     * @return
+     */
+    @RequestMapping(value = "updateUploadedHouse",method = RequestMethod.POST)
+    @ResponseBody
+    public String updateUploadedHouse(HttpServletRequest request,HttpServletResponse response,HsMainHouse hsMainHouse,HsHouseCredentialsData hsHouseCredentialsData,HsHouseImg hsHouseImg){
+        ResultVo result = new ResultVo();
+        try {
+            ActiveUser user = (ActiveUser) SecurityUtils.getSubject().getPrincipal();
+            List<Map<Object,Object>> roleList = user.getRoleList();
+            Object houseObj = RequestUtil.handleRequestBeanData(hsMainHouse);
+            HsMainHouse mainHouse = (HsMainHouse) houseObj;
+
+            Object credentialsObj = RequestUtil.handleRequestBeanData(hsHouseCredentialsData);
+            HsHouseCredentialsData houseCredentialsData = (HsHouseCredentialsData) credentialsObj;
+
+            Object imgObj = RequestUtil.handleRequestBeanData(hsHouseImg);
+            HsHouseImg houseImg = (HsHouseImg) imgObj;
+
+            boolean isTrue = false;
+
+            for(Map<Object,Object> role : roleList){
+                if(StringUtil.trim(role.get("roleName")).equals("外获业务员") || StringUtil.trim(role.get("roleName")).equals("钥匙管理员")){
+                    isTrue = true;
+                }
+            }
+            if(!isTrue){
+                result = ResultVo.error(ResultConstant.SYS_REQUIRED_UNAUTHORIZED_ERROR,ResultConstant.SYS_REQUIRED_UNAUTHORIZED_ERROR_VALUE);
+                return JsonUtil.toJson(result);
+            }
+
+            mainHouse.setCreateBy(user.getUserid());
+            result = memberAdminManager.updateUploadedHouse(mainHouse,houseCredentialsData,houseImg);
+        } catch (IllegalAccessException e) {
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+
+        return JsonUtil.toJson(result);
+    }
+
+    /**
+     * 外看业务员已带看房列表
+     *
+     * @return
+     */
+    @RequestMapping(value="/look/finished/list",method = RequestMethod.POST)
+    @ResponseBody
+    public String lookHouseFinishedList(HttpServletRequest request) throws Exception {
+        ResultVo vo = null;
+        ActiveUser user = (ActiveUser) SecurityUtils.getSubject().getPrincipal();
+        List<Map<Object, Object>> roleList = user.getRoleList();
+        boolean isTrue = false;
+        for (Map<Object, Object> role : roleList) {
+            if(StringUtil.trim(role.get("roleName")).equals("外看业务员") || StringUtil.trim(role.get("roleName")).equals("系统管理员")){
+                isTrue =true;
+            }
+        }
+        if(!isTrue){
+            //无操作权限
+            vo = ResultVo.error(ResultConstant.SYS_REQUIRED_UNOPERATION_ERROR,ResultConstant.SYS_REQUIRED_UNOPERATION_ERROR_VALUE);
+        }
+        Map<Object,Object> condition = new HashMap<>();
+        Map map = RequestUtil.getParameterMap(request);
+        try {
+            String pageIndex = StringUtil.trim(map.get("pageIndex"),"1");//当前页
+            int languageVersion = StringUtil.getAsInt(StringUtil.trim(map.get("languageVersion"),"0"));//语言版本
+            condition.put("pageIndex",pageIndex);//当前页
+            condition.put("languageVersion",languageVersion);//当前页
+            condition.put("pageSize", AppRquestParamsConstant.APP_PAGE_SIZE);//每页显示条数
+            condition.put("isFinished",1);//已完成
+            condition.put("isDel",0);//未删除
+            vo = memberAdminManager.selectLookForHouseFinished(condition);
+        } catch (Exception e) {
+            logger.error("UserAdminController sendLocation Method Exception :——》:" + e.getMessage());
+            vo.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            vo.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 外看业务员已带看房详情
+     * @param taskId 任务Id
+     * @return
+     * @throws Exception
+     */
+    @RequestMapping(value="/look/finished/detail",method = RequestMethod.POST)
+    @ResponseBody
+    public String lookHouseFinishedDetail(@RequestParam(required = false) int taskId) throws Exception {
+        ResultVo vo = null;
+        ActiveUser user = (ActiveUser) SecurityUtils.getSubject().getPrincipal();
+        List<Map<Object, Object>> roleList = user.getRoleList();
+        boolean isTrue = false;
+        for (Map<Object, Object> role : roleList) {
+            if(StringUtil.trim(role.get("roleName")).equals("外看业务员") || StringUtil.trim(role.get("roleName")).equals("系统管理员")){
+                isTrue =true;
+            }
+        }
+        if(!isTrue){
+            //无操作权限
+            vo = ResultVo.error(ResultConstant.SYS_REQUIRED_UNOPERATION_ERROR,ResultConstant.SYS_REQUIRED_UNOPERATION_ERROR_VALUE);
+        }
+        Map<Object,Object> condition = new HashMap<>();
+        try {
+            condition.put("taskId",taskId);//任务ID
+            condition.put("userId",user.getUserid());//业务员ID
+            condition.put("isFinished",1);//已完成
+            condition.put("isDel",0);//未删除
+            vo = memberAdminManager.selectLookForHouseFinishedDetail(condition);
+        } catch (Exception e) {
+            logger.error("UserAdminController sendLocation Method Exception :——》:" + e.getMessage());
+            vo.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            vo.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return JsonUtil.toJson(vo);
+    }
+
+
+    /**
+     * 外看业务员带看房源评论
+     * @param request
+     * @return
+     * @throws Exception
+     */
+    @RequestMapping(value="/house/evaluation/add",method = RequestMethod.POST)
+    @ResponseBody
+    public String addHouseEvaluation(HttpServletRequest request, @Valid HsHouseEvaluation evaluation, BindingResult br) throws Exception {
+        ResultVo vo = null;
+        if(br.hasErrors()){//校验数据
+            FieldError fieldError = br.getFieldErrors().get(0);
+            return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR, fieldError.getDefaultMessage()));
+        }
+        ActiveUser user = (ActiveUser) SecurityUtils.getSubject().getPrincipal();
+        List<Map<Object, Object>> roleList = user.getRoleList();
+        boolean isTrue = false;
+        for (Map<Object, Object> role : roleList) {
+            if(StringUtil.trim(role.get("roleName")).equals("外看业务员") || StringUtil.trim(role.get("roleName")).equals("系统管理员")){
+                isTrue =true;
+            }
+        }
+        if(!isTrue){
+            //无操作权限
+            vo = ResultVo.error(ResultConstant.SYS_REQUIRED_UNOPERATION_ERROR,ResultConstant.SYS_REQUIRED_UNOPERATION_ERROR_VALUE);
+        }
+        try {
+            Integer userid = user.getUserid();
+            evaluation.setUserId(userid);
+            evaluation.setCreateBy(userid);//业务员ID
+            evaluation.setCreateTime(new Date());
+            evaluation.setValuatorType(0);//业务员评价
+            vo = memberAdminManager.addHouseEvaluation(evaluation);
+        } catch (Exception e) {
+            logger.error("UserController addHouseEvaluation Method Exception :——》:" + e.getMessage());
+            vo.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            vo.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 抢单列表
+     * @return
+     * @throws Exception
+     */
+    @RequestMapping(value="/grab/orders/list",method = RequestMethod.POST)
+    @ResponseBody
+    public String grabOrdersList(HttpServletRequest request) throws Exception {
+        ResultVo vo = null;
+        ActiveUser user = (ActiveUser) SecurityUtils.getSubject().getPrincipal();
+        List<Map<Object, Object>> roleList = user.getRoleList();
+        boolean isTrue = false;
+        List<Integer> orderTypes = new ArrayList<>();
+        for (Map<Object, Object> role : roleList) {
+            if(StringUtil.trim(role.get("roleName")).equals("系统管理员")){
+                isTrue =true;
+                orderTypes.add(0);
+                orderTypes.add(1);
+                orderTypes.add(2);
+                break;
+            }
+            if(StringUtil.trim(role.get("roleName")).equals("外看业务员")){
+                isTrue =true;
+                orderTypes.add(1);
+                break;
+            }
+            if(StringUtil.trim(role.get("roleName")).equals("外获业务员")){
+                isTrue =true;
+                orderTypes.add(0);
+                orderTypes.add(2);
+                break;
+            }
+
+        }
+        if(!isTrue){
+            //无操作权限
+            vo = ResultVo.error(ResultConstant.SYS_REQUIRED_UNOPERATION_ERROR,ResultConstant.SYS_REQUIRED_UNOPERATION_ERROR_VALUE);
+        }
+        try {
+            Integer userid = user.getUserid();
+            Map<Object,Object> condition = new HashMap<Object,Object>();
+            condition.put("isOpenOrder",1);//是否转单1
+            condition.put("orderTypes",orderTypes);//订单类型 0外获订单->1-外看订单->2合同订单
+            condition.put("isDel",0);//已删除
+            condition.put("userid",userid);//业务员ID
+            String pageIndex = StringUtil.trim(request.getParameter("pageIndex"),"1");//当前页
+            condition.put("pageIndex",pageIndex);//当前页
+            condition.put("pageSize", AppRquestParamsConstant.APP_PAGE_SIZE);//每页显示条数
+            vo = orderAdminManager.grabOrdersList(condition);
+        } catch (Exception e) {
+            logger.error("SalesmanController grabOrdersList Method Exception :——》:" + e.getMessage());
+            vo.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            vo.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 业务员抢单动作
+     * @return
+     * @throws Exception
+     */
+    @RequestMapping(value="/grab/order/action",method = RequestMethod.POST)
+    @ResponseBody
+    public String grabOrderAction(HttpServletRequest request) throws Exception {
+        ResultVo vo = null;
+        int poolId  = StringUtil.getAsInt(request.getParameter("poolId"),-1);
+        if(poolId == -1){
+            return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR,ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE));
+        }
+        ActiveUser user = (ActiveUser) SecurityUtils.getSubject().getPrincipal();
+        List<Map<Object, Object>> roleList = user.getRoleList();
+        boolean isTrue = false;
+        List<Integer> orderTypes = new ArrayList<>();
+        Integer salesmanType = 0;//业务员类型 0 外获业务员，1外看业务员
+        for (Map<Object, Object> role : roleList) {
+            if(StringUtil.trim(role.get("roleName")).equals("系统管理员")){
+                isTrue =true;
+                orderTypes.add(0);
+                orderTypes.add(1);
+                orderTypes.add(2);
+                break;
+            }
+            if(StringUtil.trim(role.get("roleName")).equals("外看业务员")){
+                isTrue =true;
+                orderTypes.add(1);
+                salesmanType = 1;//外看业务员
+                break;
+            }
+            if(StringUtil.trim(role.get("roleName")).equals("外获业务员")){
+                isTrue =true;
+                orderTypes.add(0);
+                orderTypes.add(2);
+                break;
+            }
+
+        }
+        if(!isTrue){
+            //无操作权限
+            vo = ResultVo.error(ResultConstant.SYS_REQUIRED_UNOPERATION_ERROR,ResultConstant.SYS_REQUIRED_UNOPERATION_ERROR_VALUE);
+        }
+        try {
+            Integer userid = user.getUserid();
+            Map<Object,Object> condition = new HashMap<Object,Object>();
+            condition.put("poolId",poolId);//订单池ID
+            condition.put("userid",userid);//业务员ID
+            condition.put("salesmanType",salesmanType);//业务员类型
+            vo = orderAdminManager.grabOrderAction(condition);
+        } catch (Exception e) {
+            logger.error("SalesmanController grabOrdersList Method Exception :——》:" + e.getMessage());
+            vo.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            vo.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return JsonUtil.toJson(vo);
+    }
+
+
+    /**
+     * 外获业务员合同单列表
+     * @param request
+     * @return
+     * @throws Exception
+     */
+    @RequiresUser
+    @RequestMapping(value="/contract/orders/list",method = RequestMethod.POST)
+    @ResponseBody
+    public String getContractOrdersList(HttpServletRequest request) throws Exception {
+        ResultVo vo = null;
+        ActiveUser user = (ActiveUser) SecurityUtils.getSubject().getPrincipal();
+        List<Map<Object, Object>> roleList = user.getRoleList();
+        boolean isTrue = false;
+        for (Map<Object, Object> role : roleList) {
+            if(StringUtil.trim(role.get("roleName")).equals("外获业务员")){
+                isTrue =true;
+                break;
+            }
+        }
+        if(isTrue){
+            //无操作权限
+            vo = ResultVo.error(ResultConstant.SYS_REQUIRED_UNOPERATION_ERROR,ResultConstant.SYS_REQUIRED_UNOPERATION_ERROR_VALUE);
+        }
+        try {
+            Map<Object,Object> condition = new HashMap<Object,Object>();
+            String pageIndex = StringUtil.trim(request.getParameter("pageIndex"),"1");//当前页
+            int languageVersion = StringUtil.getAsInt(request.getParameter("languageVersion"),0);//语言版本
+            condition.put("pageIndex",pageIndex);//当前页
+            condition.put("languageVersion",languageVersion);//当前页
+            condition.put("pageSize", AppRquestParamsConstant.APP_PAGE_SIZE);//每页显示条数
+            Integer userId = user.getUserid();
+            //condition.put("userId",userId);
+            //condition.put("taskType",2);//查询自己的合同单
+            condition.put("isDel",0);//已删除
+            condition.put("isFinished",0);//任务未完成
+            condition.put("isTransferOrder",0);//未转单
+            vo = memberAdminManager.getContractOrdersList(condition);
+        } catch (Exception e) {
+            logger.error("SalesmanController getContractOrdersList Method Exception :——》:" + e.getMessage());
+            vo.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            vo.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return JsonUtil.toJson(vo);
+    }
+
+
+    /**
+     * 外获业务员合同单记录
+     * @param request
+     * @return
+     * @throws Exception
+     */
+    @RequestMapping(value="/contract/orders/records",method = RequestMethod.POST)
+    @ResponseBody
+    public String getContractOrderRecordsList(HttpServletRequest request) throws Exception {
+        ResultVo vo = null;
+        ActiveUser user = (ActiveUser) SecurityUtils.getSubject().getPrincipal();
+        List<Map<Object, Object>> roleList = user.getRoleList();
+        boolean isTrue = false;
+        for (Map<Object, Object> role : roleList) {
+            if(StringUtil.trim(role.get("roleName")).equals("外获业务员")){
+                isTrue =true;
+                break;
+            }
+        }
+        if(isTrue){
+            //无操作权限
+            vo = ResultVo.error(ResultConstant.SYS_REQUIRED_UNOPERATION_ERROR,ResultConstant.SYS_REQUIRED_UNOPERATION_ERROR_VALUE);
+        }
+        try {
+            Map<Object,Object> condition = new HashMap<Object,Object>();
+            String pageIndex = StringUtil.trim(request.getParameter("pageIndex"),"1");//当前页
+            int languageVersion = StringUtil.getAsInt(request.getParameter("languageVersion"),0);//语言版本
+            condition.put("pageIndex",pageIndex);//当前页
+            condition.put("languageVersion",languageVersion);//当前页
+            condition.put("pageSize", AppRquestParamsConstant.APP_PAGE_SIZE);//每页显示条数
+            Integer userId = user.getUserid();
+            //condition.put("userId",userId);
+            //condition.put("taskType",2);//查询自己的合同单
+            condition.put("isDel",0);//已删除
+            condition.put("isFinished",1);//已完成
+            condition.put("isTransferOrder",0);//未转单
+            vo = memberAdminManager.getContractOrderRecordsList(condition);
+        } catch (Exception e) {
+            logger.error("SalesmanController getContractOrdersList Method Exception :——》:" + e.getMessage());
+            vo.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            vo.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 获取外看人员个人绩效
+     * @param request
+     * @param response
+     * @return
+     */
+    @RequestMapping(value = "getOutLookPersonalPerformance",method = RequestMethod.POST)
+    @ResponseBody
+    public String getOutLookPersonalPerformance(HttpServletRequest request,HttpServletResponse response){
+        ResultVo result = new ResultVo();
+        Map<Object,Object> condition = new HashMap<>();
+
+        try {
+            ActiveUser user = (ActiveUser) SecurityUtils.getSubject().getPrincipal();
+            List<Map<Object,Object>> roleList = user.getRoleList();
+
+            boolean isTrue = true;
+            for(Map<Object,Object> role : roleList){
+                if(StringUtil.trim(role.get("roleName")).equals("外看业务员")){
+                    isTrue = true;
+                }
+            }
+            if(!isTrue){
+                result = ResultVo.error(ResultConstant.SYS_REQUIRED_UNAUTHORIZED_ERROR,ResultConstant.SYS_REQUIRED_UNAUTHORIZED_ERROR_VALUE);
+                return JsonUtil.toJson(result);
+            }
+
+            condition.put("userId",user.getUserid()); //业务员ID
+            condition.put("taskType",1); //外看任务
+
+            result = memberAdminManager.getOutLookPersonalPerformance(condition);
+        } catch (Exception e) {
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+
+        return JsonUtil.toJson(result);
+    }
+
+
+    /**
+     * 业务员查询考勤
+     * @param request
+     * @param response
+     * @return
+     */
+    @RequestMapping(value = "/query/attendance",method = RequestMethod.POST)
+    @ResponseBody
+    public String getInquiryAttendance(HttpServletRequest request,HttpServletResponse response){
+        ResultVo result = new ResultVo();
+        Map<Object,Object> condition = new HashMap<>();
+
+        try {
+            ActiveUser user = (ActiveUser) SecurityUtils.getSubject().getPrincipal();
+            List<Map<Object,Object>> roleList = user.getRoleList();
+            //condition.put("userId",user.getUserid()); //业务员ID
+            //condition.put("queryMonthsAgo",1);//查询前几个月的数据,
+            condition.put("queryCurrentMonth",1);//非空即为查当月的数据
+
+            //selectCustomColumnNamesList
+            result = memberAdminManager.queryUserAttendances(condition);
+        } catch (Exception e) {
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+
+        return JsonUtil.toJson(result);
+    }
+
+
+
+    @RequestMapping(value = "getProgressInfo",method = RequestMethod.POST)
+    @ResponseBody
+    public String getProgressInfo(HttpServletRequest request,HttpServletResponse response){
+        ResultVo result = new ResultVo();
+        Map<Object,Object> map = RequestUtil.getParameterMap(request);
+        ActiveUser user = (ActiveUser) SecurityUtils.getSubject().getPrincipal();
+        List<Map<Object,Object>> roleList = user.getRoleList();
+        String houseId = StringUtil.trim(map.get("houseId")); //房源ID
+
+        boolean isTrue = false;
+        if(roleList.size() > 0){
+            for(Map<Object,Object> role : roleList){
+                if(StringUtil.trim(role.get("roleName")).equals("外看业务员") || StringUtil.trim(role.get("roleName")).equals("钥匙管理员")){
+                    isTrue = true;
+                }
+            }
+        }
+
+        if(!isTrue){
+            result = ResultVo.error(ResultConstant.SYS_REQUIRED_UNAUTHORIZED_ERROR,ResultConstant.SYS_REQUIRED_UNAUTHORIZED_ERROR_VALUE);
+            return JsonUtil.toJson(result);
+        }
+
+        if(!StringUtil.hasText(houseId)){
+            result.setResult(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR);
+            result.setMessage(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE);
+            return JsonUtil.toJson(result);
+        }
+
+        return JsonUtil.toJson(result);
+    }
+
+    /**
+     * 修改见面时间
+     * @param request
+     * @param response
+     * @return
+     */
+    @RequestMapping(value = "updateMeetTime",method = RequestMethod.POST)
+    @ResponseBody
+    public String updateMeetTime(HttpServletRequest request,HttpServletResponse response){
+        ResultVo result = new ResultVo();
+        Map<Object,Object> condition = new HashMap<>();
+
+        Map map = RequestUtil.getParameterMap(request);
+        ActiveUser user = (ActiveUser) SecurityUtils.getSubject().getPrincipal();
+        condition.putAll(map);
+        condition.put("userId",user.getUserid());
+
+
+        return null;
+    }
+
+
+    /**
+     * 获取业务员信息
+     * @param request
+     * @return
+     */
+    @RequestMapping(value = "/info",method = RequestMethod.POST)
+    @ResponseBody
+    public String getUserInfo(HttpServletRequest request){
+        ResultVo result = null;
+        //查询条件
+        Map<Object,Object> condition = Maps.newHashMap();
+        ActiveUser user = (ActiveUser) SecurityUtils.getSubject().getPrincipal();
+        condition.put("id",user.getUserid());//业务员ID
+        condition.put("locked",0);//账号是否锁( 0未锁定 , 1：锁定)
+        condition.put("isDel",0);//是否删除( 0：未删除， 1:删除)
+        //获取业务员信息
+        result = memberAdminManager.getUserInfo(condition);
+        condition = null;
+        return JsonUtil.toJson(result);
+    }
+
+
+    /**
+     * 获取房源钥匙
+     * @param request
+     * @return
+     */
+    @RequestMapping(value = "/get/house/key")
+    @ResponseBody
+    public String getHouseKey(HttpServletRequest request){
+        ResultVo result = null;
+        int houseId = StringUtil.getAsInt(request.getParameter("houseId"),-1);//房源ID
+        String houseCode = request.getParameter("houseCode");//房源编号
+        if(houseId == -1 || !StringUtil.hasText(houseCode)){//请求参数错误
+            return JsonUtil.toJson(ResultVo.error(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR,ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE));
+        }
+
+        //查询条件
+        Map<Object,Object> condition = Maps.newHashMap();
+        ActiveUser user = (ActiveUser) SecurityUtils.getSubject().getPrincipal();
+
+        HsHouseKeyCases keyCases = new HsHouseKeyCases();
+        keyCases.setHouseId(houseId);
+        keyCases.setHouseCode(houseCode);
+        keyCases.setUserId(user.getUserid());//业务员ID
+        keyCases.setCreateTime(new Date());
+        keyCases.setCreateBy(user.getUserid());
+        condition.put("key",keyCases);
+
+        //业务员获取房源钥匙
+        result = memberAdminManager.getHouseKey(condition);
+        condition = null;
+        return JsonUtil.toJson(result);
+    }
+
+
+
+}

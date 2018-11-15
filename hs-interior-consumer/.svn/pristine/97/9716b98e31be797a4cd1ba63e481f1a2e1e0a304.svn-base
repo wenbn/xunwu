@@ -1,0 +1,80 @@
+package www.ucforward.com.manager;
+
+import org.springframework.stereotype.Service;
+import www.ucforward.com.entity.HsHouseLog;
+import www.ucforward.com.entity.HsOwnerHousingApplication;
+import www.ucforward.com.index.entity.HouseSearchCondition;
+import www.ucforward.com.vo.ResultVo;
+
+import java.util.Map;
+
+
+/**
+ * 房源相关管理
+ * @author wenbn
+ * @version 1.0
+ * @date 2018/6/20
+ */
+@Service
+public interface HousesAdminManager {
+
+  /**
+   * 获取房源申请列表
+   * @param condition
+   * @return
+   */
+  ResultVo selectHousingApplys(Map<Object, Object> condition);
+
+  /**
+   * 获取房源详情
+   * @param condition
+   * @return
+   */
+  ResultVo getHousingApplyDetail(Map<Object, Object> condition);
+
+  /**
+   * 创建房源索引
+   * @param condition
+   * @return
+   */
+  ResultVo createHouseIndex(Map<Object, Object> condition);
+
+  ResultVo findHouseIndex(HouseSearchCondition condition);
+
+  /**
+   * 处理下架
+   * @param houseLog
+   * @return
+   */
+  ResultVo toHandleWithdraw(HsHouseLog houseLog);
+
+  /**
+   * 获取业主预约获取房源申请
+   * @param condition
+   * @return
+   */
+  ResultVo getOwnerHousingApplication(Map<Object,Object> condition);
+
+  /**
+   * 获取业主预约获取房源申请详情
+   * @param id
+   * @return
+   */
+  ResultVo getOwnerHousingApplicationById(Integer id);
+
+  //获取房源详情
+  ResultVo getHouseDetail(Integer id);
+
+  /**
+   * 查询房源数据字典数据
+   * @return
+   */
+  ResultVo getHouseDictcode();
+
+  /**
+   * 检查业务员是否在房源附近500m
+   * @param condition
+   * @return
+   */
+  ResultVo checkUserPosition(Map<Object, Object> condition);
+}

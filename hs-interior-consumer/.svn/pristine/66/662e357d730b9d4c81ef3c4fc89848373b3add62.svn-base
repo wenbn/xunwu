@@ -1,0 +1,154 @@
+package www.ucforward.com.manager.impl;
+
+import com.google.common.collect.Maps;
+import org.springframework.stereotype.Service;
+import org.utils.StringUtil;
+import www.ucforward.com.constants.ResultConstant;
+import www.ucforward.com.entity.HsMainHouse;
+import www.ucforward.com.entity.HsSystemOrderPool;
+import www.ucforward.com.entity.HsSystemUserOrderTasks;
+import www.ucforward.com.manager.OrderAdminManager;
+import www.ucforward.com.serviceInter.HousesService;
+import www.ucforward.com.serviceInter.MemberService;
+import www.ucforward.com.serviceInter.OrderService;
+import www.ucforward.com.vo.ResultVo;
+
+import javax.annotation.Resource;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 系统及订单相关管理
+ * @author wenbn
+ * @version 1.0
+ * @date 2018/7/26
+ */
+@Service("orderAdminManager")
+public class OrderAdminManagerImpl implements OrderAdminManager {
+
+    @Resource
+    private OrderService orderService;
+    @Resource
+    private MemberService memberService;
+    @Resource
+    private HousesService housesService;
+
+
+
+    //业务员抢单
+    @Override
+    public ResultVo grabOrdersList(Map<Object, Object> condition) {
+        ResultVo vo = null;
+        //自定义查询列名
+        List<String> queryColumn = new ArrayList<>();
+        //查询条件
+        Map<Object, Object> queryFilter= Maps.newHashMap();
+        try {
+            queryColumn.clear();
+            queryColumn.add("ID poolId");
+            queryColumn.add("ORDER_CODE orderCode");//订单编码
+            queryColumn.add("ORDER_TYPE orderType");//订单类型 0外获订单->1-外看订单->2合同订单
+            queryColumn.add("HOUSE_ID houseId");//订单类型 0外获订单->1-外看订单->2合同订单
+            queryColumn.add("ESTIMATED_TIME estimatedTime");//预计完成时间
+            queryColumn.add("APPOINTMENT_MEET_PLACE appointmentMeetPlace");//见面地点
+            queryColumn.add("CONTACT_NAME contactName");//联系人
+            queryColumn.add("CLOSE_TIME closeTime");//预计完成时间
+            queryColumn.add("VERSION_NO versionNo");//当前版本号
+            condition.put("queryColumn",queryColumn);
+            //查询订单池可抢的订单信息
+            vo = orderService.selectCustomColumnNamesList(HsSystemOrderPool.class,condition);
+            if(vo.getResult() != ResultConstant.SYS_REQUIRED_SUCCESS){//查询成功
+                return ResultVo.error(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR,ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+            }
+            //订单数据
+            List<Map<Object,Object>> orderList = (List<Map<Object,Object>>) vo.getDataSet();
+            List<Integer> houseIds = new ArrayList<>();//房源Ids
+            List<Integer> poolIds = new ArrayList<>();//订单池Ids
+            if(orderList==null || orderList.size()==0){
+                return vo;
+            }else{
+                Date date = new Date();
+                for (Map<Object, Object> order : orderList) {
+                    Date estimatedTime = (Date) order.get("estimatedTime");
+                    long time1 = estimatedTime.getTime() - date.getTime();
+                    order.put("estimatedTimeCountDown",time1/1000);
+                    Date closeTime = (Date) order.get("closeTime");
+                    long time2 = closeTime.getTime() - date.getTime();
+                    order.put("closeTimeCountDown",time2/1000);
+                    houseIds.add(StringUtil.getAsInt(StringUtil.trim(order.get("houseId"))));
+                    poolIds.add(StringUtil.getAsInt(StringUtil.trim(order.get("poolId"))));
+                }
+            }
+            //查询当前业务员的
+            queryColumn.clear();
+            queryColumn.add("ID taskId");
+            queryColumn.add("POOL_ID poolId");
+            queryColumn.add("HOUSE_ID houseId");
+            queryColumn.add("TASK_TYPE taskType");
+            queryColumn.add("IS_FINISHED isFinished");
+            queryColumn.add("IS_TRANSFER_ORDER isTransferOrder");
+            queryFilter.put("queryColumn",queryColumn);
+            queryFilter.put("isTransferOrder",1);//已经转过单
+            queryFilter.put("poolIds",poolIds);//订单池ID
+            //queryFilter.put("userId",1);//已经转过单
+            //查询业务员任务列表信息
+            ResultVo taskVo =  memberService.selectCustomColumnNamesList(HsSystemUserOrderTasks.class,queryFilter);
+            if(taskVo.getResult() != ResultConstant.SYS_REQUIRED_SUCCESS) {
+                return ResultVo.error(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR,ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+            }
+            //任务数据
+            List<Map<Object, Object>> taskList = (List<Map<Object, Object>>) taskVo.getDataSet();
+
+            condition.clear();
+            queryColumn.clear();
+            queryColumn.add("ID houseId");
+            queryColumn.add("LEASE_TYPE leaseType");//预约类型（0：出租，1：出售）
+            queryColumn.add("CONTACTS contacts");//业主联系人
+            queryColumn.add("PHONE_NUMBER phoneNumber");//业主手机号
+            queryColumn.add("RENT_CUSTOMER_NAME rentCustomerName");//租客姓名
+            queryColumn.add("RENT_CUSTOMER_PHONE rentCustomerPhone");//租客电话
+            condition.put("queryColumn",queryColumn);
+            condition.put("houseIds",houseIds);
+            //查询房源信息
+            ResultVo housesVo = housesService.selectCustomColumnNamesList(HsMainHouse.class, condition);
+
+            if(ResultConstant.SYS_REQUIRED_SUCCESS != housesVo.getResult()) {//房源数据异常
+                return ResultVo.error(ResultConstant.HOUSES_DATA_EXCEPTION,ResultConstant.HOUSES_DATA_EXCEPTION_VALUE);
+            }
+            //房源信息
+            List<Map<Object,Object>> houses = (List<Map<Object, Object>>) housesVo.getDataSet();
+
+            //将系统订单池与业务员任务表进行关联
+            for (Map<Object,Object> order : orderList) {
+                int poolId = StringUtil.getAsInt(StringUtil.trim(order.get("poolId")));
+                int canRob = 0 ;
+                for (Map<Object, Object> task : taskList) {//判断业务员是否可抢
+                    int _poolId = StringUtil.getAsInt(StringUtil.trim(task.get("poolId")));
+                    if(poolId == _poolId){
+                        canRob = 1;
+                        break;
+                    }
+                }
+                int houseId  = StringUtil.getAsInt(StringUtil.trim(order.get("houseId")));
+                for (Map<Object, Object> house : houses) {
+                    int _houseId = StringUtil.getAsInt(StringUtil.trim(house.get("houseId")));
+                    if (_houseId == houseId){
+                        house.remove("houseId");
+                        order.putAll(house);
+                        break;
+                    }
+                }
+                order.put("canRob",canRob);//是否可抢
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            vo = ResultVo.error(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR,ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return vo;
+    }
+
+
+
+}

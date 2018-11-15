@@ -1,0 +1,541 @@
+package www.ucforward.com.manager.impl;
+
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.serializer.SerializerFeature;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.utils.StringUtil;
+import www.ucforward.com.constants.Constant;
+import www.ucforward.com.constants.RedisConstant;
+import www.ucforward.com.constants.ResultConstant;
+import www.ucforward.com.entity.*;
+import www.ucforward.com.index.entity.HouseSearchCondition;
+import www.ucforward.com.manager.HousesAdminManager;
+import www.ucforward.com.serviceInter.*;
+import www.ucforward.com.utils.*;
+import www.ucforward.com.vo.ResultVo;
+
+import javax.annotation.Resource;
+import java.util.*;
+
+@Service("housesAdminManager")
+public class HousesAdminManagerImpl implements HousesAdminManager {
+
+    private static final Logger logger = LoggerFactory.getLogger(HousesAdminManagerImpl.class);
+
+    @Resource
+    private HousesService housesService;//房源相关
+    @Resource
+    private OrderService orderService;//订单相关
+    @Resource
+    private SearchService searchService;
+    //人员相关
+    @Resource
+    private MemberService memberService;
+    @Resource
+    private CommonService commonService;
+
+    /**
+     * 查询房源申请列表
+     * @param condition
+     * @return
+     */
+    @Override
+    public ResultVo selectHousingApplys(Map<Object, Object> condition) {
+        ResultVo result = new ResultVo();
+        try {
+            //获取房源列表;
+            ResultVo resultVo = housesService.selectList(new HsOwnerHousingApplication(), condition, 1);
+            if(resultVo.getResult()==ResultConstant.SYS_REQUIRED_SUCCESS ){
+                List<HsOwnerHousingApplication> hsOwnerHousingApplications = (List<HsOwnerHousingApplication>) resultVo.getDataSet();
+                Map<Object, Object> cacheDictCodes = SystemCacheUtil.getCacheDictCodes();
+                condition.clear();
+                condition.put("data",hsOwnerHousingApplications);
+                condition.put("dictCodes",cacheDictCodes);
+                resultVo.setDataSet(condition);
+            }
+            return resultVo;
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.setResult(ResultConstant.HOUSES_DATA_EXCEPTION);
+            result.setMessage("addOwnerHousingApply Exception message:" + e.getMessage());
+        }
+        return result;
+    }
+
+    /**
+     * 获取房源详情
+     * @param condition
+     * @return
+     */
+    @Override
+    public ResultVo getHousingApplyDetail(Map<Object, Object> condition) {
+        ResultVo result = null;
+        try {
+            //获取房源列表;
+            int id  = StringUtil.getAsInt(StringUtil.trim(condition.get("id")));
+            result = housesService.select(id ,new HsOwnerHousingApplication());
+            if(result.getResult()==ResultConstant.SYS_REQUIRED_SUCCESS ){
+                HsOwnerHousingApplication ownerHouse = (HsOwnerHousingApplication) result.getDataSet();
+                Map<Object, Object> cacheDictCodes = SystemCacheUtil.getCacheDictCodes();
+                condition.clear();
+                condition.put("data",ownerHouse);
+                condition.put("dictCodes",cacheDictCodes);
+                result.setDataSet(condition);
+            }
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+            return ResultVo.error(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR,ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return result;
+    }
+
+    /**
+     * 创建房源索引
+     * @param condition
+     * @return
+     */
+    @Override
+    public ResultVo createHouseIndex(Map<Object, Object> condition) {
+        ResultVo vo = null;
+        try {
+            int id = StringUtil.getAsInt(StringUtil.trim(condition.get("id")));
+            //vo = housesService.selectList(new HsMainHouse(),condition,1);
+            vo = searchService.index(id);
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+            return ResultVo.error(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR,ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return vo;
+    }
+
+    @Override
+    public ResultVo findHouseIndex(HouseSearchCondition condition) {
+        ResultVo vo = null;
+        try {
+            vo = searchService.query(condition);
+            if(vo.getResult()==ResultConstant.SYS_REQUIRED_SUCCESS ){
+                List<Integer> houseIds = (List<Integer>) vo.getDataSet();
+                if(houseIds!=null && houseIds.size()>0){//
+                    Map<Object, Object> queryFilter = new HashMap<>();
+                    queryFilter.put("houseIds",houseIds);
+                    vo = housesService.selectList(new HsMainHouse(), queryFilter, 1);
+//                    if(vo.getResult()==ResultConstant.SYS_REQUIRED_SUCCESS ){
+//                        List<HsMainHouse> houses = (List<HsMainHouse>) vo.getDataSet();
+//
+//                    }
+                }
+                System.out.println("查询到的房源数据："+houseIds.size());
+            }
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+            return ResultVo.error(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR,ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return vo;
+    }
+
+    /**
+     * 处理下架
+     * @param houseLog
+     * @return
+     */
+    @Override
+    public ResultVo toHandleWithdraw(HsHouseLog houseLog) {
+        ResultVo result = new ResultVo();
+        try {
+            int createBy = houseLog.getCreateBy() == null ? 0 :houseLog.getCreateBy();
+            Date date = new Date();
+            houseLog.setNodeType(3); //下架
+            houseLog.setUpdateBy(createBy); //更新人为提交申请的人（当前登录用户）
+            houseLog.setBid(0);
+            houseLog.setOperatorUid(createBy);
+            houseLog.setOperatorType(1); //1：普通会员，2：商家，3：系统管理员
+            houseLog.setCreateTime(date);
+            houseLog.setUpdateTime(date);
+            houseLog.setPostTime(date);
+            //修改房源主信息表中的状态
+            HsMainHouse mainHouse = new HsMainHouse();
+            mainHouse.setId(houseLog.getHouseId());
+            mainHouse.setHouseStatus(Constant.HOUSE_WITHDRAW_STATUS); //下架状态
+            result = housesService.updateRecord(mainHouse);
+            if(result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                result = housesService.insert(houseLog);
+            }
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+            return ResultVo.error(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR,ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return result;
+    }
+
+    @Override
+    public ResultVo getOwnerHousingApplication(Map<Object, Object> condition) {
+        ResultVo result = new ResultVo();
+        List<Map<Object,Object>> dataSet = new ArrayList<>();
+        try {
+            //1.获取申请信息
+            result = housesService.selectList(new HsOwnerHousingApplication(),condition,0);
+
+            if(result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                //2.根据房源申请信息获取，房源所属人员memberIds
+                List<Integer> memberIds = new ArrayList<>();
+                List<Map<Object,Object>> list = (List<Map<Object,Object>>)result.getDataSet();
+                list.forEach(map->{
+                    int memberId = Integer.parseInt(StringUtil.trim(map.get("memberId")));
+                    memberIds.add(memberId);
+                });
+                //3.根据获取到的memberIds获取人员手机号map
+                //人员手机号map key 人员id value 人员手机号
+                Map<Integer,String> mobileMap = new HashMap<>(10);
+                condition.clear();
+                //自定义查询列名
+                List<String> queryColumn = new ArrayList<>();
+                //主键ID
+                queryColumn.add("ID id");
+                //手机号
+                queryColumn.add("MEMBER_MOBLE memberMoble");
+                condition.put("queryColumn",queryColumn);
+                condition.put("memberIds",memberIds);
+                ResultVo memberResultVo = memberService.selectList(new HsMember(), condition, 0);
+                if(result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                    List<HsMember> memberList = (List<HsMember>) memberResultVo.getDataSet();
+                    memberList.forEach(hsMember->{
+                        Integer id = Integer.parseInt(StringUtil.trim(hsMember.getId()));
+                        String memberMoble = StringUtil.trim(hsMember.getMemberMoble());
+                        mobileMap.put(id,memberMoble);
+                    });
+                }
+                //4.根据上面获取到的人员手机号map,对房源申请信息结果集进行重新封装，将人员手机号封装进去
+                list.forEach(map->{
+                    String memberIdStr = StringUtil.trim(map.get("memberId"));
+                    //未查询到人员信息默认手机号为空串
+                    String memberMobile = "";
+                    if(StringUtil.hasText(memberIdStr)){
+                        Integer memberId = Integer.parseInt(memberIdStr);
+                        memberMobile = StringUtil.trim(mobileMap.get(memberId));
+                    }
+                    map.put("memberMobile",memberMobile);
+                    dataSet.add(map);
+                });
+            }
+            result.setDataSet(dataSet);
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+            return ResultVo.error(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR,ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return result;
+    }
+
+    @Override
+    public ResultVo getOwnerHousingApplicationById(Integer id) {
+        ResultVo result = null;
+        try {
+            //1.获取申请信息
+            result = housesService.select(id,new HsOwnerHousingApplication());
+            if(result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                //2.根据房源申请信息获取，房源所属人员memberId
+                HsOwnerHousingApplication hsOwnerHousingApplication = (HsOwnerHousingApplication) result.getDataSet();
+                //3.根据获取到的memberId获取人员手机号map
+                Integer memberId = hsOwnerHousingApplication.getMemberId();
+                //4.根据上面获取到的人员手机号map,对房源申请信息结果集进行重新封装，将人员手机号封装进去
+                HsMember member = null;
+                ResultVo memberResultVo = memberService.select(memberId, new HsMember());
+                if(memberResultVo.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                    member = (HsMember) memberResultVo.getDataSet();
+                }
+                String memberMobile = "";
+                if(member != null){
+                    Integer mId = member.getId();
+                    String memberMoble = member.getMemberMoble();
+                    if(memberId.equals(mId)){
+                        memberMobile = memberMoble;
+                        //将房源申请信息hsOwnerHousingApplication转换为map，然后将人员手机号加入进map,再将返回结果集替换为增加了人员手机号的map
+                        JSONObject jsonObject = JSON.parseObject(JSONObject.toJSONString(hsOwnerHousingApplication, SerializerFeature.WriteMapNullValue));
+                        Map map = JSON.toJavaObject(jsonObject, Map.class);
+                        map.put("memberMobile",memberMobile);
+                        result.setDataSet(map);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+            return ResultVo.error(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR,ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return result;
+    }
+
+    /**
+     * 获取房源详情
+     * @param houseId
+     * @return
+     */
+    @Override
+    public ResultVo getHouseDetail(Integer houseId) {
+        ResultVo vo = null;
+        Map<Object, Object> result = Maps.newHashMap();//返回结果
+        Map<Object, Object> condition= Maps.newHashMap(); //查询条件
+        try {
+            //查询房源信息
+//            condition.put("id",houseId);
+//            ResultVo housesVo = housesService.selectList(new HsMainHouse(), condition ,0);
+//            if(ResultConstant.SYS_REQUIRED_SUCCESS == housesVo.getResult()) {//查询成功
+//                List<Map<Object,Object>> houses = (List<Map<Object, Object>>) housesVo.getDataSet();
+//                if(houses==null || houses.size() == 0){
+//                    return ResultVo.error(ResultConstant.HOUSES_DATA_EXCEPTION,ResultConstant.HOUSES_DATA_EXCEPTION_VALUE);
+//                }
+//                result.put("houseInfo",houses.get(0));
+//            }
+            //查询房源信息
+            ResultVo housesVo = housesService.select(houseId,new HsMainHouse());
+            if(ResultConstant.SYS_REQUIRED_SUCCESS == housesVo.getResult()) {//查询成功
+                HsMainHouse houses = (HsMainHouse) housesVo.getDataSet();
+                //房源Ids
+                List<Integer> houseIds = new ArrayList<>();
+                houseIds.add(houseId);
+                condition.put("houseIds",houseIds);
+                //查询房源图片
+                ResultVo houseImgVo = housesService.selectList(new HsHouseImg(), condition ,0);
+                List<Map<Object,Object>> houseImgList = (List<Map<Object, Object>>) houseImgVo.getDataSet();
+                //保存房源图片
+                List<String> housImgs = new ArrayList<>();
+                Map<Object,Object> houseMap = MapClassUtil.beanToMap(houses);
+                if(houseImgList==null ||houseImgList.size()==0){
+                    houseMap.put("subImg",housImgs);
+                }
+                for (Map<Object, Object> houseImg : houseImgList) {//保存房源图片
+                    int _houseId = StringUtil.getAsInt(StringUtil.trim(houseImg.get("houseId")));
+                    for (Map.Entry<Object, Object> entry : houseImg.entrySet()) {
+                        Object key = entry.getKey();
+                        if(-1 != StringUtil.trim(key).indexOf("houseImg") && StringUtil.hasText(StringUtil.trim(entry.getValue()))){
+                            housImgs.add(ImageUtil.IMG_URL_PREFIX+entry.getValue());
+                        }
+                    }
+                    if(houseId == _houseId){
+                        houseMap.put("subImg",housImgs);
+                        break;
+                    }
+                }
+                result.put("houseInfo",houseMap);
+            }
+            //查询房源评价信息
+            condition.clear();
+            condition.put("houseId",houseId);
+            condition.put("isCheck",1);//审核状态：0>待审核，1>审核通过，2>审核不通过
+            //自定义查询列名
+            List<String> queryColumn = new ArrayList<>();
+            queryColumn.add("ID evaluationId");//主键ID
+            queryColumn.add("VALUATOR_TYPE valuatorType");//评价人类型
+            queryColumn.add("EVALUATION_TYPE evaluationType");//评价类型
+            queryColumn.add("EVALUATION_EXPLAIN evaluationExplain");//评价说明
+            queryColumn.add("USER_ID userId");//业务员ID
+            queryColumn.add("MEMBER_ID memberId");//看房人ID
+            queryColumn.add("CREATE_TIME createTime");//看房人ID
+            queryColumn.add("HOUSE_ID houseId");//房源ID
+
+            condition.put("queryColumn",queryColumn);
+            ResultVo housesEvaluationVo = housesService.selectCustomColumnNamesList(HsHouseEvaluation.class, condition);
+            if(ResultConstant.SYS_REQUIRED_SUCCESS == housesEvaluationVo.getResult()) {//查询成功
+                List<Map<Object,Object>> evaluations = (List<Map<Object, Object>>) housesEvaluationVo.getDataSet();
+                List<Integer> memberIds = Lists.newArrayList();
+                List<Integer> userIds = Lists.newArrayList();
+                evaluations.forEach((evaluation)->{
+                    int memberId = StringUtil.getAsInt(StringUtil.trim(evaluation.get("memberId")));
+                    int _userId = StringUtil.getAsInt(StringUtil.trim(evaluation.get("userId")));
+                    if(memberId != -1){
+                        memberIds.add(memberId);
+                    }
+                    if(_userId != -1){
+                        userIds.add(_userId);
+                    }
+                });
+
+                //获取评价人名称
+                if(memberIds!=null && memberIds.size()>0){
+                    condition.clear();
+                    queryColumn.clear();
+                    queryColumn.add("ID memberid");//主键ID
+                    queryColumn.add("NICKNAME nickname");//会员昵称
+                    condition.put("queryColumn",queryColumn);
+                    condition.put("memberIds",memberIds);
+                    ResultVo memberVo = memberService.selectCustomColumnNamesList(HsMember.class, condition);
+                    if(memberVo.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                        List<Map<Object,Object>> memberList = (List<Map<Object, Object>>) memberVo.getDataSet();
+                        for (Map<Object, Object> evaluation : evaluations) {
+                            int memberId = StringUtil.getAsInt(StringUtil.trim(evaluation.get("memberId")));
+                            for (Map<Object, Object> member : memberList) {
+                                int _memberId = StringUtil.getAsInt(StringUtil.trim(member.get("memberId")));
+                                if(memberId == _memberId){
+                                    evaluation.put("name",member.get("nickname"));
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                if(userIds!=null && userIds.size()>0){
+                    condition.clear();
+                    queryColumn.clear();
+                    queryColumn.add("ID userId");//主键ID
+                    queryColumn.add("USERNAME username");//会员昵称
+                    condition.put("queryColumn",queryColumn);
+                    condition.put("memberIds",memberIds);
+                    ResultVo memberVo = memberService.selectCustomColumnNamesList(HsSysUser.class, condition);
+                    if(memberVo.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                        List<Map<Object,Object>> userList = (List<Map<Object, Object>>) memberVo.getDataSet();
+                        for (Map<Object, Object> evaluation : evaluations) {
+                            int userId1 = StringUtil.getAsInt(StringUtil.trim(evaluation.get("userId")));
+                            for (Map<Object, Object> user : userList) {
+                                int _userId = StringUtil.getAsInt(StringUtil.trim(user.get("userId")));
+                                if(userId1 == _userId){
+                                    evaluation.put("name",user.get("username"));
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                result.put("housesEvaluation",evaluations);
+            }
+            vo = ResultVo.success();
+            vo.setDataSet(result);
+        } catch (Exception e) {
+            logger.error("Error to encode OrderAdminManagerImpl getHouseDetail", e);
+            vo = ResultVo.error(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR,ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return vo;
+    }
+
+    /**
+     * 查询房源数据字典数据
+     * @return
+     */
+    @Override
+    public ResultVo getHouseDictcode() {
+        ResultVo result = new ResultVo();
+        Map<Object, Object> data = new HashMap<Object, Object>();
+        Map<Object, Object> queryFilter = new HashMap<Object, Object>();
+        List<String> dictCode = new ArrayList<String>();
+        List<String> groupIds = new ArrayList<>();
+        try {
+            //查询在缓存中是否存在
+            if (RedisUtil.isExistCache(RedisConstant.SYS_DICTCODE_CACHE_KEY)) {
+                dictCode = JsonUtil.json2List(RedisUtil.safeGet(RedisConstant.SYS_DICTCODE_CACHE_KEY), String.class);
+                if (dictCode.size() > 0) {
+                    Map<Object, Object> dictCodeMap = new HashMap<Object, Object>();
+                    for (String dictcodeCache : dictCode) {
+                        dictCodeMap = JsonUtil.parseJSON2Map(RedisUtil.safeGet(dictcodeCache));
+                        data.put(dictcodeCache, dictCodeMap);
+                    }
+                }
+            } else {
+                //从数据库中查询房源数据字典的数据
+                ResultVo vo = commonService.selectList(new HsSysDictcodeGroup(), queryFilter, 1);
+                if (vo.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS) {
+                    List<HsSysDictcodeGroup> groupList = (List<HsSysDictcodeGroup>) vo.getDataSet();
+                    if (groupList.size() > 0) {
+                        for (HsSysDictcodeGroup obj : groupList) {
+                            groupIds.add(obj.getId() + "");
+                            queryFilter.put("groupId", obj.getId());
+                            ResultVo itemVo = commonService.selectList(new HsSysDictcodeItem(), queryFilter, 0);
+                            List<Map<Object, Object>> mapList = (List<Map<Object, Object>>) itemVo.getDataSet();
+
+                            Map<Object, Object> groupMap = new HashMap<>();
+                            groupMap.put("groupName", obj.getGroupName());
+                            groupMap.put("groupNameEn", obj.getGroupNameEn());
+                            groupMap.put("id", obj.getId());
+                            for (Map<Object, Object> map : mapList) {
+                                map.remove("createTime");
+                                map.remove("updateTime");
+                                map.remove("isDel");
+                            }
+                            groupMap.put("items", mapList);
+                            data.put(obj.getGroupCode(), groupMap);
+                            if (!RedisUtil.existKey(obj.getGroupCode())) {
+
+                            }
+                        }
+                    }
+                }
+            }
+            result.setDataSet(data);
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+            result.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            result.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+
+        return result;
+    }
+
+    /**
+     * 检查业务员是否在房源附近500m
+     * @param condition
+     * @return
+     */
+    @Override
+    public ResultVo checkUserPosition(Map<Object, Object> condition) {
+        ResultVo result = new ResultVo();
+        try {
+            int houseId = StringUtil.getAsInt(StringUtil.trim(condition.get("houseId")));
+            Double lon2 = StringUtil.getDouble(StringUtil.trim(condition.get("lon")));//业务员位置
+            Double lat2 = StringUtil.getDouble(StringUtil.trim(condition.get("lat")));
+            ResultVo housesVo = housesService.select(houseId,new HsMainHouse());
+            if (housesVo.getResult() != ResultConstant.SYS_REQUIRED_SUCCESS) {
+                return housesVo;
+            }
+            HsMainHouse mainHouse = (HsMainHouse) housesVo.getDataSet();
+            if(mainHouse == null){
+                return ResultVo.error(ResultConstant.HOUSES_DATA_EXCEPTION,ResultConstant.HOUSES_DATA_EXCEPTION_VALUE);
+            }
+            double lon1 = StringUtil.getDouble(mainHouse.getLongitude());
+            double lat1 = StringUtil.getDouble(mainHouse.getLatitude());
+            double dist = MapUtil.GetDistance(lon1, lat1, lon2, lat2);
+            if(dist>100){
+                return ResultVo.error(ResultConstant.NOT_ARRIVE_HOUSE_POSITION_ERROR,ResultConstant.NOT_ARRIVE_HOUSE_POSITION_ERROR_VALUE);
+            }
+
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+            result.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            result.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return result;
+    }
+
+    @Override
+    public ResultVo addHousingRelationInfo(Object object) {
+        ResultVo result = null;
+        try {
+            if (object instanceof HsHouseComplain) {
+                //先查询房源是否存在
+                ResultVo houseVo = housesService.select(((HsHouseComplain) object).getHouseId(), new HsMainHouse());
+                HsMainHouse oldHouse = null;
+                if (houseVo.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS) {
+                    oldHouse = (HsMainHouse) houseVo.getDataSet();//从数据库查询的房源数据
+                }
+                if (oldHouse == null) {//房源数据异常
+                    return ResultVo.error(ResultConstant.HOUSES_DATA_EXCEPTION, ResultConstant.HOUSES_DATA_EXCEPTION_VALUE);
+                }
+                result = housesService.insert(object);
+                if (result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS) {
+                    ((HsHouseComplain) object).setCreateTime(new Date());
+                    HsMainHouse mainHouse = new HsMainHouse();
+                    mainHouse.setId(((HsHouseComplain) object).getHouseId());
+                    mainHouse.setBeReportedCount(1);
+                    mainHouse.setVersionNo(oldHouse.getVersionNo());
+                    result = housesService.updateRecord(mainHouse);
+                }
+
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            result.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return result;
+    }
+}

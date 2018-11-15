@@ -1,0 +1,2402 @@
+package www.ucforward.com.manager.impl;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import net.sf.json.JSONArray;
+import org.apache.shiro.authc.SimpleAuthenticationInfo;
+import org.apache.shiro.crypto.hash.SimpleHash;
+import org.apache.shiro.util.ByteSource;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.utils.StringUtil;
+import www.ucforward.com.constants.RedisConstant;
+import www.ucforward.com.constants.ResultConstant;
+import www.ucforward.com.entity.*;
+import www.ucforward.com.manager.MemberAdminManager;
+import www.ucforward.com.serviceInter.HousesService;
+import www.ucforward.com.serviceInter.MemberService;
+import www.ucforward.com.serviceInter.OrderService;
+import www.ucforward.com.utils.*;
+import www.ucforward.com.vo.ResultVo;
+
+import javax.annotation.Resource;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.*;
+
+import static jdk.nashorn.internal.objects.NativeString.trim;
+
+/**
+ * @author wenbn
+ * @version 1.0
+ * @date 2018/6/20
+ */
+@Service("memberAdminManager")
+public class MemberAdminManagerImpl implements MemberAdminManager {
+
+    @Autowired
+    private MemberService memberService;
+    @Resource
+    private HousesService housesService;
+    @Resource
+    private OrderService orderService;
+
+
+    /**
+     * 业务发送定位信息
+     * @param userLocation
+     * @return
+     */
+    @Override
+    public ResultVo sendLocation(HsSysUserLocation userLocation) {
+        ResultVo vo = new ResultVo();
+        try {
+            //业务发送定位信息
+            return memberService.insert(userLocation);
+        } catch (Exception e) {
+            e.printStackTrace();
+            vo.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            vo.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return vo;
+    }
+
+    /**
+     * 外看业务员已带看房列表
+     * @param condition
+     * @return
+     */
+    @Override
+    public ResultVo selectLookForHouseFinished(Map<Object, Object> condition) {
+        ResultVo vo = new ResultVo();
+        try {
+            //查询带看房列表
+            vo = memberService.selectList(new HsSystemUserOrderTasks(),condition,1);
+            if(ResultConstant.SYS_REQUIRED_SUCCESS == vo.getResult()){//查询成功
+               List<HsSystemUserOrderTasks> orderTasks = (List<HsSystemUserOrderTasks>) vo.getDataSet();
+               if(orderTasks== null){
+                    return vo;
+               }
+               //返回数据
+               List<Map<Object,Object>> resultList= new ArrayList<>(orderTasks.size());
+               if( orderTasks!=null && orderTasks.size()>0 ){
+                   //房源Ids
+                   List<Integer> houseIds = new ArrayList<>();
+                   for (HsSystemUserOrderTasks orderTask : orderTasks) {
+                       houseIds.add(orderTask.getHouseId());
+                   }
+                   if( houseIds!=null && houseIds.size()>0 ){
+                       condition.clear();
+                       condition.put("houseIds",houseIds);
+                       //自定义查询列名
+                       List<String> queryColumn = new ArrayList<>();
+                       queryColumn.add("ID houseId");//主键ID
+                       queryColumn.add("HOUSE_NAME houseName");//房源ID
+                       queryColumn.add("HOUSE_MAIN_IMG houseMainImg");//房源主图
+                       queryColumn.add("HOUSE_RENT houseRent");//租金/或出售价
+                       queryColumn.add("LEASE_TYPE leaseType");//房屋类型 0:出租，1：出售
+                       queryColumn.add("CITY city");//城市
+                       queryColumn.add("COMMUNITY community");//社区
+                       queryColumn.add("SUB_COMMUNITY subCommunity");//子社区
+                       queryColumn.add("ADDRESS address");//所在位置
+
+                       condition.put("queryColumn",queryColumn);
+                       ResultVo housesVo = housesService.selectCustomColumnNamesList(HsMainHouse.class, condition);
+                       if(ResultConstant.SYS_REQUIRED_SUCCESS == housesVo.getResult()) {//查询成功
+                          List<Map<Object,Object>> houses = (List<Map<Object, Object>>) housesVo.getDataSet();
+                          if(houses == null){//房源数据异常
+                              vo.setResult(ResultConstant.HOUSES_DATA_EXCEPTION);
+                              vo.setMessage(ResultConstant.HOUSES_DATA_EXCEPTION_VALUE);
+                          }
+                           for (Map<Object, Object> house : houses) {
+                               int houseId = StringUtil.getAsInt(StringUtil.trim(house.get("houseId")));
+                               for (HsSystemUserOrderTasks orderTask : orderTasks) {
+                                   if (orderTask.getHouseId() == houseId){
+                                       house.put("taskId",orderTask.getId());
+                                       orderTasks.remove(orderTask);
+                                       break;
+                                   }
+                               }
+                           }
+                           vo.setDataSet(houses);
+                       }
+                   }
+               }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            vo.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            vo.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return vo;
+    }
+
+    /**
+     * 外看业务员已带看房详情
+     * @param condition
+     * @return
+     */
+    @Override
+    public ResultVo selectLookForHouseFinishedDetail(Map<Object, Object> condition) {
+        ResultVo vo = new ResultVo();
+        //返回结果
+        Map<Object,Object> map = new HashMap<>();
+        try {
+            //查询带看房详情
+            int taskId = (int) condition.get("taskId");
+            int userId = (int) condition.get("userId");
+            vo = memberService.select(taskId,new HsSystemUserOrderTasks());
+            if(ResultConstant.SYS_REQUIRED_SUCCESS == vo.getResult()){//查询成功
+                HsSystemUserOrderTasks orderTasks = (HsSystemUserOrderTasks) vo.getDataSet();
+                vo.setDataSet(null);
+                //返回数据
+                Map<Object,Object> resultMap = new HashMap<>();
+                if( orderTasks!=null ){
+                    condition.clear();
+                    //房源Ids
+                    //房源Ids
+                    List<Integer> houseIds = new ArrayList<>();
+                    houseIds.add(orderTasks.getHouseId());
+                    condition.put("houseIds",houseIds);
+                    //查询房源信息
+                    ResultVo housesVo = housesService.selectList(new HsMainHouse(), condition ,0);
+                    if(ResultConstant.SYS_REQUIRED_SUCCESS == housesVo.getResult()) {//查询成功
+                        List<Map<Object,Object>> houses = (List<Map<Object, Object>>) housesVo.getDataSet();
+                        for (Map<Object, Object> house : houses) {
+                            int houseId = StringUtil.getAsInt(StringUtil.trim(house.get("houseId")));
+                            if (orderTasks.getHouseId() == houseId){
+                                house.put("taskId",orderTasks.getId());
+                            }
+                        }
+                        map.put("houseInfo",houses);
+                    }
+                    //查询房源评价信息
+                    condition.clear();
+                    condition.put("houseId",orderTasks.getHouseId());
+                    condition.put("isCheck",1);//审核状态：0>待审核，1>审核通过，2>审核不通过
+                    //自定义查询列名
+                    List<String> queryColumn = new ArrayList<>();
+                    queryColumn.add("ID evaluationId");//主键ID
+                    queryColumn.add("VALUATOR_TYPE valuatorType");//评价人类型
+                    queryColumn.add("EVALUATION_TYPE evaluationType");//评价类型
+                    queryColumn.add("EVALUATION_EXPLAIN evaluationExplain");//评价说明
+                    queryColumn.add("USER_ID userId");//业务员ID
+                    queryColumn.add("MEMBER_ID memberId");//看房人ID
+                    queryColumn.add("CREATE_TIME createTime");//看房人ID
+                    queryColumn.add("HOUSE_ID houseId");//房源ID
+
+                    condition.put("queryColumn",queryColumn);
+                    ResultVo housesEvaluationVo = housesService.selectCustomColumnNamesList(HsHouseEvaluation.class, condition);
+                    if(ResultConstant.SYS_REQUIRED_SUCCESS == housesEvaluationVo.getResult()) {//查询成功
+                        List<Map<Object,Object>> evaluations = (List<Map<Object, Object>>) housesEvaluationVo.getDataSet();
+                        map.put("housesEvaluation",evaluations);
+                    }
+
+                    vo.setDataSet(map);
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            vo.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            vo.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return vo;
+    }
+
+    /**
+     * 查询外获派单列表信息
+     * @param condition
+     * @return
+     */
+    @Override
+    public ResultVo getOutGainDispatchOrder(Map<Object, Object> condition) {
+        ResultVo result = new ResultVo();
+        Map<Object,Object> query = new HashMap<>();
+        try {
+            //查询当前业务员的
+            List<String> queryColumn = new ArrayList<>();
+            queryColumn.add("ID taskId");
+            queryColumn.add("POOL_ID poolId");
+            queryColumn.add("HOUSE_ID houseId");
+            queryColumn.add("APPLY_ID applyId");
+            queryColumn.add("TASK_TYPE taskType");
+            queryColumn.add("IS_FINISHED isFinished");
+            queryColumn.add("IS_TRANSFER_ORDER isTransferOrder");
+            condition.put("queryColumn",queryColumn);
+            result = memberService.selectCustomColumnNamesList(HsSystemUserOrderTasks.class,condition);
+            if(result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                Date date = new Date();
+                condition.remove("queryColumn");
+                Object pageInfo = result.getPageInfo();
+                List<String> memberIds = new ArrayList<>();
+                List<Map<Object,Object>> taskList = (List<Map<Object, Object>>) result.getDataSet();
+                List<String> houseApplyIds = new ArrayList<>(); //房源申请ID
+                List<Integer> poolIds = new ArrayList<>();//订单池Ids
+                if(taskList != null && taskList.size() > 0){
+                    String houseApplyId = "";
+                    List<Map<Object,Object>> applyHouseList = new ArrayList<>(); //房源申请信息
+                    for(Map<Object,Object> task : taskList){
+                        houseApplyId = StringUtil.trim(task.get("applyId")); //房源申请ID
+                        int taskType = StringUtil.getAsInt(StringUtil.trim(task.get("taskType")));
+                        if(taskType == 0){
+                            houseApplyIds.add(houseApplyId);
+                            poolIds.add(StringUtil.getAsInt(StringUtil.trim(task.get("poolId"))));
+                        }
+                    }
+
+                  //房源申请ID，外获查询申请表
+                    if(houseApplyIds != null && houseApplyIds.size() >0){
+                        condition.clear();
+                        queryColumn.clear();
+                        queryColumn.add("ID poolId");
+                        queryColumn.add("ORDER_CODE orderCode");//订单编码
+                        queryColumn.add("ESTIMATED_TIME estimatedTime");//预计完成时间
+                        queryColumn.add("APPOINTMENT_MEET_PLACE appointmentMeetPlace");//见面地点
+                        queryColumn.add("CLOSE_TIME closeTime");//预计完成时间
+                        condition.put("queryColumn",queryColumn);
+                        condition.put("poolIds",poolIds);
+                        ResultVo orderVo = orderService.selectCustomColumnNamesList(HsSystemOrderPool.class,condition);
+                        if(orderVo.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                            //订单池数据
+                            List<Map<Object,Object>> ordersList = (List<Map<Object,Object>>) orderVo.getDataSet();
+                            if(ordersList!=null && ordersList.size()>0 ){
+                                //将系统订单池与业务员任务表进行关联
+                                for (Map<Object,Object> orderTask : taskList) {
+                                    int poolId = StringUtil.getAsInt(StringUtil.trim(orderTask.get("poolId")));
+                                    for (Map<Object, Object> order : ordersList) {
+                                        int _poolId = StringUtil.getAsInt(StringUtil.trim(order.get("poolId")));
+                                        if(poolId == _poolId){
+                                            Date closeTime = (Date) order.get("closeTime");
+                                            long time2 = closeTime.getTime() - date.getTime();
+                                            order.put("closeTimeCountDown",time2/1000);
+
+                                            Date estimatedTime = (Date) order.get("estimatedTime");
+                                            long time1 = estimatedTime.getTime() - date.getTime();
+                                            order.put("estimatedTimeCountDown",time1/1000);
+                                            orderTask.putAll(order);
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }else{
+                            return orderVo;
+                        }
+                        query.clear();
+                        queryColumn.clear();
+                        queryColumn.add("ID applyId");
+                        queryColumn.add("LEASE_TYPE leaseType");//预约类型（0：出租，1：出售）
+                        queryColumn.add("CITY city");//'城市'
+                        queryColumn.add("COMMUNITY community");//'社区
+                        queryColumn.add("SUB_COMMUNITY subCommunity");//'子社区'
+                        queryColumn.add("PROPERTY property");//'项目'
+                        queryColumn.add("ADDRESS address");//'房源所在区域名称'
+                        queryColumn.add("MEMBER_ID memberId"); //用户ID
+                        queryColumn.add("APPLICANT_TYPE applicantType"); //申请类型 0：业主 1：POA
+                        query.put("queryColumn",queryColumn);
+                        query.put("houseApplyIds",houseApplyIds);
+                        ResultVo applyResult = housesService.selectCustomColumnNamesList(HsOwnerHousingApplication.class,query); //查询房源申请信息
+                        if(applyResult.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                            applyHouseList = (List<Map<Object, Object>>)applyResult.getDataSet();
+                        }else{
+                            return applyResult;
+                        }
+                    }
+
+                    for (Map<Object,Object> task : taskList){
+                        houseApplyId = StringUtil.trim(task.get("applyId")); //房源申请ID
+
+                        if(!"-1".equals(houseApplyId)){
+                            for (Map<Object,Object> applyHouse : applyHouseList){
+                                String _houseApplyId = StringUtil.trim(applyHouse.get("applyId")); // 房源主信息ID
+                                if(houseApplyId.equals(_houseApplyId)){
+                                    task.put("address",applyHouse.get("address")); //房源位置
+                                    task.put("memberId",applyHouse.get("memberId")); //会员ID
+                                    task.put("leaseType",applyHouse.get("leaseType")); //房屋类型（0：出租，1：出售）
+                                    task.put("applicantType",applyHouse.get("applicantType")); //申请类型（0：业主，1：POA）
+                                    memberIds.add(StringUtil.trim(applyHouse.get("memberId")));
+                                }
+                            }
+                        }
+                    }
+
+                    if(memberIds.size() > 0){
+                        condition.clear();
+                        condition.put("memberIds",memberIds);
+                    }
+                    result = memberService.selectList(new HsMember(),condition,1);
+                    if(result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                        List<HsMember> memberList = (List<HsMember>) result.getDataSet();
+                        for(HsMember member :memberList){
+                            int mid = member.getId();
+                            for(Map<Object,Object> task : taskList){
+                                int _mid = StringUtil.getAsInt(StringUtil.trim(task.get("memberId")));
+                                if(mid == _mid){
+                                    task.put("memberName",member.getNickname());
+                                    task.put("memberMoble",member.getMemberMoble());
+                                    task.put("languageVersion",member.getLanguageVersion());
+                                }
+                            }
+                        }
+
+                    }
+                    result.setDataSet(taskList);
+                    result.setPageInfo(pageInfo);
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.setDataSet(null);
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return result;
+    }
+
+    /**
+     * 批量转单
+     * @param condition
+     * @return
+     */
+    @Override
+    public ResultVo batchDispathOrder(Map<Object,Object> condition) {
+        ResultVo result = new ResultVo();
+
+        try {
+            String ids = StringUtil.trim(condition.get("ids"));
+            int userId = Integer.parseInt(StringUtil.trim(condition.get("userId")));
+            int taskType = Integer.parseInt(StringUtil.trim(condition.get("taskType"))); //任务类型 0:外获 1：外看
+            Date date = new Date();
+            List<String> idList = Lists.newArrayList();
+            List<String> timeList =  Lists.newArrayList();//时间集合
+            List<HsSystemUserOrderTasks> tasksList = new ArrayList<>(); //业余员任务集合
+            List<HsSystemUserOrderTasksLog> logList = new ArrayList<>(); //日志集合
+            List<String> poolIds = new ArrayList<>(); //线程池ID
+            String [] idArray = ids.split(",");
+            idList = Arrays.asList(idArray);
+            if(idList == null || idList.size()==0){
+                result.setResult(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR);
+                result.setMessage(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE);
+                return result;
+            }
+
+            List<HsSystemUserOrderTasks> taskList = new ArrayList<>();
+
+            if(taskType == 1){
+                String times = StringUtil.trim(condition.get("times")); //时间 时间以逗号分隔
+                String [] timeArray = times.split(",");
+                timeList = Arrays.asList(timeArray);
+
+                //任务开始前四十分钟无法转单
+                for (String time :timeList){
+                    //转单前四十分钟时间
+                    String minusTime =  DateUtil.getTimeByMinute(time,40);
+                    if(time.equals(minusTime)){
+                        result.setResult(ResultConstant.BUS_USER_TRANSFER_ORDER_FAILURE);
+                        result.setMessage(ResultConstant.BUS_USER_TRANSFER_ORDER_FAILURE_VALUE);
+                        return result;
+                    }
+                }
+            }
+            condition.put("ids",idList);
+
+            result = memberService.selectList(new HsSystemUserOrderTasks(),condition,1);
+            if(result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                taskList = (List<HsSystemUserOrderTasks>) result.getDataSet();
+                if(taskList != null){
+                    for (HsSystemUserOrderTasks map : taskList){
+                        poolIds.add(StringUtil.trim(map.getPoolId()));
+                        HsSystemUserOrderTasks userOrderTasks = new HsSystemUserOrderTasks();
+                        userOrderTasks.setIsDel(1); //是否删除 0：未删除，1：已删除
+                        userOrderTasks.setId(map.getId());
+                        userOrderTasks.setIsTransferOrder(1); //是否转单 0->未转单，1已转单
+                        //转单理由
+                        userOrderTasks.setTransferOrderReason(Integer.parseInt(StringUtil.trim(condition.get("transferOrderReason"))));
+                        userOrderTasks.setRemark(StringUtil.trim(condition.get("remark"))); //转单说明
+                        userOrderTasks.setVersionNo(map.getVersionNo());
+                        tasksList.add(userOrderTasks);
+
+                        HsSystemUserOrderTasksLog userOrderTasksLog = new HsSystemUserOrderTasksLog();
+                        userOrderTasksLog.setPoolId(map.getPoolId()); //订单池ID
+                        userOrderTasksLog.setTaskId(map.getId()); //任务ID
+                        userOrderTasksLog.setNodeType(1); //0-创建任务->1-转单->2任务未完成->3任务完成
+                        userOrderTasksLog.setCreateBy(userId);
+                        userOrderTasksLog.setCreateTime(date);
+                        userOrderTasksLog.setUpdateBy(userId);
+                        userOrderTasksLog.setUpdateTime(date);
+                        userOrderTasksLog.setRemarks(StringUtil.trim(condition.get("remark")));
+                        userOrderTasksLog.setTransferOrderReason(Integer.parseInt(StringUtil.trim(condition.get("transferOrderReason"))));
+                        userOrderTasksLog.setProofPic1(StringUtil.trim(condition.get("proofPic1")));
+                        userOrderTasksLog.setProofPic2(StringUtil.trim(condition.get("proofPic2")));
+                        userOrderTasksLog.setProofPic3(StringUtil.trim(condition.get("proofPic3")));
+                        userOrderTasksLog.setProofPic4(StringUtil.trim(condition.get("proofPic4")));
+                        userOrderTasksLog.setProofPic5(StringUtil.trim(condition.get("proofPic5")));
+                        logList.add(userOrderTasksLog);
+                    }
+                }
+            }
+            //用户任务集合
+            if(tasksList != null){
+                condition.put("tasksList",tasksList);
+            }
+
+            //更新任务表数据
+            result = memberService.batchUpdate(new HsSystemUserOrderTasks(),condition);
+            if(result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                //任务日志集合，批量新增任务日志数据
+                if(logList != null){
+                    condition.put("logData",logList);
+                }
+                result = memberService.batchInsert(new HsSystemUserOrderTasks(),condition);
+            }
+
+            //线程池ID
+            if(poolIds != null){
+                condition.put("poolIds",poolIds);
+                result = orderService.selectList(new HsSystemOrderPool(),condition,1);
+                if(result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                    List<HsSystemOrderPool> poolList = (List<HsSystemOrderPool>) result.getDataSet();
+                    if(poolList != null){
+                        List<HsSystemOrderPool> data = new ArrayList<>();
+                        List<HsSystemOrderPoolLog> logData = new ArrayList<>();
+                        for(HsSystemOrderPool orderPool : poolList){
+                            int poolId = orderPool.getId();
+                            HsSystemOrderPool pool = new HsSystemOrderPool();
+
+                            for(HsSystemUserOrderTasks map : taskList){
+                               int _poolId = map.getPoolId();
+                                //判断任务表中的订单池ID与查询的订单池ID是否相同，相同则根据是否自动派单，设置订单池表是否开启自动抢单
+                               if(poolId == _poolId){
+                                    if(map.getIsSystem() == 1){ //是否自动派单，0：自动派单，1：手动抢单
+                                        pool.setIsOpenOrder(1); //是否开启自动抢单 0：未开启，1：已开启
+                                        break;
+                                    }
+                               }
+                            }
+
+                            pool.setIsFinished(0); //是否完成 0：未完成，1：已完成
+                            pool.setId(poolId);
+                            pool.setVersionNo(orderPool.getVersionNo());
+                            data.add(pool);
+
+                            HsSystemOrderPoolLog poolLog = new HsSystemOrderPoolLog();
+                            poolLog.setPoolId(poolId);
+                            poolLog.setOrderType(orderPool.getOrderType()); // 0外获订单->1-外看订单->2合同订单
+                            poolLog.setNodeType(2); //0-加入订单池->1-外获业务员接单->2业务员转单->3已完成->3未完成
+                            poolLog.setCreateBy(userId);
+                            poolLog.setCreateTime(date);
+                            poolLog.setUpdateBy(userId);
+                            poolLog.setUpdateTime(date);
+                            logData.add(poolLog);
+                        }
+
+                        condition.put("data",data);
+                        condition.put("logData",logData);
+                    }
+                }
+
+                result = orderService.batchUpdate(new HsSystemOrderPool(),condition);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.setDataSet(null);
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+
+        return result;
+    }
+
+    /**
+     * 查询外货任务详情信息
+     * @param condition
+     * @return
+     */
+    @Override
+    public ResultVo outGainOrderDetail(Map<Object, Object> condition) {
+        ResultVo result = new ResultVo();
+        try {
+            int applyId = Integer.parseInt(StringUtil.trim(condition.get("applyId")));
+            int poolId = Integer.parseInt(StringUtil.trim(condition.get("poolId"))); //订单池ID
+            result = housesService.select(applyId,new HsOwnerHousingApplication());
+            if(result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                HsOwnerHousingApplication ownerHousingApplication = (HsOwnerHousingApplication) result.getDataSet();
+                condition.put("languageVersion",ownerHousingApplication.getLanguageVersion()); //语言
+                condition.put("leaseType",ownerHousingApplication.getLeaseType()); //房源属性（0：出租，1：出售）
+
+                ResultVo poolResult = orderService.select(poolId,new HsSystemOrderPool());
+                if(poolResult.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                    HsSystemOrderPool pool = (HsSystemOrderPool) poolResult.getDataSet();
+                    if(pool != null){
+                        condition.put("appointmentDoorTime",pool.getEstimatedTime());
+                        condition.put("appointmentMeetPlace",pool.getAppointmentMeetPlace());
+                    }
+                }
+
+                result = memberService.select(ownerHousingApplication.getMemberId(),new HsMember());
+                if(result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                    HsMember member = (HsMember) result.getDataSet();
+                    condition.put("memberName",member.getNickname());
+                    condition.put("memberMoble",member.getMemberMoble());
+                }
+            }
+
+            result.setDataSet(condition);
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return result;
+    }
+
+    /**
+     * 新增房源评论
+     * @return
+     * @throws Exception
+     */
+    @Override
+    public ResultVo addHouseEvaluation(HsHouseEvaluation evaluation) {
+        ResultVo result = null ;
+        try {
+            result = housesService.insert(evaluation);
+            if(result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                result.setDataSet(null);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            result.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return result;
+    }
+
+
+    /**
+     * 操作用户订单任务（到达客户，完成看房）
+     * @param condition
+     * @return
+     */
+    @Override
+    public ResultVo operateUserOrderTask(Map<Object,Object> condition){
+        ResultVo result = new ResultVo();
+        try {
+            Integer id = Integer.parseInt(StringUtil.trim(condition.get("id"))); //任务ID
+            int memberId = Integer.parseInt(StringUtil.trim(condition.get("memberId"))); //业务员ID
+            String isFinished = StringUtil.trim(condition.get("isFinished")); //是否完成看房
+            Date date = new Date();
+            result = memberService.select(id,new HsSystemUserOrderTasks());
+            HsSystemUserOrderTasks systemUserOrderTasks = (HsSystemUserOrderTasks) result.getDataSet();
+            HsSystemUserOrderTasks updateUserOrderTasks = new HsSystemUserOrderTasks();
+            updateUserOrderTasks.setId(systemUserOrderTasks.getId()); //任务ID
+            if(StringUtil.hasText(isFinished)){
+                updateUserOrderTasks.setIsFinished(1); //是否完成 0：未完成，1：已完成
+            }
+            if(StringUtil.hasText(StringUtil.trim(condition.get("isArrive")))){
+                updateUserOrderTasks.setIsArrive(1); //是否到达0:未到达，1：已到达
+            }
+            updateUserOrderTasks.setVersionNo(0);
+            result = memberService.update(updateUserOrderTasks);
+            if(result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                HsSystemUserOrderTasksLog log = new HsSystemUserOrderTasksLog();
+                log.setTaskId(systemUserOrderTasks.getTaskType()); //任务ID
+                log.setPoolId(systemUserOrderTasks.getPoolId()); //订单池ID
+                if(StringUtil.hasText(isFinished)){
+                    log.setNodeType(3); //该日志所关联的节点类型（0-创建任务->1-转单->2任务未完成->3任务完成->4到达客户）
+                }
+                if(StringUtil.hasText(StringUtil.trim(condition.get("isArrive")))){
+                    log.setNodeType(4); //该日志所关联的节点类型（0-创建任务->1-转单->2任务未完成->3任务完成->4到达客户）
+                }
+                log.setCreateBy(memberId);
+                log.setCreateTime(date);
+                log.setUpdateBy(memberId);
+                log.setUpdateTime(date);
+                result = memberService.insert(log);
+                if("1".equals(isFinished)){
+                    condition.put("poolId",systemUserOrderTasks.getPoolId()); //订单池ID
+                    condition.put("isFinish",isFinished); //是否完成l 0：未完成 1：已完成
+                    result = memberService.updateHousingApplicationByPoolId(condition);
+                }
+
+                if(result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                   if(StringUtil.hasText(StringUtil.trim(condition.get("isArrive")))){
+                       HsUserAttendanceSheet hsUserAttendanceSheet = new HsUserAttendanceSheet();
+                       hsUserAttendanceSheet.setUserId(memberId);
+                       hsUserAttendanceSheet.setPostTime(date);
+                       hsUserAttendanceSheet.setLatitude(StringUtil.trim(condition.get("latitude")));//纬度
+                       hsUserAttendanceSheet.setLongitude(StringUtil.trim(condition.get("longitude"))); //经度
+                       hsUserAttendanceSheet.setPostLocation(StringUtil.trim(condition.get("location"))); //打卡位置
+                       ResultVo clockResult = memberService.clockIn(hsUserAttendanceSheet);
+                       if(clockResult.getResult() != ResultConstant.SYS_REQUIRED_SUCCESS){
+                           result.setDataSet(null);
+                           result.setResult(clockResult.getResult());
+                           result.setMessage(clockResult.getMessage());
+                       }
+                   }
+                }
+
+
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return result;
+    }
+
+    /**
+     * 取消预约操作
+     * @param condition
+     * @return
+     */
+    @Override
+    public ResultVo cancelAppointment(Map<Object, Object> condition) {
+        ResultVo result = new ResultVo();
+        try {
+            Integer id = Integer.parseInt(StringUtil.trim(condition.get("taskId"))); //任务ID
+            Integer taskType = Integer.parseInt(StringUtil.trim(condition.get("taskType"))); //任务类型
+            int memberId = Integer.parseInt(StringUtil.trim(condition.get("memberId"))); //业务员ID
+            int cancelType = Integer.parseInt(StringUtil.trim(condition.get("cancelType"))); //取消类型（0：业主取消，1：租客/买家）
+            int feedbackType = Integer.parseInt(StringUtil.trim(condition.get("feedbackType"))); //反馈类型
+            String feedbackDesc = StringUtil.trim(condition.get("feedbackDesc")); //反馈描述
+
+            Date date = new Date();
+            result = memberService.select(id,new HsSystemUserOrderTasks());
+            if(result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                HsSystemUserOrderTasks systemUserOrderTasks = (HsSystemUserOrderTasks) result.getDataSet();
+                int appointmentCount = 0; //预约看房信息条数
+                if(taskType == 1){ //外看任务
+                    Map<Object,Object> queryFilter = new HashMap<>();
+                    queryFilter.put("poolId",systemUserOrderTasks.getPoolId()); //订单池ID
+                    queryFilter.put("isFinish",0); //未完成看房
+                    queryFilter.put("isCancel",0); //未取消看房
+                    // 为外看任务时，查询该订单池对应的数据的条数
+                    ResultVo appointmentResult = memberService.selectList(new HsMemberHousingApplication(),queryFilter,0);
+                    if(appointmentResult.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                        List<Map<Object,Object>> appointmentList = (List<Map<Object, Object>>) appointmentResult.getDataSet();
+                        appointmentCount = appointmentList.size();
+                    }
+                }
+
+                //为外获任务，或者为外看任务，但是只有一条预约信息时，该任务直接取消关闭
+                if(taskType == 0 || (taskType == 1 && appointmentCount == 1)){
+                    HsSystemUserOrderTasks updateUserOrderTasks = new HsSystemUserOrderTasks();
+                    updateUserOrderTasks.setId(systemUserOrderTasks.getId()); //任务ID
+                    if(cancelType == 0){ //业主取消预约
+                        updateUserOrderTasks.setIsFinished(2); //是否完成0:未完成，1：已完成，2：业主取消预约，3：租客/卖家取消预约
+                    }else{
+                        updateUserOrderTasks.setIsFinished(3);
+                    }
+                    updateUserOrderTasks.setIsDel(1); //是否删除 0：未删除，1：已删除
+                    updateUserOrderTasks.setVersionNo(0);
+                    updateUserOrderTasks.setTransferOrderReason(feedbackType); //反馈原因
+                    updateUserOrderTasks.setRemark(feedbackDesc); //描述
+                    result = memberService.update(updateUserOrderTasks); //修改用户任务信息
+                    if(result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                        HsSystemUserOrderTasksLog log = new HsSystemUserOrderTasksLog();
+                        log.setTaskId(systemUserOrderTasks.getId()); //任务ID
+                        log.setPoolId(systemUserOrderTasks.getPoolId()); //订单池ID
+                        if(cancelType == 0){
+                            log.setNodeType(5); //该日志所关联的节点类型（0-创建任务->1-转单->2任务未完成->3任务完成->4到达客户->5业主取消预约->6租客/买家取消预约）
+                        }else{
+                            log.setNodeType(6);
+                        }
+                        log.setCreateBy(memberId);
+                        log.setCreateTime(date);
+                        log.setUpdateBy(memberId);
+                        log.setUpdateTime(date);
+                        log.setTransferOrderReason(feedbackType);
+                        log.setRemarks(feedbackDesc);
+                        log.setProofPic1(StringUtil.trim(condition.get("proofPic1"))); //凭证图片1
+                        log.setProofPic2(StringUtil.trim(condition.get("proofPic2"))); //凭证图片1
+                        log.setProofPic3(StringUtil.trim(condition.get("proofPic3"))); //凭证图片1
+                        log.setProofPic4(StringUtil.trim(condition.get("proofPic4"))); //凭证图片1
+                        log.setProofPic5(StringUtil.trim(condition.get("proofPic5"))); //凭证图片1
+                        result = memberService.insert(log); //新增任务日志信息
+                        if(result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                            //查询订单池数据
+                            ResultVo selectPoolVo = orderService.select(systemUserOrderTasks.getPoolId(), new HsSystemOrderPool());
+                            HsSystemOrderPool selectPool = (HsSystemOrderPool) selectPoolVo.getDataSet();
+
+                            HsSystemOrderPool updatePool = new HsSystemOrderPool();
+                            updatePool.setId(systemUserOrderTasks.getPoolId());
+                            if(cancelType == 0){
+                                updatePool.setIsFinished(2); //是否完成0:未完成，1：已完成（用于控制系统是否自动派单）2：业主取消预约3：租客/买家取消预约
+                            }else{
+                                updatePool.setIsFinished(3);
+                            }
+                            updatePool.setVersionNo(selectPool.getVersionNo());
+
+                            result = orderService.update(updatePool); //修改订单池
+                            if(result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                                HsSystemOrderPoolLog poolLog = new HsSystemOrderPoolLog();
+                                poolLog.setPoolId(systemUserOrderTasks.getPoolId());
+                                poolLog.setOrderType(systemUserOrderTasks.getTaskType()); //订单类型 0外获订单->1-外看订单->2合同订单
+                                if(cancelType == 0){
+                                    poolLog.setNodeType(3);//（0-加入订单池->1-外获业务员接单->2业务员转单->3业主取消预约->4租客/买家取消预约->6已完成->7未完成）
+                                }else{
+                                    poolLog.setNodeType(4);
+                                }
+                                poolLog.setCreateBy(memberId);
+                                poolLog.setCreateTime(date);
+                                poolLog.setUpdateBy(memberId);
+                                poolLog.setUpdateTime(date);
+
+                                result = orderService.insert(poolLog); //新增订单池日志信息
+
+                                if(taskType == 1){ //外看任务，更新预约看房申请表
+                                    condition.put("isCancel",1); //是否取消 0：未取消 1：已取消
+                                    condition.put("poolId",systemUserOrderTasks.getPoolId()); //订单池ID
+                                    result = memberService.updateHousingApplicationByPoolId(condition);
+                                }
+                            }
+                        }
+
+                    }
+
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return result;
+    }
+
+    /**
+     * 查询合同类订单
+     * @param condition
+     * @return
+     */
+    @Override
+    public ResultVo getContractOrdersList(Map<Object, Object> condition) {
+        ResultVo vo = null;
+        try {
+            //查询当前业务员的
+            List<String> queryColumn = new ArrayList<>();
+            queryColumn.add("ID taskId");
+            queryColumn.add("POOL_ID poolId");
+            queryColumn.add("HOUSE_ID houseId");
+            queryColumn.add("TASK_TYPE taskType");
+            queryColumn.add("IS_FINISHED isFinished");
+            queryColumn.add("IS_TRANSFER_ORDER isTransferOrder");
+            condition.put("queryColumn",queryColumn);
+            //查询业务员任务列表信息
+            vo =  memberService.selectCustomColumnNamesList(HsSystemUserOrderTasks.class,condition);
+            if(vo.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                List<Map<Object,Object>> orderTaskList = (List<Map<Object,Object>>) vo.getDataSet();
+                if(orderTaskList!=null && orderTaskList.size()>0){
+                    List<Integer> houseIds = new ArrayList<>();//房源Ids
+                    List<Integer> poolIds = new ArrayList<>();//订单池Ids
+                    Date date = new Date();
+                    for (Map<Object,Object> orderTask : orderTaskList) {
+                        houseIds.add(StringUtil.getAsInt(StringUtil.trim(orderTask.get("houseId"))));
+                        poolIds.add(StringUtil.getAsInt(StringUtil.trim(orderTask.get("poolId"))));
+                    }
+
+                    //查询订单池当中上门时间和过期时间
+                    condition.clear();
+                    queryColumn.clear();
+                    queryColumn.add("ID poolId");
+                    queryColumn.add("ORDER_CODE orderCode");//订单编码
+                    queryColumn.add("IS_FINISHED isFinished");//是否完成0:未完成，1：已完成（用于控制系统是否自动派单）2：业主取消预约3：租客/买家取消预约，4：订单已关闭
+                    queryColumn.add("IS_OPEN_ORDER isOpenOrder");//是否开启抢单0:未开启，1：开启
+                    queryColumn.add("ESTIMATED_TIME estimatedTime");//预计完成时间
+                    queryColumn.add("APPOINTMENT_MEET_PLACE appointmentMeetPlace");//见面地点
+                    queryColumn.add("CLOSE_TIME closeTime");//关单时间
+                    condition.put("queryColumn",queryColumn);
+                    condition.put("poolIds",poolIds);
+                    ResultVo orderVo = orderService.selectCustomColumnNamesList(HsSystemOrderPool.class,condition);
+                    if(ResultConstant.SYS_REQUIRED_SUCCESS == orderVo.getResult()) {//查询成功
+                        //订单池数据
+                        List<Map<Object,Object>> ordersList = (List<Map<Object,Object>>) orderVo.getDataSet();
+                        if(ordersList!=null && ordersList.size()>0 ){
+                            //将系统订单池与业务员任务表进行关联
+                            for (Map<Object,Object> orderTask : orderTaskList) {
+                                int poolId = StringUtil.getAsInt(StringUtil.trim(orderTask.get("poolId")));
+                                for (Map<Object, Object> order : ordersList) {
+                                    int _poolId = StringUtil.getAsInt(StringUtil.trim(order.get("poolId")));
+                                    if(poolId == _poolId){
+                                        Date estimatedTime = (Date) order.get("estimatedTime");
+                                        long time1 = estimatedTime.getTime() - date.getTime();
+                                        order.put("estimatedTimeCountDown",time1/1000);
+                                        Date closeTime = (Date) order.get("closeTime");
+                                        long time2 = closeTime.getTime() - date.getTime();
+                                        order.put("closeTimeCountDown",time2/1000);
+                                        orderTask.putAll(order);
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+
+                    }
+                    condition.clear();
+                    queryColumn.clear();
+                    queryColumn.add("ID houseId");
+                    queryColumn.add("LEASE_TYPE leaseType");//预约类型（0：出租，1：出售）
+                    queryColumn.add("CONTACTS contacts");//业主联系人
+                    queryColumn.add("PHONE_NUMBER phoneNumber");//业主手机号
+                    condition.put("queryColumn",queryColumn);
+                    condition.put("houseIds",houseIds);
+                    //查询房源信息
+                    ResultVo housesVo = housesService.selectCustomColumnNamesList(HsMainHouse.class, condition);
+                    if(ResultConstant.SYS_REQUIRED_SUCCESS == housesVo.getResult()) {//查询成功
+                        List<Map<Object,Object>> houses = (List<Map<Object, Object>>) housesVo.getDataSet();
+                        if(houses!=null){
+                            for (Map<Object,Object> orderTask : orderTaskList) {
+                                int _houseId  = StringUtil.getAsInt(StringUtil.trim(orderTask.get("houseId")));
+                                for (Map<Object, Object> house : houses) {
+                                    int houseId = StringUtil.getAsInt(StringUtil.trim(house.get("houseId")));
+                                    if (_houseId == houseId){
+                                        orderTask.putAll(house);
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        vo.setDataSet(orderTaskList);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            vo.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            vo.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return vo;
+    }
+
+    /**
+     * 查询外获业务员合同类派送记录
+     * @param condition
+     * @return
+     */
+    @Override
+    public ResultVo getContractOrderRecordsList(Map<Object, Object> condition) {
+        ResultVo vo = null;
+        try {
+            //查询当前业务员的
+            List<String> queryColumn = new ArrayList<>();
+            queryColumn.add("ID taskId");
+            queryColumn.add("POOL_ID poolId");
+            queryColumn.add("HOUSE_ID houseId");
+            queryColumn.add("TASK_TYPE taskType");
+            queryColumn.add("IS_FINISHED isFinished");
+            queryColumn.add("IS_TRANSFER_ORDER isTransferOrder");
+            condition.put("queryColumn",queryColumn);
+            //查询业务员任务列表信息
+            vo =  memberService.selectCustomColumnNamesList(HsSystemUserOrderTasks.class,condition);
+            if(vo.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                List<Map<Object,Object>> orderTaskList = (List<Map<Object,Object>>) vo.getDataSet();
+                if(orderTaskList!=null && orderTaskList.size()>0){
+                    List<Integer> houseIds = new ArrayList<>();//房源Ids
+                    List<Integer> poolIds = new ArrayList<>();//订单池Ids
+                    for (Map<Object,Object> orderTask : orderTaskList) {
+                        houseIds.add(StringUtil.getAsInt(StringUtil.trim(orderTask.get("houseId"))));
+                        poolIds.add(StringUtil.getAsInt(StringUtil.trim(orderTask.get("poolId"))));
+                    }
+
+                    //查询订单池当中上门时间和过期时间
+                    condition.clear();
+                    queryColumn.clear();
+                    queryColumn.add("ID poolId");
+                    queryColumn.add("ORDER_CODE orderCode");//订单编码
+                    queryColumn.add("IS_FINISHED isFinished");//是否完成0:未完成，1：已完成（用于控制系统是否自动派单）2：业主取消预约3：租客/买家取消预约，4：订单已关闭
+                    queryColumn.add("ESTIMATED_TIME estimatedTime");//预计完成时间
+                    queryColumn.add("APPOINTMENT_MEET_PLACE appointmentMeetPlace");//见面地点
+                    condition.put("queryColumn",queryColumn);
+                    condition.put("poolIds",poolIds);
+                    ResultVo orderVo = orderService.selectCustomColumnNamesList(HsSystemOrderPool.class,condition);
+                    if(ResultConstant.SYS_REQUIRED_SUCCESS == orderVo.getResult()) {//查询成功
+                        //订单池数据
+                        List<Map<Object,Object>> ordersList = (List<Map<Object,Object>>) orderVo.getDataSet();
+                        if(ordersList!=null && ordersList.size()>0 ){
+                            //将系统订单池与业务员任务表进行关联
+                            for (Map<Object,Object> orderTask : orderTaskList) {
+                                int poolId = StringUtil.getAsInt(StringUtil.trim(orderTask.get("poolId")));
+                                for (Map<Object, Object> order : ordersList) {
+                                    int _poolId = StringUtil.getAsInt(StringUtil.trim(order.get("poolId")));
+                                    if(poolId == _poolId){
+                                        orderTask.putAll(order);
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    condition.clear();
+                    queryColumn.clear();
+                    queryColumn.add("ID houseId");
+                    queryColumn.add("LEASE_TYPE leaseType");//预约类型（0：出租，1：出售）
+                    queryColumn.add("CONTACTS contacts");//业主联系人
+                    queryColumn.add("PHONE_NUMBER phoneNumber");//业主手机号
+                    condition.put("queryColumn",queryColumn);
+                    condition.put("houseIds",houseIds);
+                    //查询房源信息
+                    ResultVo housesVo = housesService.selectCustomColumnNamesList(HsMainHouse.class, condition);
+                    if(ResultConstant.SYS_REQUIRED_SUCCESS == housesVo.getResult()) {//查询成功
+                        List<Map<Object,Object>> houses = (List<Map<Object, Object>>) housesVo.getDataSet();
+                        if(houses!=null){
+                            for (Map<Object,Object> orderTask : orderTaskList) {
+                                int _houseId  = StringUtil.getAsInt(StringUtil.trim(orderTask.get("houseId")));
+                                for (Map<Object, Object> house : houses) {
+                                    int houseId = StringUtil.getAsInt(StringUtil.trim(house.get("houseId")));
+                                    if (_houseId == houseId){
+                                        orderTask.putAll(house);
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        vo.setDataSet(orderTaskList);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            vo = ResultVo.error(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR,ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return vo;
+    }
+
+    /**
+     * 获取已上传房源列表信息
+     * @param condition
+     * @return
+     */
+    @Override
+    public ResultVo getUploadedHousingList(Map<Object, Object> condition) {
+        ResultVo result = new ResultVo();
+        try {
+            //查询未审核通过(未完成)的外获任务
+            Map<Object,Object> queryFilter = new HashMap<>();
+            List<String> queryColumn = new ArrayList<>();
+            queryColumn.add("ID taskId");
+            queryColumn.add("POOL_ID poolId");
+            queryColumn.add("HOUSE_ID houseId");
+            queryColumn.add("USER_ID userId");
+            condition.put("queryColumn",queryColumn);
+            condition.put("taskType",0); //外获任务
+           // condition.put("isFinished",0); //未完成
+            result = memberService.selectCustomColumnNamesList(HsSystemUserOrderTasks.class,condition);
+            if(result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                List<String> poolIds = new ArrayList<>(); //订单池Ids
+                List<String> houseIds = new ArrayList<>(); //房源ID
+                //获取poolId
+                List<Map<Object,Object>> taskList = (List<Map<Object, Object>>) result.getDataSet();
+                if(taskList != null && taskList.size() > 0){
+                    for (Map<Object,Object> map : taskList){
+                        poolIds.add(StringUtil.trim(map.get("poolId")));
+                        houseIds.add(StringUtil.trim(map.get("houseId"))); //房源ID
+                    }
+                    queryColumn.clear();
+                    queryColumn.add("ID poolId");
+                    queryColumn.add("ORDER_CODE orderCode"); //订单编号
+                    queryFilter.put("queryColumn",queryColumn);
+                    queryFilter.put("poolIds",poolIds);
+                    ResultVo orderPoolResult = orderService.selectCustomColumnNamesList(HsSystemOrderPool.class,queryFilter);
+                    if(orderPoolResult.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                        List<Map<Object,Object>> poolList = (List<Map<Object, Object>>) orderPoolResult.getDataSet();
+                        if(poolList != null && poolList.size() > 0){
+                            for (Map<Object,Object> pool : poolList){
+                                int poolId = Integer.parseInt(StringUtil.trim(pool.get("poolId"))); //订单池ID
+                                for(Map<Object,Object> task : taskList){
+                                    int poolId2 = Integer.parseInt(StringUtil.trim(task.get("poolId"))); //订单池ID
+                                    if(poolId == poolId2){
+                                        task.put("orderCode",pool.get("orderCode"));
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+
+                    }else{
+                        result = orderPoolResult;
+                    }
+                }
+
+                queryColumn.clear();
+                queryColumn.add("ID id");
+                queryColumn.add("HOUSE_NAME houseName");
+                queryColumn.add("HOUSE_ACREAGE houseAcreage");
+                queryColumn.add("ADDRESS address");
+                queryColumn.add("HOUSE_RENT houseRent");
+                queryColumn.add("IS_CHECK isCheck");
+                queryColumn.add("HOUSE_MAIN_IMG houseMainImg");
+                queryColumn.add("LEASE_TYPE leaseType");
+                queryColumn.add("APPLICANT_TYPE applicantType");
+                queryFilter.put("queryColumn",queryColumn);
+                queryFilter.put("houseIds",houseIds);
+                List<Integer> isCheckStatus = new ArrayList<>();
+                isCheckStatus.add(0); //未审核
+                isCheckStatus.add(2); //审核未通过
+                queryFilter.put("isCheckStatus",isCheckStatus);
+
+               ResultVo  houseResult = housesService.selectCustomColumnNamesList(HsMainHouse.class,queryFilter);
+
+                if(houseResult.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                    List<Map<Object,Object>> houses = (List<Map<Object, Object>>) houseResult.getDataSet();
+                    if(houses!=null && houses.size()>0){
+                        for(Map<Object,Object> house : houses){
+                            house.put("houseMainImg",ImageUtil.IMG_URL_PREFIX + house.get("houseMainImg"));
+                            int houseId = Integer.parseInt(StringUtil.trim(house.get("id")));
+                            for(Map<Object,Object> task : taskList){
+                                int houseId2 = Integer.parseInt(StringUtil.trim(task.get("houseId")));
+                                if(houseId == houseId2){
+                                    house.put("orderCode",task.get("orderCode"));
+                                    break;
+                                }
+                            }
+                        }
+                        result.setDataSet(houses);
+                    }
+                }else{
+                    result = houseResult;
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return result;
+    }
+
+    /**
+     * 获取外获业务员个人绩效
+     * @param condition
+     * @return
+     */
+    @Override
+    public ResultVo getOutGainPersonalPerformance(Map<Object, Object> condition) {
+        ResultVo result = new ResultVo();
+        Map<Object,Object> resultMap = new HashMap<>();
+
+        try {
+            result = memberService.selectPersonalPerformance(condition); //查询上传房源数
+            if(result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                resultMap.put("uploadHouseNum",result.getDataSet());
+            }
+
+            condition.put("isArrive",1); //已到达客户
+            result = memberService.selectPersonalPerformance(condition); //查询到达客户数
+            if(result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                resultMap.put("arriveCustomerNum",result.getDataSet());
+            }
+
+            condition.remove("isArrive");
+            condition.put("isFinished",1); //是否完成 1：已完成
+            result = memberService.selectPersonalPerformance(condition); //查询成功上传数
+            if(result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                resultMap.put("uploadSuccessNum",result.getDataSet());
+            }
+
+            condition.remove("isFinished");
+            condition.put("isTransferOrder",1); //是否转单（0：未转单，1：已转单）
+            result = memberService.selectPersonalPerformance(condition); //查询转单数
+            if(result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                resultMap.put("transferOrderNum",result.getDataSet());
+            }
+
+            if(resultMap != null){
+                result.setDataSet(resultMap);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.setDataSet(null);
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+
+        return result;
+    }
+
+
+    @Override
+    public ResultVo updateSysUser(Map<Object,Object> condition) {
+        //根据当前用户信息判断旧密码是否相同，相同则进行修改，否则失败
+        ResultVo result = new ResultVo();
+        try {
+            int userId = Integer.parseInt(StringUtil.trim(condition.get("userId")));
+            String oldPassword = StringUtil.trim(condition.get("oldPassword")); //旧密码
+            String PASSWORD_HASHITERATIONS = StringUtil.trim(condition.get("PASSWORD_HASHITERATIONS"));
+
+            result = memberService.select(userId,new HsSysUser());
+            if(result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                HsSysUser getUser = (HsSysUser) result.getDataSet();
+                String getOldPassword = getUser.getPassword();
+                String salt = getUser.getSalt();
+                SimpleHash oldMd5 = new SimpleHash("MD5",oldPassword,salt,Integer.parseInt(PASSWORD_HASHITERATIONS));
+                //如果旧密码是正确的
+                if(getOldPassword.equalsIgnoreCase(oldMd5.toString())){
+                    HsSysUser user = new HsSysUser();
+                    user.setPassword(StringUtil.trim(condition.get("password"))); //密码
+                    user.setId(userId);
+                    user.setSalt(StringUtil.trim(condition.get("salt")));
+                    result = memberService.update(user);
+                }else{
+                    result.setDataSet(null);
+                    result.setResult(ResultConstant.BUS_USER_PASSWORD_ERROR);
+                    result.setMessage(ResultConstant.BUS_USER_PASSWORD_ERROR_VALUE);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+
+        return result;
+    }
+
+    @Override
+    public ResultVo forgetPassword(Map<Object, Object> condition) {
+        //根据当前用户信息判断旧密码是否相同，相同则进行修改，否则失败
+        ResultVo result = new ResultVo();
+        try {
+            int userId = Integer.parseInt(StringUtil.trim(condition.get("userId")));
+            String password = StringUtil.trim(condition.get("password")); //新密码
+            HsSysUser user = new HsSysUser();
+            user.setId(userId);
+            user.setPassword(password);//密码
+            user.setSalt(StringUtil.trim(condition.get("salt")));
+            result = memberService.update(user);
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+
+        return result;
+    }
+
+    /**
+     * 检验短信验证码
+     * @param condition
+     * @return
+     */
+    @Override
+    public ResultVo validateSmsCode(Map<Object, Object> condition) {
+        ResultVo result = new ResultVo();
+        try {
+            int userId = (int) condition.get("userId");//用户Id
+            String ip = StringUtil.trim(condition.get("ip"));
+            ResultVo userVo = memberService.select(userId, new HsSysUser());
+            if(userVo.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){//请求成功
+                HsSysUser userInfo = (HsSysUser) userVo.getDataSet();
+                String mobile = userInfo.getMobile();//手机号
+                String nationCode = StringUtil.trim(condition.get("areaCode")); //区号
+                String smsCode = StringUtil.trim(condition.get("smsCode")); //验证码
+                String cacheKey = RedisConstant.SYS_USER_UPATE_VALIDATE_CODE_KEY + nationCode + mobile + ip;
+                String cacheValidateCode = "";
+
+                if(!StringUtil.hasText(cacheKey)){
+                    result.setResult(ResultConstant.SYS_IMG_CODE_IS_OVERDUE);
+                    result.setMessage(ResultConstant.SYS_IMG_CODE_IS_OVERDUE_VALUE);
+                    return result;
+                }
+
+                if(RedisUtil.isExistCache(cacheKey)){
+                    cacheValidateCode = RedisUtil.safeGet(cacheKey);
+                }
+
+                if(!cacheValidateCode.equalsIgnoreCase(smsCode)){
+                    result.setResult(-1);
+                    result.setMessage("验证码错误");
+                    return result;
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return  result;
+    }
+
+    @Override
+    public ResultVo updateSysUserMobile(Map<Object,Object> condition){
+        ResultVo result = new ResultVo();
+        try {
+            String ip = StringUtil.trim(condition.get("ip"));
+            String mobile = StringUtil.trim(condition.get("mobile"));//手机号
+            String nationCode = StringUtil.trim(condition.get("areaCode")); //区号
+            int userId = Integer.parseInt(StringUtil.trim(condition.get("userId")));
+            String validateCode = StringUtil.trim(condition.get("validateCode")); //验证码
+            String cacheKey = RedisConstant.SYS_USER_UPATE_VALIDATE_CODE_KEY + nationCode + mobile + ip;
+            String cacheValidateCode = "";
+
+            if(!StringUtil.hasText(cacheKey)){
+                result.setResult(ResultConstant.SYS_IMG_CODE_IS_OVERDUE);
+                result.setMessage(ResultConstant.SYS_IMG_CODE_IS_OVERDUE_VALUE);
+                return result;
+            }
+
+            if(RedisUtil.isExistCache(cacheKey)){
+                cacheValidateCode = RedisUtil.safeGet(cacheKey);
+            }
+
+            if(!cacheValidateCode.equalsIgnoreCase(validateCode)){
+                result.setResult(-1);
+                result.setMessage("验证码错误");
+                return result;
+            }
+
+            //修改用户手机号
+            HsSysUser hsSysUser = new HsSysUser();
+            hsSysUser.setId(userId);
+            hsSysUser.setMobile(mobile);
+            hsSysUser.setUpdateTime(new Date());
+            result = memberService.update(hsSysUser);
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return  result;
+    }
+
+    /**
+     * 获取外看派单列表信息
+     * @param condition
+     * @return
+     */
+    @Override
+    public ResultVo getOutLookDispatchOrder(Map<Object, Object> condition) {
+        ResultVo result = new ResultVo();
+        Map<Object,Object> query = new HashMap<>();
+        try {
+            result = memberService.selectList(new HsSystemUserOrderTasks(),condition,0);
+            if(result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                List<String> memberIds = new ArrayList<>();
+                List<Map<Object,Object>> taskList = (List<Map<Object, Object>>) result.getDataSet();
+                List<String> houseIds = new ArrayList<>(); //房源ID
+                List<String> poolIds = new ArrayList<>(); //订单池ID
+                if(taskList != null && taskList.size() > 0){
+                    String houseId = "";
+                    String poolId = "";
+                    List<Map<Object,Object>> houseList = new ArrayList<>(); //房源信息
+                    List<Map<Object,Object>> appointmentList = new ArrayList<>(); //预约看房信息
+                    //获取房源ID、订单池ID
+                    for(Map<Object,Object> task : taskList){
+                        houseId = StringUtil.trim(task.get("houseId")); //房源ID
+                        poolId = StringUtil.trim(task.get("poolId")); //订单池ID
+                        if(!"-1".equals(houseId)){
+                            houseIds.add(houseId);
+                        }
+
+                        if(StringUtil.hasText(poolId)){
+                            poolIds.add(poolId);
+                        }
+                    }
+
+                    //房源ID，外看查询房源主信息表
+                    if(houseIds != null && houseIds.size() >0){
+                        query.clear();
+                        query.put("houseIds",houseIds);
+                        ResultVo houseResult = housesService.selectList(new HsMainHouse(),query,0); //查询房源主信息
+                        if(houseResult.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                            houseList = (List<Map<Object, Object>>)houseResult.getDataSet();
+                        }
+                    }
+
+                    //订单池ID,根据订单池ID查询预约看房时间信息
+                    if(poolIds != null && houseIds.size() > 0){
+                        query.clear();
+                        query.put("poolIds",poolIds);
+                        query.put("isFinish",0); //是否完成 0：未完成 1：已完成
+                        query.put("isCancel",0); //是否取消 0：未取消 1：已取消
+                        query.put("isCheck",1); //是否审核通过（0>待审核，1>审核通过，2>审核不通过）
+                        query.put("applicationType",0); //预约类型（0：申请预约，1：无需预约，2：让客服联系）
+                        ResultVo appointmentResult = memberService.selectList(new HsMemberHousingApplication(),query,0);
+                        if(appointmentResult.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                            appointmentList = (List<Map<Object, Object>>)appointmentResult.getDataSet();
+                        }
+                    }
+
+                    for (Map<Object,Object> task : taskList){
+                        houseId = StringUtil.trim(task.get("houseId")); //房源ID
+                        poolId = StringUtil.trim(task.get("poolId")); //订单池ID
+                        if(!"-1".equals(houseId)){
+                            //房源主信息
+                            for (Map<Object,Object> house : houseList){
+                                String _houseApplyId = StringUtil.trim(house.get("ID")); // 房源主信息ID
+                                if(houseId.equals(_houseApplyId)){
+                                    task.put("address",house.get("address")); //房源位置
+                                    task.put("leaseType",house.get("leaseType")); //房屋类型（0：出租，1：出售）
+                                }
+                            }
+                        }
+
+                        if(StringUtil.hasText(poolId)){
+                            for (Map map : appointmentList){
+                                String _poolId = StringUtil.trim(map.get("standby1"));
+                                if(_poolId.equals(poolId)){
+                                    task.put("memberId",map.get("memberId"));
+                                    memberIds.add(StringUtil.trim(map.get("memberId")));
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if(memberIds.size() > 0){
+                    condition.clear();
+                    condition.put("memberIds",memberIds);
+                }
+              ResultVo  membersResult = memberService.selectList(new HsMember(),condition,1);
+                //查询会员名称
+                if(membersResult.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                    List<HsMember> memberList = (List<HsMember>) membersResult.getDataSet();
+                    for(HsMember member :memberList){
+                        int mid = member.getId();
+                        for(Map<Object,Object> task : taskList){
+                            int _mid = Integer.parseInt(StringUtil.trim(task.get("memberId")));
+                            if(mid == _mid){
+                                task.put("memberName",member.getNickname());
+                                task.put("memberId",member.getId());
+                            }
+                        }
+                    }
+                }
+                result.setDataSet(taskList);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return result;
+    }
+
+    /**
+     * 获取外看业务员派单详情
+     * @param condition
+     * @return
+     */
+    @Override
+    public ResultVo getOutLookDispatchOrderDetail(Map<Object, Object> condition) {
+        ResultVo result = new ResultVo();
+        Map<Object,Object> query = new HashMap<>(); //查询条件
+        Map<Object,Object> resultMap = new HashMap<>(); //返回结果集合
+        try {
+            int poolId = Integer.parseInt(StringUtil.trim(condition.get("poolId"))); //订单池ID
+            int houseId = Integer.parseInt(StringUtil.trim(condition.get("houseId"))); //房源ID
+            List<String> memberIds = new ArrayList<>();
+            //订单池ID,根据订单池ID查询直接申请预约看房时间信息
+            query.put("poolIds",poolId);
+            query.put("isFinish",0); //是否完成 0：未完成 1：已完成
+            query.put("isCancel",0); //是否取消 0：未取消 1：已取消
+            query.put("isCheck",1); //是否审核通过（0>待审核，1>审核通过，2>审核不通过）
+            query.put("applicationType",0); //预约类型（0：申请预约，1：无需预约，2：让客服联系）
+            result = memberService.selectList(new HsMemberHousingApplication(),condition,0);
+            if(result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                List<Map<Object,Object>> data = (List<Map<Object, Object>>) result.getDataSet();
+                if(data.size() == 0){
+                    Map<Object,Object> directAppointment = data.get(0);
+                    int memberId = Integer.parseInt(StringUtil.trim(directAppointment.get("memberId"))); //会员ID
+                    resultMap.put("startApartmentTime",directAppointment.get("startApartmentTime")); //直接预约看房信息
+                    ResultVo  memberResult = memberService.select(memberId,new HsMember());
+                    if(memberResult.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                        HsMember hsMember = (HsMember) memberResult.getDataSet();
+                        resultMap.put("languageVersion",hsMember.getLanguageVersion()); //语言版本
+                        resultMap.put("memberName",hsMember.getNickname()); //会员名称
+                        resultMap.put("moble",hsMember.getMemberMoble()); //会员手机
+
+                       ResultVo houseResult = housesService.select(houseId,new HsMainHouse());
+                        if(houseResult.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                            HsMainHouse mainHouse = (HsMainHouse) houseResult.getDataSet();
+                            resultMap.put("address",mainHouse.getAddress()); //见面地点
+                            String houseMainImg = StringUtil.trim(mainHouse.getHouseMainImg());
+                            if(StringUtil.hasText(houseMainImg)){
+                                resultMap.put("houseMainImg", ImageUtil.IMG_URL_PREFIX + mainHouse.getHouseMainImg()); //房源主图
+                            }
+                            resultMap.put("houseMainImg", houseMainImg); //房源主图
+                            resultMap.put("houseName",mainHouse.getHouseName()); //房源名称
+                            resultMap.put("houseAcreage",mainHouse.getHouseAcreage()); //房屋面积
+                            resultMap.put("houseRent",mainHouse.getHouseRent()); //房屋租金/售价
+                            resultMap.put("longitude",mainHouse.getLongitude()); //经度
+                            resultMap.put("latitude",mainHouse.getLatitude()); //纬度
+
+                            query.put("applicationType",1); //查询参与看房成员信息
+                           ResultVo joinResult = memberService.selectList(new HsMemberHousingApplication(),condition,0);
+                            if(joinResult.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                                List<Map<Object,Object>> joinList = (List<Map<Object, Object>>) joinResult.getDataSet();
+                                if(joinList.size() > 0){
+                                    //根据查询参与看房成员预约信息，获取参与看房成员会员ID
+                                    for (Map<Object,Object> join : joinList){
+                                        memberIds.add(StringUtil.trim(join.get("memberId")));
+                                    }
+                                    if(memberIds.size() > 0){
+                                        condition.clear();
+                                        condition.put("memberIds",memberIds);
+                                    }
+                                    List<String> queryColumn = new ArrayList<>();//自定义查询列名
+                                    queryColumn.add("ID memberId");//主键ID
+                                    queryColumn.add("NICKNAME memberName");//会员名称
+                                    queryColumn.add("MEMBER_MOBLE mobile");//会员手机号
+                                    queryColumn.add("LANGUAGE_VERSION languageVersion");//语言
+                                    condition.put("queryColumn",queryColumn);
+                                    //查询会员信息
+                                    ResultVo membersResult = memberService.selectCustomColumnNamesList(HsMember.class,condition);
+                                    if(membersResult.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                                        resultMap.put("members",membersResult.getDataSet());
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                result.setDataSet(resultMap);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return result;
+    }
+
+    /**
+     * 上传房源
+     * @param mainHouse
+     * @param houseCredentialsData
+     * @return
+     */
+    @Override
+    public ResultVo uploadHousing(HsMainHouse mainHouse, HsHouseCredentialsData houseCredentialsData,HsHouseImg houseImg,Map<Object,Object> condition) {
+        ResultVo result = new ResultVo();
+        try {
+            int applyId = mainHouse.getApplyId();
+            //根据申请ID查询房源主表中有无记录
+            condition.put("applyId",applyId);
+            int replyHouseId = 0;
+            result = housesService.selectList(new HsMainHouse(),condition,0);
+            if(result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                Date date = new Date();
+                List<Map<Object,Object>> list = (List<Map<Object, Object>>) result.getDataSet();
+                //该申请ID在主表中有记录，进行修改操作，否则，进行新增操作
+                if(list.size() > 0){
+                    Map<Object,Object> houseMap = list.get(0);
+                    int houseId = Integer.parseInt(StringUtil.trim(houseMap.get("id")));
+                    replyHouseId = houseId;
+
+                    mainHouse.setId(houseId);
+                    mainHouse.setUpdateTime(date);
+                    mainHouse.setUpdateBy(mainHouse.getCreateBy());
+                    mainHouse.setCreateBy(null);
+                    houseCredentialsData.setHouseId(houseId);
+
+                    result = housesService.update(mainHouse); //修改房源主信息
+                    if(result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                        condition.clear();
+                        condition.put("houseId",houseId);
+                        //根据房源ID查询房源证件数据
+                        result = housesService.selectDataByCondition(new HsHouseCredentialsData(),condition);
+                        if(result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                            //如果有数据，根据查询出的ID更新数据
+                            HsHouseCredentialsData getHouseCredentials = (HsHouseCredentialsData) result.getDataSet();
+                            if(getHouseCredentials != null){
+                                houseCredentialsData.setId(getHouseCredentials.getId());
+                                result = housesService.update(houseCredentialsData);
+                            }else{
+                                result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+                                result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+                                return result;
+                            }
+                        }
+                    }
+
+                }else{
+                    mainHouse.setCreateTime(date);
+                    mainHouse.setHouseCode("HC_"+ RandomUtils.getRandomNumbersAndLetters(32)); //设置房源编号
+                    mainHouse.setHouseMainImg(houseImg.getHouseImg1()); //设置第一张图片为房源主图
+
+                    result = housesService.insert(mainHouse); //新增房源主信息
+                    if(result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                        HsMainHouse addedMainHouse = (HsMainHouse) result.getDataSet();
+                        replyHouseId = addedMainHouse.getId();
+                        houseCredentialsData.setHouseId(addedMainHouse.getId()); //设置房源ID
+                        result = housesService.insert(houseCredentialsData); //新增房源证件信息数据
+
+                        HsSystemUserOrderTasks hsSystemUserOrderTasks = new HsSystemUserOrderTasks();
+                        hsSystemUserOrderTasks.setHouseId(addedMainHouse.getId()); //房源ID
+                        hsSystemUserOrderTasks.setId(Integer.parseInt(StringUtil.trim(condition.get("taskId"))));
+
+                        result = memberService.update(hsSystemUserOrderTasks);
+
+                        houseImg.setHouseId(addedMainHouse.getId());
+                        houseImg.setHouseCode(addedMainHouse.getHouseCode());
+                        result = housesService.insert(houseImg);
+
+                        String json = StringUtil.trim(condition.get("setting")); //获取json数组
+                        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+                        JSONArray jsonArray = JSONArray.fromObject(json);
+                        //将json数组转换为对象集合
+                        List<HsHouseAutoReplySetting> replyList = JSONArray.toList(jsonArray, HsHouseAutoReplySetting.class);
+                        if(list.size() > 0) {
+                            for (HsHouseAutoReplySetting houseAutoReplySetting : replyList) {
+                                String startRentDate = StringUtil.trim(houseAutoReplySetting.getStartRentDate());
+                                //当起租日期不为空时，设置起租日期格式
+                                if (StringUtil.hasText(startRentDate)) {
+                                    houseAutoReplySetting.setBeginRentDate(sdf.parse(startRentDate));
+                                }
+                                houseAutoReplySetting.setHouseId(replyHouseId);
+                            }
+                            condition.put("list", replyList);
+                            ResultVo applyResult = housesService.batchInsert(new HsHouseAutoReplySetting(),condition);
+                            if(applyResult.getResult() != ResultConstant.SYS_REQUIRED_SUCCESS){
+                                result = applyResult;
+                                return result;
+                            }
+                        }
+                    }
+                }
+
+                int taskId = StringUtil.getAsInt(StringUtil.trim(condition.get("taskId"))); //任务ID
+                ResultVo userOrderTaskResult = memberService.select(taskId,new HsSystemUserOrderTasks());
+                if(userOrderTaskResult.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                    HsSystemUserOrderTasks getUserOrderTask = (HsSystemUserOrderTasks) userOrderTaskResult.getDataSet();
+                    HsSystemUserOrderTasks systemUserOrderTasks = new HsSystemUserOrderTasks();
+                    systemUserOrderTasks.setIsFinished(1); //任务完成
+                    systemUserOrderTasks.setHouseId(replyHouseId); //房源ID
+                    systemUserOrderTasks.setPoolId(getUserOrderTask.getPoolId()); //订单池ID
+                    systemUserOrderTasks.setVersionNo(getUserOrderTask.getVersionNo()); //版本号
+                    systemUserOrderTasks.setId(taskId); //任务ID
+
+                    ResultVo updateTaskResult = memberService.update(systemUserOrderTasks);
+                    if(updateTaskResult.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                        HsSystemUserOrderTasksLog hsSystemUserOrderTasksLog = new HsSystemUserOrderTasksLog();
+                        hsSystemUserOrderTasksLog.setTaskId(taskId);
+                        hsSystemUserOrderTasksLog.setPoolId(getUserOrderTask.getPoolId());
+                        hsSystemUserOrderTasksLog.setNodeType(3); //任务完成
+                        hsSystemUserOrderTasksLog.setCreateBy(mainHouse.getCreateBy());
+                        hsSystemUserOrderTasksLog.setCreateTime(date);
+
+                        ResultVo insertLogResult = memberService.insert(hsSystemUserOrderTasksLog);
+                        if(insertLogResult.getResult() != ResultConstant.SYS_REQUIRED_SUCCESS){
+                            result = insertLogResult;
+                            return result;
+                        }
+                    }else{
+                        result = updateTaskResult;
+                        return result;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return result;
+    }
+
+    /**
+     * 获取申请详细信息
+     * @param condition
+     * @return
+     */
+    @Override
+    public ResultVo getApplicationDetails(Map<Object, Object> condition) {
+        ResultVo result = new ResultVo();
+        Map<Object,Object> resultMap = new HashMap<>();
+        try {
+            int applyId = Integer.parseInt(StringUtil.trim(condition.get("applyId")));
+            result = housesService.select(applyId,new HsOwnerHousingApplication());
+            if(result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                resultMap.put("houses",result.getDataSet());
+                ResultVo credentialsResult = housesService.selectDataByCondition(new HsHouseCredentialsData(),condition);
+                if(credentialsResult.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                    resultMap.put("credentials",credentialsResult.getDataSet());
+                }
+            }
+            result.setDataSet(resultMap);
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return result;
+    }
+
+    @Override
+    public ResultVo getUploadHouseDetail(Map<Object, Object> condition) {
+        ResultVo result = new ResultVo();
+        Map<Object,Object> resultMap = new HashMap<>();
+        try {
+            int houseId = Integer.parseInt(StringUtil.trim(condition.get("houseId")));
+            result = housesService.select(houseId,new HsMainHouse());
+            if(result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                resultMap.put("houses",result.getDataSet());
+                ResultVo credentialsResult = housesService.selectDataByCondition(new HsHouseCredentialsData(),condition);
+                if(credentialsResult.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                    resultMap.put("credentials",credentialsResult.getDataSet());
+                }
+                //房源图片，自动应答设置查询
+                ResultVo imgResult = housesService.selectList(new HsHouseImg(),condition,0);
+                if(imgResult.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                    List<Map<Object,Object>> imgList = (List<Map<Object, Object>>) imgResult.getDataSet();
+                    Map<Object,Object> houseImg = new HashMap<>();
+                    if(imgList.size() > 0){
+                        houseImg = imgList.get(0);
+                        houseImg.remove("houseCode");
+                        houseImg.remove("houseId");
+                        houseImg.remove("id");
+                    }
+                    resultMap.put("houseSubImg",houseImg.values());
+                }
+                ResultVo replyResult = housesService.selectList(new HsHouseAutoReplySetting(),condition,0);
+                if(replyResult.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                    List<Map<Object,Object>> replyList = (List<Map<Object, Object>>) replyResult.getDataSet();
+                    resultMap.put("autoReplyList",replyList);
+                }
+
+            }
+            result.setDataSet(resultMap);
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return result;
+    }
+
+    @Override
+    public ResultVo updateUploadedHouse(HsMainHouse mainHouse, HsHouseCredentialsData houseCredentialsData,HsHouseImg houseImg,Map<Object,Object> condition) {
+        ResultVo result = new ResultVo();
+        try {
+            int houseId = mainHouse.getId();
+            //根据房源ID查询房源主表中有无记录
+            condition.put("houseId",houseId);
+            result = housesService.select(houseId,new HsMainHouse());
+            if(result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                Date date = new Date();
+               HsMainHouse houseData = (HsMainHouse) result.getDataSet();
+                //该ID在主表中有记录，进行修改操作，否则，进行新增操作
+                if(houseData != null){
+                    mainHouse.setId(houseId);
+                    mainHouse.setUpdateTime(date);
+                    mainHouse.setUpdateBy(mainHouse.getCreateBy());
+                    mainHouse.setCreateBy(null);
+                    houseCredentialsData.setHouseId(houseId);
+
+                    result = housesService.update(mainHouse); //修改房源主信息
+                    if(result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                        if(result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                            //查询图片表里有无该房源的数据，有数据则进行修改操作，否则进行新增操作
+
+                            ResultVo imgResult = housesService.selectList(new HsHouseImg(),condition,1);
+                            if(imgResult.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                                List<HsHouseImg> imgList = (List<HsHouseImg>) imgResult.getDataSet();
+                                if(imgList.size() > 0){
+                                    HsHouseImg getHouseImg = imgList.get(0);
+                                    houseImg.setId(getHouseImg.getId());
+                                    result = housesService.update(houseImg); //更新房源图片表
+                                }
+                            }
+                            //根据房源ID查询房源证件数据
+                            result = housesService.selectDataByCondition(new HsHouseCredentialsData(),condition);
+                            //如果有数据，根据查询出的ID更新数据
+                            HsHouseCredentialsData getHouseCredentials = (HsHouseCredentialsData) result.getDataSet();
+                            if(getHouseCredentials != null){
+                                houseCredentialsData.setId(getHouseCredentials.getId());
+                                result = housesService.update(houseCredentialsData);
+                            }else{
+                                result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+                                result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+                                return result;
+                            }
+                        }
+
+                        String json = StringUtil.trim(condition.get("setting")); //获取json数组
+                        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+                        JSONArray jsonArray = JSONArray.fromObject(json);
+                        //将json数组转换为对象集合
+                        List<HsHouseAutoReplySetting> list = JSONArray.toList(jsonArray, HsHouseAutoReplySetting.class);
+                        if(list.size() > 0) {
+                            for (HsHouseAutoReplySetting houseAutoReplySetting : list) {
+                                String startRentDate = StringUtil.trim(houseAutoReplySetting.getStartRentDate());
+                                //当起租日期不为空时，设置起租日期格式
+                                if (StringUtil.hasText(startRentDate)) {
+                                    houseAutoReplySetting.setBeginRentDate(sdf.parse(startRentDate));
+                                }
+                            }
+                            condition.put("list", list);
+
+                            ResultVo replyResult = housesService.selectList(new HsHouseAutoReplySetting(), condition, 0);
+                            if (replyResult.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS) {
+                                List<Map<Object, Object>> replyList = (List<Map<Object, Object>>) replyResult.getDataSet();
+                                if (replyList.size() > 0) {
+                                    //自动应答设置修改
+                                    ResultVo updateResult = housesService.batchUpdate(new HsHouseAutoReplySetting(), condition);
+                                    if (updateResult.getResult() != ResultConstant.SYS_REQUIRED_SUCCESS) {
+                                        result = updateResult;
+                                        return result;
+                                    }
+                                } else {
+                                    // 新增
+                                    ResultVo insertResult = housesService.batchInsert(new HsHouseAutoReplySetting(), condition);
+                                    if (insertResult.getResult() != ResultConstant.SYS_REQUIRED_SUCCESS) {
+                                        result = insertResult;
+                                        return result;
+                                    }
+                                }
+
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return result;
+    }
+
+    @Override
+    public ResultVo getOutLookPersonalPerformance(Map<Object, Object> condition) {
+        ResultVo result = new ResultVo();
+        Map<Object,Object> resultMap = new HashMap<>();
+        try {
+            condition.put("isArrive",1);
+            result = memberService.selectPersonalPerformance(condition); //查询到达客户户数
+            if(result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                resultMap.put("arriveCustomerNum",result.getDataSet());
+            }
+
+            condition.remove("isArrive");
+            condition.put("isFinished",1); //是否完成 1：已完成
+            result = memberService.selectPersonalPerformance(condition); //查询已完成带看房数
+            if(result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                resultMap.put("lookedHouseNum",result.getDataSet());
+            }
+
+            List<String> queryColumn = new ArrayList<>();
+            queryColumn.add("ID taskId");
+            queryColumn.add("POOL_ID poolId");
+            queryColumn.add("HOUSE_ID houseId");
+            condition.put("queryColumn",queryColumn);
+
+            result = memberService.selectCustomColumnNamesList(HsSystemUserOrderTasks.class,condition);
+            if(result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                List<Map<Object,Object>> taskList = (List<Map<Object, Object>>) result.getDataSet();
+                if(taskList.size() > 0){
+                    List<String> houseIds = new ArrayList<>();
+                    for(Map<Object,Object> task : taskList){
+                        houseIds.add(StringUtil.trim(task.get("houseId")));
+                    }
+                    Map<Object,Object> query = new HashMap<>();
+                    query.put("houseIds",houseIds);
+                    query.put("isCheck",4);
+                    //查询主房源信息条数
+                    result = housesService.selectHouseCountByCondition(query);
+                    if(result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                        resultMap.put("successBusinessNum",result.getDataSet()); //成功交易数
+                    }
+                }else{
+                    resultMap.put("successBusinessNum",0); //成功交易数
+                }
+            }
+            condition.remove("queryColumn");
+            condition.remove("isFinished");
+            condition.put("isTransferOrder",1); //是否转单
+            result = memberService.selectPersonalPerformance(condition);
+            if(result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){ //转单数量
+                resultMap.put("transferOrderNum",result.getDataSet());
+            }
+
+            if(resultMap != null){
+                result.setDataSet(resultMap);
+            }
+        } catch (Exception e) {
+
+            e.printStackTrace();
+            result.setDataSet(null);
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+
+        return result;
+
+    }
+
+
+    /**
+     * 业务员查询考勤
+     * @param condition
+     * @return
+     */
+    @Override
+    public ResultVo queryUserAttendances(Map<Object, Object> condition) {
+        ResultVo result = new ResultVo();
+        Map<Object,Object> resultMap = new HashMap<>();
+        try {
+            List<String> queryColumn = new ArrayList<>();
+            //queryColumn.add("ID attendanceId");///考勤表Id
+            queryColumn.add("POST_TIME postTime");//打卡时间
+            condition.put("queryColumn",queryColumn);
+            //查询业务员打卡记录
+            result = memberService.selectCustomColumnNamesList(HsUserAttendanceSheet.class,condition);
+            if(result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                //查询业务员考勤记录
+                List<Map<Object,Object>> attendanceList = (List<Map<Object, Object>>) result.getDataSet();
+                resultMap.put("attendance",attendanceList);//考勤记录
+                //查询业务员当月请假记录
+                queryColumn.clear();
+                //queryColumn.add("ID vacateId");//请假记录Id
+                //queryColumn.add("USER_ID userId");//业务员Id
+                queryColumn.add("VACATE_TYPE vacateType");//请假类型 0:年假 1：事假 2：病假 3：调休 4：产假
+                queryColumn.add("BEGIN_TIME beginTime");//开始时间
+                queryColumn.add("END_TIME endTime");//结束时间
+                queryColumn.add("DAYS days");//请假天数
+
+                result = memberService.selectCustomColumnNamesList(HsUserVacateSheet.class,condition);
+                if(result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                    //查询业务员请假记录
+                    resultMap.put("vacates",result.getDataSet());//请假记录
+                }
+                result.setDataSet(resultMap);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.setDataSet(null);
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+
+        return result;
+    }
+
+    /**
+     * 房源进度查询
+     * @param condition
+     * @return
+     */
+    @Override
+    public ResultVo getProgressInfo(Map<Object, Object> condition) {
+        ResultVo result = new ResultVo();
+        try {
+            result = memberService.selectList(new HsHouseLog(),condition,0);
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.setDataSet(null);
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return result;
+    }
+
+    /**
+     * 发送短信验证码
+     * @param condition
+     * @return
+     */
+    @Override
+    public ResultVo sendSmsValidateCode(Map<Object, Object> condition) {
+        ResultVo result = new ResultVo();
+        try {
+            String nationCode = StringUtil.trim(condition.get("areaCode")); //区号
+            String mobile = StringUtil.trim(condition.get("mobile")); //手机号
+            String ip = StringUtil.trim(condition.get("ip")); //ip地址
+            int randomCode = (int) ((Math.random()*9+1)*100000); //随机数
+            int templateId = 166400; //默认为国际短信模板
+            String smsSign = "Hi Sandy"; //签名
+            String [] phoneNumbers = {mobile}; //手机号
+            String[] params = {randomCode+""}; //参数
+
+            if("86".equals(nationCode)){ //如果是中国，发送国内短信
+                templateId = 166398; //短信模板
+                smsSign = "三迪科技";
+            }
+
+            String resultStr = SendSmsUtil.sendSms(nationCode,phoneNumbers,templateId,params,smsSign,null,null);
+            if(!"success".equals(resultStr)){
+                result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+                result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+            }
+            String cacheKey = RedisConstant.SYS_USER_UPATE_VALIDATE_CODE_KEY + nationCode + mobile + ip;
+            RedisUtil.safeSet(cacheKey, randomCode+"", 60*15*1*1);
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.setDataSet(null);
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+
+        return result;
+    }
+
+    /**
+     * 修改见面时间
+     * @param condition
+     * @return
+     */
+    @Override
+    public ResultVo updateMeetTime(Map<Object, Object> condition) {
+        ResultVo result = new ResultVo();
+        try {
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            String meetTime = StringUtil.trim(condition.get("meetTime")); //见面时间
+            int poolId = Integer.parseInt(StringUtil.trim(condition.get("poolId"))); //订单池ID
+            int taskId = Integer.parseInt(StringUtil.trim(condition.get("taskId"))); //任务ID
+            HsSystemOrderPool pool = new HsSystemOrderPool();
+            pool.setEstimatedTime(sdf.parse(meetTime));
+            pool.setId(poolId);
+
+            result = orderService.update(pool);
+            if(result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                HsSystemUserOrderTasks userOrderTasks = new HsSystemUserOrderTasks();
+                userOrderTasks.setId(taskId);
+                userOrderTasks.setIsFinished(0); //任务未完成
+
+                result = memberService.update(userOrderTasks); //修改订单任务为未完成
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.setDataSet(null);
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return result;
+    }
+
+    /**
+     * 修改见面地点
+     * @param condition
+     * @return
+     */
+    @Override
+    public ResultVo updateMeetPlace(Map<Object, Object> condition) {
+        ResultVo result = new ResultVo();
+        try {
+            int poolId = Integer.parseInt(StringUtil.trim(condition.get("poolId"))); //订单池ID
+            String meetPlace = StringUtil.trim(condition.get("meetPlace"));
+            HsSystemOrderPool pool = new HsSystemOrderPool();
+            pool.setAppointmentMeetPlace(meetPlace);
+            pool.setId(poolId);
+            result = orderService.update(pool);
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.setDataSet(null);
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return result;
+    }
+
+    /**
+     * 获取业务员信息
+     * @param condition
+     * @return
+     */
+    @Override
+    public ResultVo getUserInfo(Map<Object, Object> condition) {
+        ResultVo result = null;
+        try {
+            List<String> queryColumn = new ArrayList<>();
+            queryColumn.add("ID userId");
+            queryColumn.add("USERNAME username");
+            queryColumn.add("MOBILE mobile");
+            queryColumn.add("USER_LOGO userLogo");
+            queryColumn.add("CITY city");
+            queryColumn.add("COMMUNITY community");
+            queryColumn.add("GOLD gold");
+            condition.put("queryColumn",queryColumn);
+            result = memberService.selectCustomColumnNamesList(HsSysUser.class, condition);
+            List<Map<Object,Object>> houseList = (List<Map<Object, Object>>) result.getDataSet();
+            if(houseList!=null && houseList.size()>0){
+                for (Map<Object, Object> house : houseList) {
+                    String userLogo = StringUtil.trim(house.get("userLogo"));
+                    if(!StringUtil.hasText(userLogo)){
+                        house.put("userLogo", ImageUtil.IMG_URL_PREFIX+userLogo);
+                    }else{
+                        house.put("userLogo", ImageUtil.IMG_URL_PREFIX+"group1/M01/00/06/rBLBRFtexMeAdM2nAAC12pMJ0vY815.jpg");
+                    }
+                }
+            }
+            queryColumn = null;//使用设置为空
+        } catch (Exception e) {
+            e.printStackTrace();
+            result = ResultVo.error(ResultConstant.SYS_REQUIRED_FAILURE,ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return result;
+    }
+
+    /**
+     * 业务员获取房源钥匙
+     * @param condition
+     * @return
+     */
+    @Override
+    public ResultVo getHouseKey(Map<Object, Object> condition) {
+        try {
+            HsHouseKeyCases key = (HsHouseKeyCases) condition.get("key");
+            return housesService.getHouseKeys(key);
+        }catch (Exception e){
+            e.printStackTrace();
+            return ResultVo.error(ResultConstant.SYS_REQUIRED_FAILURE,ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+    }
+
+    /**
+     * 检查房源钥匙是否过期
+     * @param houseId
+     * @param userId
+     * @return
+     */
+    @Override
+    public ResultVo checkKeyIsExpire(int houseId, int userId) {
+        ResultVo resultVo = null;
+        try {
+            Map<Object,Object> condition = Maps.newHashMap();
+            condition.put("houseId",houseId);
+            condition.put("userId",userId);
+            condition.put("isExpire",1);//已过期
+            resultVo = housesService.checkKeyIsExpire(condition);
+        }catch (Exception e){
+            e.printStackTrace();
+            return ResultVo.error(ResultConstant.SYS_REQUIRED_FAILURE,ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return resultVo;
+    }
+
+    /**
+     * 获取房源钥匙数据
+     * @param condition
+     * @return
+     */
+    @Override
+    public ResultVo loadMyHousekeys(Map<Object, Object> condition) {
+        ResultVo resultVo = null;
+        try {
+            resultVo = housesService.loadMyHousekeys(condition);
+        }catch (Exception e){
+            e.printStackTrace();
+            return ResultVo.error(ResultConstant.SYS_REQUIRED_FAILURE,ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return resultVo;
+    }
+
+    /**
+     * 业务员修改见面时间和见面地点
+     * @param condition
+     * @return
+     */
+    @Override
+    public ResultVo updatePoolInfo(Map<Object, Object> condition) {
+        ResultVo resultVo = null;
+        try {
+            HsSystemOrderPool orderPool = (HsSystemOrderPool) condition.get("orderPool");
+            Integer userId = StringUtil.getAsInt(StringUtil.trim(condition.get("userId")));
+            resultVo = orderService.select(orderPool.getId(),orderPool);
+            if(resultVo.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){//请求成功
+                HsSystemOrderPool daOrderPool = (HsSystemOrderPool) resultVo.getDataSet();
+                if(daOrderPool!=null){
+                    Integer isFinished = daOrderPool.getIsFinished();
+                    if(isFinished!=0){//只有当未完成状态才能修改见面时间和见面地点
+                        resultVo.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+                        resultVo.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+                        return resultVo;
+                    }
+                    orderPool.setVersionNo(daOrderPool.getVersionNo());
+                    orderPool.setRemark("业务员"+userId+"修改了见面时间或见面地点");
+                    orderPool.setUpdateTime(resultVo.getSystemTime());
+
+                    resultVo = orderService.update(orderPool);
+                    if(resultVo.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){//请求成功
+                        //插入订单池日志
+                        HsSystemOrderPoolLog log = new HsSystemOrderPoolLog();
+                        log.setPoolId(orderPool.getId());
+                        log.setCreateTime(resultVo.getSystemTime());
+                        log.setPostTime(resultVo.getSystemTime());
+                        log.setRemarks("业务员"+userId+"修改了见面时间或见面地点");
+                        orderService.insert(log);
+                    }
+                }
+            }
+        }catch (Exception e){
+            e.printStackTrace();
+            return ResultVo.error(ResultConstant.SYS_REQUIRED_FAILURE,ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return resultVo;
+    }
+
+    /**
+     * 获取钥匙管理员派单任务列表
+     * @param condition
+     * @return
+     */
+    @Override
+    public ResultVo getKeysManagerTaskList(Map<Object, Object> condition) {
+        ResultVo result = new ResultVo();
+        Map<Object,Object> query = new HashMap<>();
+        try {
+            List<String> queryColumn = new ArrayList<>();
+            queryColumn.add("ID taskId");
+            queryColumn.add("POOL_ID poolId");
+            queryColumn.add("HOUSE_ID houseId");
+            queryColumn.add("APPLY_ID applyId");
+            queryColumn.add("TASK_TYPE taskType");
+            queryColumn.add("IS_FINISHED isFinished");
+            queryColumn.add("IS_TRANSFER_ORDER isTransferOrder");
+            condition.put("queryColumn",queryColumn);
+            List<Integer> tasksType = new ArrayList<>();
+            tasksType.add(0); //外获任务
+            tasksType.add(1); //外看任务
+            condition.put("tasksType",tasksType);
+            result = memberService.selectCustomColumnNamesList(HsSystemUserOrderTasks.class,condition);
+            if(result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                Date date = new Date();
+                condition.remove("queryColumn");
+                Object pageInfo = result.getPageInfo();
+                List<String> memberIds = new ArrayList<>();
+                List<String> houseApplyIds = new ArrayList<>(); //房源申请ID
+                List<String> houseIds = new ArrayList<>(); //主房源信息ID
+
+                List<Integer> poolIds = new ArrayList<>(); //订单池ID
+                List<Map<Object,Object>> taskList = (List<Map<Object, Object>>) result.getDataSet();
+                if(taskList.size() > 0){
+                    List<Map<Object,Object>> appointmentList = new ArrayList<>(); //预约看房信息
+                    String houseApplyId = "";
+                    String houseId = "";
+                    String opoolId = "";
+                    List<Map<Object,Object>> applyHouseList = new ArrayList<>(); //房源申请信息
+                    List<Map<Object,Object>> houseList = new ArrayList<>(); //主房源信息
+                    for(Map<Object,Object> task : taskList){
+                        houseApplyId = StringUtil.trim(task.get("applyId")); //房源申请ID
+                        houseId = StringUtil.trim(task.get("houseId")); //主房源信息ID
+                        int taskType = StringUtil.getAsInt(StringUtil.trim(task.get("taskType")));
+                        //根据任务类型，获取申请ID，以及主房源信息ID
+                        if(taskType == 0){ //外获任务
+                            houseApplyIds.add(houseApplyId);
+                            poolIds.add(StringUtil.getAsInt(StringUtil.trim(task.get("poolId"))));
+                        }else if(taskType == 1){ //外看任务
+                            houseIds.add(houseId);
+                            poolIds.add(StringUtil.getAsInt(StringUtil.trim(task.get("poolId"))));
+                        }
+                    }
+
+                    if(houseApplyIds != null && houseApplyIds.size() > 0){
+                        condition.clear();
+                        queryColumn.clear();
+                        queryColumn.add("ID id");
+                        queryColumn.add("ORDER_CODE orderCode"); //订单编号
+                        queryColumn.add("ESTIMATED_TIME estimatedTime");//预计完成时间
+                        queryColumn.add("APPOINTMENT_MEET_PLACE appointmentMeetPlace"); //见面地点
+                        queryColumn.add("CLOSE_TIME closeTime");//预计完成时间
+                        condition.put("queryColumn",queryColumn);
+                        condition.put("poolIds",poolIds);
+                        ResultVo poolVo = orderService.selectCustomColumnNamesList(HsSystemOrderPool.class,condition);
+                        if(poolVo.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                            List<Map<Object,Object>> poolList = (List<Map<Object, Object>>) poolVo.getDataSet();
+                            if(poolList != null && poolList.size() > 0){
+                                for(Map task : taskList){
+                                    int poolId = StringUtil.getAsInt(StringUtil.trim(task.get("poolId")));
+                                    for(Map pool : poolList){
+                                        int _poolId = StringUtil.getAsInt(StringUtil.trim(pool.get("poolId")));
+                                        if(poolId == _poolId){
+                                            Date estimatedTime = (Date) pool.get("estimatedTime");
+                                            long time1 = estimatedTime.getTime() - date.getTime();
+                                            pool.put("estimatedTimeCountDown",time1/1000);
+
+                                            Date closeTime = (Date) pool.get("closeTime");
+                                            long time2 = closeTime.getTime() - date.getTime();
+                                            pool.put("closeTimeCountDown",time2/1000);
+                                            task.putAll(pool);
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }else{
+                            return poolVo;
+                        }
+                        query.clear();
+                        queryColumn.clear();
+                        queryColumn.add("ID houseId");
+                        queryColumn.add("LEASE_TYPE leaseType");//预约类型（0：出租，1：出售）
+                        queryColumn.add("CITY city");//'城市'
+                        queryColumn.add("COMMUNITY community");//'社区
+                        queryColumn.add("SUB_COMMUNITY subCommunity");//'子社区'
+                        queryColumn.add("PROPERTY property");//'项目'
+                        queryColumn.add("ADDRESS address");//'房源所在区域名称'
+                        queryColumn.add("MEMBER_ID memberId"); //用户ID
+                        queryColumn.add("APPLICANT_TYPE applicantType"); //申请类型 0：业主 1：POA
+                        query.put("queryColumn",queryColumn);
+                        query.put("houseApplyIds",houseApplyIds);
+                        ResultVo applyResult = housesService.selectCustomColumnNamesList(HsOwnerHousingApplication.class,query); //查询房源申请信息
+                        if(applyResult.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                            applyHouseList = (List<Map<Object, Object>>)applyResult.getDataSet();
+                        }else{
+                            return applyResult;
+                        }
+
+                        query.remove("houseApplyIds");
+                        query.put("houseIds",houseIds);
+                        //查询主房源信息
+                        ResultVo houseResult = housesService.selectCustomColumnNamesList(HsMainHouse.class,query);
+                        if(houseResult.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                            houseList = (List<Map<Object, Object>>) houseResult.getDataSet();
+                        }else{
+                            return houseResult;
+                        }
+                    }
+
+                    //订单池ID,根据订单池ID查询预约看房时间信息
+                    if(poolIds != null && houseIds.size() > 0){
+                        query.clear();
+                        query.put("poolIds",poolIds);
+                        query.put("isFinish",0); //是否完成 0：未完成 1：已完成
+                        query.put("isCancel",0); //是否取消 0：未取消 1：已取消
+                        query.put("isCheck",1); //是否审核通过（0>待审核，1>审核通过，2>审核不通过）
+                        query.put("applicationType",0); //预约类型（0：申请预约，1：无需预约，2：让客服联系）
+                        ResultVo appointmentResult = memberService.selectList(new HsMemberHousingApplication(),query,0);
+                        if(appointmentResult.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                            appointmentList = (List<Map<Object, Object>>)appointmentResult.getDataSet();
+                        }
+                    }
+
+                    for(Map task : taskList){
+                        houseApplyId = StringUtil.trim(task.get("applyId")); //房源申请ID
+                        houseId = StringUtil.trim(task.get("houseId")); //主房源信息ID
+                        opoolId = StringUtil.trim(task.get("poolId")); //订单池ID
+                        int taskType = StringUtil.getAsInt(StringUtil.trim(task.get("taskType"))); //任务类型0：外获 1：外看
+                        //外获任务
+                        if(taskType == 0){
+                            for(Map applyHouse : applyHouseList){
+                                String _houseApplyId = StringUtil.trim(applyHouse.get("applyId")); //房源申请ID
+                                if(houseApplyId.equals(_houseApplyId)){
+                                    task.put("leaseType",applyHouse.get("leaseType")); //房屋类型 0：出租，1：出售
+                                    task.put("applicantType",applyHouse.get("applicantType")); //申请类型 0：业主，1：POA
+                                    task.put("address",applyHouse.get("address")); //房源位置
+                                    task.put("memberId",applyHouse.get("memberId")); //会员ID
+                                    memberIds.add(StringUtil.trim(applyHouse.get("memberId"))); //会员ID
+                                    break;
+                                }
+                            }
+                        }else if(taskType == 1){ //外看任务
+                            for(Map house : houseList){
+                                String _houseId = StringUtil.trim(house.get("houseId")); //房源ID
+                                if(houseId.equals(_houseId)){
+                                    task.put("address",house.get("address")); //房源位置
+                                    task.put("leaseType",house.get("leaseType")); //房屋类型 0：出租，1：出售
+                                    task.put("applicantType",house.get("applicantType")); //申请类型 0
+                                    break;
+                                }
+                            }
+                        }
+
+                        if(StringUtil.hasText(opoolId)){
+                            for (Map map : appointmentList){
+                                String _poolId = StringUtil.trim(map.get("standby1"));
+                                if(_poolId.equals(opoolId)){
+                                    task.put("memberId",map.get("memberId"));
+                                    memberIds.add(StringUtil.trim(map.get("memberId")));
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    ResultVo  membersResult = memberService.selectList(new HsMember(),condition,1);
+                    //查询会员名称
+                    if(membersResult.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                        List<HsMember> memberList = (List<HsMember>) membersResult.getDataSet();
+                        for(HsMember member :memberList){
+                            int mid = member.getId();
+                            for(Map<Object,Object> task : taskList){
+                                int _mid = Integer.parseInt(StringUtil.trim(task.get("memberId")));
+                                if(mid == _mid){
+                                    task.put("memberName",member.getNickname());
+                                    task.put("memberId",member.getId());
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                result.setDataSet(taskList);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.setDataSet(null);
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return result;
+    }
+
+    /**
+     * 完成合同单任务
+      * @param condition
+     * @return
+     */
+    @Override
+    public ResultVo finishedContractTask(Map<Object, Object> condition) {
+        ResultVo result = new ResultVo();
+        try {
+            // 根据任务ID查询任务表，修改任务，并且增加任务日志信息
+            int taskId = StringUtil.getAsInt(StringUtil.trim(condition.get("taskId")));
+            String holdContractPic = StringUtil.trim(condition.get("holdContractPic")); //手持合同半身照
+            int userId = StringUtil.getAsInt(StringUtil.trim(condition.get("userId"))); //用户ID
+            result = memberService.select(taskId,new HsSystemUserOrderTasks());
+            if(result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                HsSystemUserOrderTasks systemUserOrderTasks = (HsSystemUserOrderTasks) result.getDataSet();
+                if(systemUserOrderTasks != null){
+                    Date date = new Date();
+                    HsSystemUserOrderTasks updateOrderTasks = new HsSystemUserOrderTasks();
+                    updateOrderTasks.setId(systemUserOrderTasks.getId()); //任务ID
+                    updateOrderTasks.setVersionNo(systemUserOrderTasks.getVersionNo());
+                    updateOrderTasks.setIsFinished(1); //已完成
+                    updateOrderTasks.setStandby1(holdContractPic); //手持合同半身照
+
+                    ResultVo updateTaskResult = memberService.update(updateOrderTasks);
+                    if(updateTaskResult.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                        //新增日志数据
+                        HsSystemUserOrderTasksLog log = new HsSystemUserOrderTasksLog();
+                        log.setTaskId(systemUserOrderTasks.getId());
+                        log.setPoolId(systemUserOrderTasks.getPoolId());
+                        log.setNodeType(3); //任务完成
+                        log.setCreateBy(userId);
+                        log.setCreateTime(date);
+                        log.setUpdateTime(date);
+                        log.setUpdateBy(userId);
+                        log.setPostTime(date);
+                        log.setOperatorUid(userId);
+
+                        ResultVo insertLogResult = memberService.insert(log);
+                        if(insertLogResult.getResult() != ResultConstant.SYS_REQUIRED_SUCCESS){
+                            return insertLogResult;
+                        }
+                    }else{
+                        return updateTaskResult;
+                    }
+
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.setDataSet(null);
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+
+        return result;
+    }
+}
+

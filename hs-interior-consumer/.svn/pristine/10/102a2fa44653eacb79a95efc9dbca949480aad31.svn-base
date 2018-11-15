@@ -1,0 +1,41 @@
+package www.ucforward.com.utils;
+
+import org.junit.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+import www.ucforward.com.constants.RedisConstant;
+import www.ucforward.com.entity.HsOwnerHousingApplication;
+import www.ucforward.com.manager.SystemCacheManager;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Author:wenbn
+ * Date:2018/1/8
+ * Description: 处理缓存的工具类
+ */
+public class SystemCacheUtil {
+
+    private static final String _systemCacheManager = "systemCacheManager";
+
+    /**
+     * 刷新数据字典缓存
+     */
+    public static void resetSysDictcodeCache(Map<Object,Object> condition) {
+        SystemCacheManager systemCacheManager = SpringContextUtils.getBean(_systemCacheManager);
+        systemCacheManager.resetSysDictcodeCache(condition);
+    }
+
+    public static Map<Object,Object> getCacheDictCodes(){
+        //获取缓存
+        List<String> dictcodeCaches = JsonUtil.json2List(RedisUtil.safeGet(RedisConstant.SYS_DICTCODE_CACHE_KEY), String.class);
+        Map<Object,Object> cacheMap = new HashMap<Object,Object>();
+        for (String dictcodeCache : dictcodeCaches) {
+            cacheMap.put(dictcodeCache,JsonUtil.parseJSON2List(RedisUtil.safeGet(dictcodeCache)));
+        }
+        return cacheMap;
+    }
+}

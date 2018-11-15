@@ -1,0 +1,270 @@
+package www.ucforward.com.manager.impl;
+
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.utils.StringUtil;
+import www.ucforward.com.constants.ResultConstant;
+import www.ucforward.com.entity.HsMsgRecord;
+import www.ucforward.com.entity.HsMsgSetting;
+import www.ucforward.com.entity.HsMsgSys;
+import www.ucforward.com.manager.MsgManager;
+import www.ucforward.com.serviceInter.CommonService;
+import www.ucforward.com.serviceInter.OrderService;
+import www.ucforward.com.umeng.util.UmengUtil;
+import www.ucforward.com.vo.ResultVo;
+
+import javax.annotation.Resource;
+import java.util.*;
+import java.util.stream.Collectors;
+
+/**
+ * @Auther: lsq
+ * @Date: 2018/8/26 17:03
+ * @Description:
+ */
+@Service("msgManager")
+public class MsgManagerAdminImpl implements MsgManager {
+
+    @Resource
+    private CommonService commonService;
+
+
+    /**
+     * 获取消息列表
+     *
+     * @param condition
+     * @return
+     */
+    @Override
+    public ResultVo getMsgList(Map<Object, Object> condition) {
+        ResultVo result = new ResultVo();
+        List<Map<Object, Object>> resultList = new ArrayList<>();
+        try {
+            ResultVo msgResultVo = commonService.getMsgList(condition);
+            if(msgResultVo.getResult() != ResultConstant.SYS_REQUIRED_SUCCESS){
+                return msgResultVo;
+            }
+            List<Map<Object, Object>> msgList = (List<Map<Object, Object>>) msgResultVo.getDataSet();
+            if(msgList == null){
+                return result;
+            }
+
+            //查询每个消息类型对应有多少未读消息
+            List<String> queryColumn = new ArrayList<>();
+            queryColumn.add("USER_NAME userName");
+            queryColumn.add("MSG_CODE msgCode");
+            queryColumn.add("COUNT(1) `count`");
+            condition.put("queryColumn",queryColumn);
+            condition.put("isDel",0);
+            condition.put("isRead",0);
+            condition.put("groupBy","MSG_CODE");
+            ResultVo noReadResultVo = commonService.selectCustomColumnNamesList(HsMsgRecord.class, condition);
+            if(noReadResultVo.getResult() != ResultConstant.SYS_REQUIRED_SUCCESS){
+                return noReadResultVo;
+            }
+            List<Map<Object, Object>> noReadResultList = (List<Map<Object, Object>>) noReadResultVo.getDataSet();
+
+            //根据id 将id对应的未读消息数量封装进结果集
+            for (Map<Object, Object> msgMap : msgList) {
+                String msgId = StringUtil.trim(msgMap.get("id"));
+                int count = 0;
+                for (Map<Object, Object> noReadResultMap : noReadResultList) {
+                    String noReadResultId = StringUtil.trim(noReadResultMap.get("id"));
+                    if(msgId.equals(noReadResultId)){
+                        count = StringUtil.getAsInt(StringUtil.trim(noReadResultMap.get("count")));
+                        break;
+                    }
+                }
+                msgMap.put("noReadResultNum",count);
+                resultList.add(msgMap);
+            }
+            //获取系统消息
+            condition.put("pageIndex",1);
+            condition.put("pageSize",1);
+            Map msgMap = commonService.getSysMsg(condition);
+            List<Map<Object,Object>> sysMsg = (List<Map<Object,Object>>)msgMap.get("data");
+            if(sysMsg != null && sysMsg.size() > 0){
+                Map<Object, Object> sysMsgMap = sysMsg.get(0);
+                String detailsStr = StringUtil.trim(sysMsgMap.get("details"));
+                JSONObject details = JSON.parseObject(detailsStr);
+                sysMsgMap.put("details",details);
+                resultList.add(sysMsgMap);
+            }
+            result.setDataSet(resultList);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            result.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return result;
+    }
+
+    @Override
+    public ResultVo getMsgHistory(Map<Object, Object> condition) {
+        ResultVo result = new ResultVo();
+        try {
+            String msgCode = StringUtil.trim(condition.get("msgCode"));
+            //系统消息
+            if("1".equals(msgCode)){
+                //获取系统消息
+                int pageIndex = StringUtil.getAsInt(StringUtil.trim(condition.get("pageIndex")));
+                condition.put("pageIndex", pageIndex - 1);
+                Map msgMap = commonService.getSysMsg(condition);
+                if(msgMap != null){
+                    List<Map<Object,Object>> sysMsg = (List<Map<Object,Object>>)msgMap.get("data");
+                    List<Map<Object, Object>> list = new ArrayList<>();
+                    if(sysMsg != null){
+                        for (Map<Object, Object> sysMsgMap : sysMsg) {
+                            String detailsStr = StringUtil.trim(sysMsgMap.get("details"));
+                            JSONObject details = JSON.parseObject(detailsStr);
+                            sysMsgMap.put("details",details);
+                            list.add(sysMsgMap);
+                        }
+                    }
+
+                    result.setDataSet(list);
+                    result.setPageInfo(msgMap.get("pageInfo"));
+                    return result;
+                }
+            }
+            ResultVo recordResultVo = commonService.selectList(new HsMsgRecord(), condition, 0);
+            if (recordResultVo.getResult() != ResultConstant.SYS_REQUIRED_SUCCESS) {
+                return recordResultVo;
+            }
+            List<Map<Object, Object>> recordList = (List<Map<Object, Object>>) recordResultVo.getDataSet();
+            if (recordList == null || recordList.size() < 1) {
+                return result;
+            }
+            List<Integer> ids = recordList.stream().map(map -> StringUtil.getAsInt(StringUtil.trim(map.get("id")))).collect(Collectors.toList());
+            //将消息全部设置为为已读
+            List<String> setColumn = new ArrayList<>();
+            setColumn.add("IS_READ = 1");
+            condition.clear();
+            condition.put("setColumn",setColumn);
+            condition.put("ids", ids);
+            condition.put("isDel", 0);
+            Integer updateInt = commonService.updateCustomColumnByCondition(new HsMsgRecord(), condition);
+            if (updateInt < 1) {
+                result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+                result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE + ":更新消息状态失败");
+                return result;
+            }
+            List<Map<Object, Object>> resultList = recordList.stream().map(map -> {
+                String detailsStr = StringUtil.trim(map.get("details"));
+                //将消息详情转换为jsond对象
+                JSONObject details = JSON.parseObject(detailsStr);
+                map.put("details", details);
+                return map;
+            }).collect(Collectors.toList());
+            result.setDataSet(resultList);
+            result.setPageInfo(recordResultVo.getPageInfo());
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            result.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return result;
+    }
+
+    /**
+     * @param type 类型 1外部 2外获 3外看 4区域长
+     * @return
+     */
+    @Override
+    public ResultVo getMsgType(String type) {
+        ResultVo result = new ResultVo();
+        try {
+            return commonService.getMsgType(type);
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            result.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return result;
+    }
+
+    @Override
+    public ResultVo getMemMsgSetting(Map<Object, Object> condition) {
+        ResultVo result = new ResultVo();
+        try {
+            ResultVo resultVo = commonService.selectList(new HsMsgSetting(), condition, 0);
+            if(resultVo.getResult() != ResultConstant.SYS_REQUIRED_SUCCESS){
+                result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+                result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+                return result;
+            }
+            List<Map<Object, Object>> settingList = (List<Map<Object, Object>>) resultVo.getDataSet();
+            if(settingList == null){
+                return result;
+            }
+            if(settingList.size() > 0){
+                result.setDataSet(settingList.get(0));
+                return result;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            result.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return result;
+    }
+
+    @Override
+    public ResultVo setMemMsgSetting(HsMsgSetting hsMsgSetting) {
+        ResultVo result = new ResultVo();
+        try {
+            Integer id = hsMsgSetting.getId();
+            if (id == null) {
+                //新增
+                return commonService.insert(hsMsgSetting);
+            }
+            //更新
+            return commonService.update(hsMsgSetting);
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            result.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return result;
+    }
+
+    @Override
+    public ResultVo pushSysMsg(Map<Object,Object> condition) {
+        ResultVo result = new ResultVo();
+        try {
+            String msg = StringUtil.trim(condition.get("msg"));
+            int client = StringUtil.getAsInt(StringUtil.trim(condition.get("client")));
+            int userId = StringUtil.getAsInt(StringUtil.trim(condition.get("userId")));
+            String userName = StringUtil.trim(condition.get("userName"));
+            int language = StringUtil.getAsInt(StringUtil.trim(condition.get("language")));
+            int platform = StringUtil.getAsInt(StringUtil.trim(condition.get("platform")));
+            String details = StringUtil.trim(condition.get("details"));
+            //封装系统消息对象
+            HsMsgSys hsMsgSys = new HsMsgSys();
+            hsMsgSys.setAlert(msg);
+            hsMsgSys.setClient(client);
+            hsMsgSys.setCreateBy(userId);
+            hsMsgSys.setUserName(userName);
+            hsMsgSys.setPlatform(platform);
+            hsMsgSys.setCreateTime(new Date());
+            hsMsgSys.setMsgCode(1);
+            hsMsgSys.setDetails(details);
+            //插入系统消息
+            result = commonService.insert(hsMsgSys);
+            if(result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                //发送推送消息
+                UmengUtil.broadcastSend(language, msg, platform,1,client);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            result.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return result;
+
+    }
+}

@@ -1,0 +1,454 @@
+package www.ucforward.com.controller.user;
+
+import com.google.gson.Gson;
+import org.apache.shiro.SecurityUtils;
+import org.apache.shiro.authc.*;
+import org.apache.shiro.authz.annotation.RequiresPermissions;
+import org.apache.shiro.codec.CodecException;
+import org.apache.shiro.crypto.UnknownAlgorithmException;
+import org.apache.shiro.crypto.hash.SimpleHash;
+import org.apache.shiro.mgt.DefaultSecurityManager;
+import org.apache.shiro.session.Session;
+import org.apache.shiro.session.mgt.DefaultSessionManager;
+import org.apache.shiro.session.mgt.eis.SessionDAO;
+import org.apache.shiro.subject.PrincipalCollection;
+import org.apache.shiro.subject.Subject;
+import org.apache.shiro.subject.support.DefaultSubjectContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.utils.StringUtil;
+import www.ucforward.com.constants.RedisConstant;
+import www.ucforward.com.constants.ResultConstant;
+import www.ucforward.com.controller.BaseController;
+import www.ucforward.com.controller.houses.HousesAdminController;
+import www.ucforward.com.entity.ActiveUser;
+import www.ucforward.com.entity.HsSysUser;
+import www.ucforward.com.entity.HsSysUserLocation;
+import www.ucforward.com.manager.MemberAdminManager;
+import www.ucforward.com.utils.EncryptionUtil;
+import www.ucforward.com.utils.JsonUtil;
+import www.ucforward.com.utils.RedisUtil;
+import www.ucforward.com.utils.RequestUtil;
+import www.ucforward.com.vo.HeaderVo;
+import www.ucforward.com.vo.PayLoadVo;
+import www.ucforward.com.vo.ResultVo;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.xml.transform.Result;
+import java.util.*;
+
+/**
+ * 系统管理类
+ * @author wenbn
+ * @version 1.0
+ * @date 2018/6/21
+ */
+@Controller
+@RequestMapping("/admin")
+public class AdminController extends BaseController {
+
+    // 日志记录器
+    private static Logger logger = LoggerFactory.getLogger(HousesAdminController.class); // 日志记录
+
+    @Value("${PASSWORD_HASHITERATIONS}")
+    private String PASSWORD_HASHITERATIONS;
+
+    @Resource
+    private SessionDAO sessionDao;
+    @Resource
+    private MemberAdminManager memberAdminManager;
+
+
+    /**
+     * 系统管理员登录
+     * @param username
+     * @param password
+     * @param roleType 登录角色  0 外获  1 外看  2 区域长
+     * @return
+     */
+    @RequestMapping(value = "login" ,method = RequestMethod.POST)
+    @ResponseBody
+    public String login(@RequestParam("username") String username,@RequestParam("password") String password ,@RequestParam("roleType") String roleType){
+        ResultVo vo = new ResultVo();
+        Subject subject = SecurityUtils.getSubject();
+        //Session session = subject.getSession();
+        if(!StringUtil.hasText(roleType)){
+            roleType = "0";
+        }
+        UsernamePasswordToken token=new UsernamePasswordToken(username,password);
+        try {
+            subject.login(token);
+            // 剔除其他此账号在其它地方登录
+            List<Session> loginedList = getLoginedSession(subject);
+            for (Session session : loginedList) {
+                session.stop();
+                RedisUtil.safeDel("shiro_redis_session:"+session.getId());
+            }
+            ActiveUser user = (ActiveUser) subject.getPrincipal();
+            String roleName = null;
+            for (Map<Object, Object> role : user.getRoleList()) {
+                roleName = StringUtil.trim(role.get("roleName"));
+            }
+            Boolean isContinue = false;
+            if(roleType.equals("0") && roleName.equals("外获业务员")){
+                isContinue = true;
+            }else if(roleType.equals("1") && roleName.equals("外看业务员")){
+                isContinue = true;
+            }else if(roleType.equals("2") && roleName.equals("钥匙管理员")){
+                isContinue = true;
+            }else if(roleType.equals("3")){
+                isContinue = true;
+            }
+            if(!isContinue){
+                subject.logout();
+                vo.setResult(ResultConstant.SYS_REQUIRED_UNAUTHORIZED_ERROR);
+                vo.setMessage(ResultConstant.SYS_REQUIRED_UNAUTHORIZED_ERROR_VALUE);
+                return JsonUtil.toJson(vo);
+            }
+            vo.setDataSet(roleName);
+            vo.setResult(ResultConstant.SYS_REQUIRED_LOGIN_SUCCESS);
+            vo.setMessage(ResultConstant.SYS_REQUIRED_LOGIN_SUCCESS_VALUE);
+        }catch (UnknownAccountException e){
+            vo.setMessage("账号未注册");
+        }catch (LockedAccountException e){
+            vo.setMessage("账号被锁定");
+        }catch (DisabledAccountException e){
+            vo.setMessage("账号已被禁用，请联系管理员");
+        }catch (ConcurrentAccessException e){
+            vo.setMessage("登录异常,不可多次登录");
+        }catch (IncorrectCredentialsException e){
+            vo.setMessage("密码错误");
+        }catch(Exception e){
+            e.printStackTrace();
+            vo.setMessage("未知错误");
+        }
+        return JsonUtil.toJson(vo);
+    }
+
+    //遍历同一个账户的session
+    private List<Session> getLoginedSession(Subject currentUser) {
+        Collection<Session> list = ((DefaultSessionManager) ((DefaultSecurityManager) SecurityUtils
+                .getSecurityManager()).getSessionManager()).getSessionDAO()
+                .getActiveSessions();
+        List<Session> loginedList = new ArrayList<Session>();
+        ActiveUser loginUser = (ActiveUser) currentUser.getPrincipal();
+        for (Session session : list) {
+            Subject s = new Subject.Builder().session(session).buildSubject();
+            if (s.isAuthenticated()) {
+                ActiveUser user = (ActiveUser) s.getPrincipal();
+                if (user.getUsercode().equalsIgnoreCase(loginUser.getUsercode())) {
+                    if (!session.getId().equals(currentUser.getSession().getId())) {
+                        loginedList.add(session);
+                    }
+                }
+            }
+        }
+        return loginedList;
+    }
+
+    /**
+     * 系统管理员退出登录
+     * @param request
+     * @param response
+     * @return
+     */
+    @RequestMapping("/logout")
+    @ResponseBody
+    public String logout(HttpServletRequest request, HttpServletResponse response){
+        ResultVo vo = new ResultVo();
+        Subject subject = SecurityUtils.getSubject();
+        subject.logout();
+        vo.setMessage("退出登录成功");
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 新增业务员
+     * @param request
+     * @param response
+     * @return
+     */
+    @RequestMapping("/add")
+    @RequiresPermissions("user:add")
+    @ResponseBody
+    public String register(HttpServletRequest request, HttpServletResponse response,HsSysUser user){
+        ResultVo vo = new ResultVo();
+        Map<Object,Object> map = RequestUtil.getParameterMap(request);
+        String imgType = StringUtil.trim(map.get("imgType"));
+        String imgCode = StringUtil.trim(map.get("imgCode"));
+        String password = StringUtil.trim(map.get("password"));
+        if(!StringUtil.hasText(imgType) || !StringUtil.hasText(imgCode)){
+            vo.setResult(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR);
+            vo.setMessage(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE);
+            return JsonUtil.toJson(vo);
+        }
+        String ip = RequestUtil.getIpAddress(request);
+        String cacheCode = "";
+        if(imgType.equals("1")){//注册验证码
+            cacheCode = RedisUtil.safeGet(RedisConstant.SYS_USER_REGISTER_IMG_CODE_KEY+ip);
+        }
+        if(!cacheCode.equals(imgCode)){
+            vo.setResult(-1);
+            vo.setMessage("验证码错误");
+            return JsonUtil.toJson(vo);
+        }
+
+        int salt= (int) ((Math.random()*9+1)*10000);
+        SimpleHash md5 = new SimpleHash("MD5", password, salt+"", Integer.parseInt(PASSWORD_HASHITERATIONS));
+        user.setSalt(salt+"");
+        user.setPassword(md5.toString());
+        return JsonUtil.toJson(vo);
+    }
+
+
+
+    /**
+     * 未登录
+     * @param request
+     * @param response
+     * @return
+     */
+    @RequestMapping("/unlogin")
+    @ResponseBody
+    public String unlogin(HttpServletRequest request, HttpServletResponse response){
+        ResultVo vo = new ResultVo();
+        vo.setMessage("未登录");
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 无权访问
+     * @param request
+     * @param response
+     * @return
+     */
+    @RequestMapping("/unauth")
+    @ResponseBody
+    public String unauth(HttpServletRequest request, HttpServletResponse response){
+        ResultVo vo = new ResultVo();
+        vo.setMessage("无权访问");
+        return JsonUtil.toJson(vo);
+    }
+
+
+    /**
+     * 无权访问
+     * @param request
+     * @param response
+     * @return
+     */
+    @RequestMapping("/online/users/get")
+    @ResponseBody
+    public String getOnlineUsers(HttpServletRequest request, HttpServletResponse response){
+        ResultVo vo = null;
+//        Collection<Session> sessions = sessionDao.getActiveSessions();
+//        int count  = 0;
+//        for(Session session:sessions){
+//            System.out.println("登录ip:"+session.getHost());
+//            System.out.println("登录用户"+session.getAttribute("USER_PRIVILEGES"));
+//            System.out.println("最后操作日期:"+session.getLastAccessTime());
+//            count++;
+//        }
+//        vo = ResultVo.success();
+//        vo.setDataSet("当前在线用户数量："+count);
+        Collection<Session> list = ((DefaultSessionManager) ((DefaultSecurityManager) SecurityUtils
+                .getSecurityManager()).getSessionManager()).getSessionDAO()
+                .getActiveSessions();
+        List<ActiveUser> onlineList = new ArrayList<ActiveUser>();
+        for (Session session : list) {
+            Subject s = new Subject.Builder().session(session).buildSubject();
+            if (s.isAuthenticated()) {
+                ActiveUser user = (ActiveUser) s.getPrincipal();
+                onlineList.add(user);
+            }
+        }
+        vo = ResultVo.success();
+        vo.setDataSet(onlineList);
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+     * 修改密码
+     * @param request
+     * @param response
+     * @param password
+     * @param oldPassword
+     * @return
+     */
+    @RequestMapping("/password/update")
+    @ResponseBody
+    public String updatePassword(HttpServletRequest request,HttpServletResponse response,String password,String oldPassword){
+        ResultVo result = new ResultVo();
+        Map<Object,Object> condition = new HashMap<>();
+        try {
+            ActiveUser user = (ActiveUser) SecurityUtils.getSubject().getPrincipal(); //获取当前用户信息
+            int salt= (int) ((Math.random()*9+1)*10000);
+            SimpleHash md5 = new SimpleHash("MD5", password, salt+"", Integer.parseInt(PASSWORD_HASHITERATIONS));
+
+            condition.put("oldPassword",oldPassword); //旧密码
+            condition.put("password",md5.toString()); //新密码
+            condition.put("salt",salt);
+            condition.put("userId",user.getUserid()); //用户ID
+            condition.put("PASSWORD_HASHITERATIONS",PASSWORD_HASHITERATIONS);
+            result = memberAdminManager.updateSysUser(condition);
+            if(result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                Subject subject = SecurityUtils.getSubject();
+                subject.logout();
+            }
+        } catch (Exception e) {
+            result.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            result.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return JsonUtil.toJson(result);
+    }
+
+    /**
+     * 校验短信验证码
+     * @param request
+     * @return
+     */
+    @RequestMapping(value = "/validate/sms/code",method = RequestMethod.POST)
+    @ResponseBody
+    public String validateSmsCode(HttpServletRequest request){
+        ResultVo result = new ResultVo();
+        Map<Object,Object> condition = new HashMap<>();
+        try {
+            ActiveUser user = (ActiveUser) SecurityUtils.getSubject().getPrincipal(); //获取当前用户信息
+            String smsCode = request.getParameter("smsCode");
+            String mobile = request.getParameter("mobile");
+            if(!StringUtil.hasText(smsCode) || !StringUtil.hasText(mobile)){
+                result.setResult(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR);
+                result.setMessage(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE);
+                return JsonUtil.toJson(result);
+            }
+            condition.put("ip",RequestUtil.getIpAddress(request));
+            condition.put("smsCode",smsCode);
+            condition.put("mobile",mobile);
+            condition.put("areaCode","86");//中国
+            //condition.put("areaCode","971");//迪拜
+            result = memberAdminManager.validateSmsCode(condition);
+        } catch (Exception e) {
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return JsonUtil.toJson(result);
+    }
+
+    /**
+     * 忘记密码,
+     * @param request
+     * @param response
+     * @return
+     */
+    @RequestMapping("/password/forget")
+    @ResponseBody
+    public String forgetPassword(HttpServletRequest request,HttpServletResponse response){
+        ResultVo result = new ResultVo();
+        Map<Object,Object> condition = new HashMap<>();
+        try {
+            String password = request.getParameter("password");//新密码
+            String mobile = request.getParameter("mobile");//新密码
+            if(!StringUtil.hasText(password) || !StringUtil.hasText(mobile)) {
+                result.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+                result.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+                return JsonUtil.toJson(result);
+            }
+            int salt= (int) ((Math.random()*9+1)*10000);
+            SimpleHash md5 = new SimpleHash("MD5", password, salt+"", Integer.parseInt(PASSWORD_HASHITERATIONS));
+            condition.put("password",md5.toString()); //新密码
+            condition.put("salt",salt);
+            condition.put("mobile",mobile);
+            result = memberAdminManager.forgetPassword(condition);
+            if(result.getResult() == ResultConstant.SYS_REQUIRED_SUCCESS){
+                Subject subject = SecurityUtils.getSubject();
+                subject.logout();
+            }
+        } catch (Exception e) {
+            result.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            result.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return JsonUtil.toJson(result);
+    }
+
+
+    /**
+     * 发送验证码
+     * @param request
+     * @param response
+     * @param areaCode
+     * @param mobile
+     * @return
+     */
+    @RequestMapping(value = "validateCode/sms/send",method = RequestMethod.POST)
+    @ResponseBody
+    public String sendSmsValidateCode(HttpServletRequest request,HttpServletResponse response,String areaCode,String mobile){
+        ResultVo result = new ResultVo();
+        Map<Object,Object> condition = new HashMap<>();
+        try {
+            if(!StringUtil.hasText(mobile)){
+                result.setResult(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR);
+                result.setMessage(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE);
+                return JsonUtil.toJson(result);
+            }
+
+            if(!StringUtil.hasText(areaCode)){
+                areaCode = "971"; //默认为迪拜手机区号
+            }
+            condition.put("areaCode",areaCode);
+            condition.put("mobile",mobile);
+            condition.put("ip",RequestUtil.getIpAddress(request));
+            result = memberAdminManager.sendSmsValidateCode(condition);
+        } catch (Exception e) {
+            result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+            result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return JsonUtil.toJson(result);
+    }
+
+
+
+    /**
+     * 修改手机号
+     * @param request
+     * @param response
+     * @return
+     */
+    @RequestMapping("mobile/update")
+    @ResponseBody
+    public String updateMobile(HttpServletRequest request,HttpServletResponse response,String mobile,String areaCode,String validateCode){
+       ResultVo result = new ResultVo();
+       Map<Object,Object> condition = new HashMap<>();
+        try {
+            if(!StringUtil.hasText(mobile) || !StringUtil.hasText(validateCode)){
+                result.setResult(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR);
+                result.setMessage(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE);
+                return JsonUtil.toJson(result);
+            }
+            ActiveUser user = (ActiveUser) SecurityUtils.getSubject().getPrincipal(); //获取当前用户信息
+
+            if(!StringUtil.hasText(areaCode)){
+                areaCode = "971"; //迪拜手机区号，默认
+            }
+            condition.put("areaCode",areaCode);
+            condition.put("mobile",mobile);
+            condition.put("userId",user.getUserid());
+            condition.put("ip",RequestUtil.getIpAddress(request));
+            condition.put("validateCode",validateCode);
+
+            result = memberAdminManager.updateSysUserMobile(condition);
+        } catch (Exception e) {
+            result.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            result.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return JsonUtil.toJson(result);
+    }
+}

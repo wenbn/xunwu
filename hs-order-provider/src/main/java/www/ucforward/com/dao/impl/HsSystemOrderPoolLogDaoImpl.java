@@ -1,0 +1,64 @@
+package www.ucforward.com.dao.impl;
+
+import org.springframework.stereotype.Repository;
+import www.ucforward.com.dao.BaseDao;
+import www.ucforward.com.dao.HsSystemOrderPoolLogDao;
+import www.ucforward.com.entity.HsSystemOrderPool;
+import www.ucforward.com.entity.HsSystemOrderPoolLog;
+
+import java.util.List;
+import java.util.Map;
+
+@Repository("hsSystemOrderPoolLogDao")
+public class HsSystemOrderPoolLogDaoImpl extends BaseDao implements HsSystemOrderPoolLogDao {
+
+    @Override
+    public int deleteByPrimaryKey(Integer id) {
+        return this.getSqlSession().insert("HsSystemOrderPoolLogDao.deleteByPrimaryKey",id);
+    }
+
+    @Override
+    public int insert(HsSystemOrderPoolLog record) {
+        return insertSelective(record);
+    }
+
+    @Override
+    public int insertSelective(HsSystemOrderPoolLog record) {
+        return this.getSqlSession().insert("HsSystemOrderPoolLogDao.insertSelective",record);
+    }
+
+    @Override
+    public HsSystemOrderPoolLog selectByPrimaryKey(Integer id) {
+        return this.getSqlSession().selectOne("HsSystemOrderPoolLogDao.selectByPrimaryKey",id);
+    }
+
+    @Override
+    public int updateByPrimaryKeySelective(HsSystemOrderPoolLog record) {
+        return this.getSqlSession().update("HsSystemOrderPoolLogDao.updateByPrimaryKeySelective",record);
+    }
+
+    @Override
+    public int updateByPrimaryKey(HsSystemOrderPoolLog record) {
+        return updateByPrimaryKeySelective(record);
+    }
+
+    @Override
+    public Map<Object, Object> selectListByCondition(Map<Object, Object> condition, int returnType) {
+        //默认查询ListMap
+        String sql  = "HsSystemOrderPoolLogDao.selectSystemOrderPoolLogListMapByCondition";
+        if(returnType!=0){//查询实体
+            sql  = "HsSystemOrderPoolLogDao.selectSystemOrderPoolLogListByCondition";
+        }
+        return executeSql(condition,sql);
+    }
+
+    /**
+     * 批量插入数据
+     * @param logData
+     * @return
+     */
+    @Override
+    public int batchInsert(List<HsSystemOrderPoolLog> logData) {
+        return this.getSqlSession().insert("HsSystemOrderPoolLogDao.batchInsert",logData);
+    }
+}

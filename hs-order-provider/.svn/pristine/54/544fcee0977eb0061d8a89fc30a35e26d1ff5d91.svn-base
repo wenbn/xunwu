@@ -1,0 +1,9 @@
+package www.ucforward.com.serviceImpl;
+
+import org.springframework.core.annotation.Order;
+import org.springframework.stereotype.Service;
+import www.ucforward.com.serviceInter.OrderService;
+
+@Service("orderService")
+public class OrderServiceImpl implements OrderService {
+}

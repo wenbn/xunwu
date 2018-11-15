@@ -1,0 +1,100 @@
+package www.ucforward.com.dao.impl;
+
+import org.springframework.stereotype.Repository;
+import www.ucforward.com.dao.BaseDao;
+import www.ucforward.com.dao.HsHousingOrderDao;
+import www.ucforward.com.entity.HsHousingOrder;
+import www.ucforward.com.entity.HsSystemOrderPool;
+
+import java.util.List;
+import java.util.Map;
+
+@Repository("hsHousingOrderDao")
+public class HsHousingOrderDaoImpl extends BaseDao implements HsHousingOrderDao {
+
+    @Override
+    public int deleteByPrimaryKey(Integer id) {
+        return this.getSqlSession().delete("HsHousingOrderDao.deleteByPrimaryKey",id);
+    }
+
+    @Override
+    public int insert(HsHousingOrder record) {
+        return insertSelective(record);
+    }
+
+    @Override
+    public int insertSelective(HsHousingOrder record) {
+        return this.getSqlSession().insert("HsHousingOrderDao.insertSelective",record);
+    }
+
+    @Override
+    public HsHousingOrder selectByPrimaryKey(Integer id) {
+        return this.getSqlSession().selectOne("HsHousingOrderDao.selectByPrimaryKey",id);
+    }
+
+    @Override
+    public int updateByPrimaryKeySelective(HsHousingOrder record) {
+        return this.getSqlSession().update("HsHousingOrderDao.updateByPrimaryKeySelective",record);
+    }
+
+    @Override
+    public int updateByPrimaryKey(HsHousingOrder record) {
+        return updateByPrimaryKeySelective(record);
+    }
+
+    /**
+     * 查询列表数据
+     * @param condition 查询参数
+     * @param returnType 返回值类型，0 List<Map>  1 list<Entity>
+     * @return
+     * @throws Exception
+     */
+    @Override
+    public Map<Object, Object> selectListByCondition(Map<Object, Object> condition, int returnType) {
+        //默认查询ListMap
+        String sql  = "HsHousingOrderDao.selectHousingOrderListMapByCondition";
+        if(returnType!=0){//查询实体
+            sql  = "HsHousingOrderDao.selectHousingOrderListByCondition";
+        }
+        return executeSql(condition,sql);
+    }
+
+    /**
+     * 自定义查询列
+     * @param condition
+     * @return
+     */
+    @Override
+    public Map<Object, Object> selectCustomColumnNamesList(Map<Object, Object> condition) {
+        return executeSql(condition, "HsHousingOrderDao.selectCustomColumnNamesList");
+    }
+
+    /**
+     * 批量修改数据
+     * @param data
+     * @return
+     */
+    @Override
+    public int batchUpdate(List<HsHousingOrder> data) {
+        return this.getSqlSession().update("HsHousingOrderDao.batchUpdate",data);
+    }
+
+    /**
+     * 获取订单状态 字典表dict_order_status
+     * @return
+     */
+    @Override
+    public List<Map<Object, Object>> getOrderStatus() {
+        return this.getSqlSession().selectList("HsHousingOrderDao.getOrderStatus");
+    }
+
+    /**
+     * 根据条件更新
+     * @param condition
+     * @return
+     */
+    @Override
+    public int updateByCondition(Map<Object,Object> condition){
+        return this.getSqlSession().update("HsHousingOrderDao.updateByCondition",condition);
+    }
+}

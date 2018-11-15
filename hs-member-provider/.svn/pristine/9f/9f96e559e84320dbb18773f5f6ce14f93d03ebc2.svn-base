@@ -1,0 +1,61 @@
+package www.ucforward.com.dao.impl;
+
+import org.apache.ibatis.session.SqlSessionFactory;
+import org.mybatis.spring.support.SqlSessionDaoSupport;
+import org.springframework.stereotype.Repository;
+import www.ucforward.com.dao.HsSysPermissionDao;
+import www.ucforward.com.entity.HsSysPermission;
+
+import javax.annotation.Resource;
+import java.util.List;
+import java.util.Map;
+
+@Repository("hsSysPermissionDao")
+public class HsSysPermissionDaoImpl extends SqlSessionDaoSupport implements HsSysPermissionDao {
+
+    /**
+     * 需要继承
+     * @param sqlSessionFactory
+     */
+    @Resource
+    @Override
+    public void setSqlSessionFactory(SqlSessionFactory sqlSessionFactory) {
+        super.setSqlSessionFactory(sqlSessionFactory);
+    }
+
+    @Override
+    public int deleteByPrimaryKey(Integer id) {
+        return this.getSqlSession().delete("HsSysPermissionDao.deleteByPrimaryKey" ,id);
+    }
+
+    @Override
+    public int insert(HsSysPermission hsSysPermission) {
+        return insertSelective(hsSysPermission);
+    }
+
+    @Override
+    public int insertSelective(HsSysPermission hsSysPermission) {
+        return this.getSqlSession().insert("HsSysPermissionDao.insertSelective" ,hsSysPermission);
+    }
+
+    @Override
+    public HsSysPermission selectByPrimaryKey(Integer id) {
+        return this.getSqlSession().selectOne("HsSysPermissionDao.selectByPrimaryKey" ,id);
+    }
+
+    @Override
+    public int updateByPrimaryKeySelective(HsSysPermission hsSysPermission) {
+        return this.getSqlSession().update("HsSysPermissionDao.updateByPrimaryKeySelective" ,hsSysPermission);
+    }
+
+    @Override
+    public int updateByPrimaryKey(HsSysPermission hsSysPermission) {
+        return updateByPrimaryKeySelective(hsSysPermission);
+    }
+
+    //根据角色获取权限
+    @Override
+    public List<HsSysPermission> selectPermissionsByRoleIds(Map<Object, Object> condition) {
+        return this.getSqlSession().selectList("HsSysPermissionDao.selectPermissionsByRoleIds" ,condition);
+    }
+}

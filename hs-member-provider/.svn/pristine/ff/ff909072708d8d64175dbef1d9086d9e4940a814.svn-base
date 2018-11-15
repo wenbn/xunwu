@@ -1,0 +1,97 @@
+package www.ucforward.com.serviceImpl;
+
+import org.omg.CORBA.OBJ_ADAPTER;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.utils.StringUtil;
+import www.ucforward.com.constants.ResultConstant;
+import www.ucforward.com.dao.*;
+import www.ucforward.com.entity.HsMember;
+import www.ucforward.com.entity.HsSysPermission;
+import www.ucforward.com.entity.HsSysRole;
+import www.ucforward.com.entity.HsSysUser;
+import www.ucforward.com.serviceInter.MemberService;
+import www.ucforward.com.utils.SystemNumberUtil;
+import www.ucforward.com.vo.ResultVo;
+
+import javax.annotation.Resource;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+@Service("memberService")
+public class MemberServiceImpl implements MemberService {
+
+    @Autowired
+    private HsSysUserDao hsSysUserDao;
+    @Autowired
+    private HsSysPermissionDao hsSysPermissionDao;
+    @Autowired
+    private HsSysRoleDao hsSysRoleDao;
+    @Autowired
+    private HsSysRolePermissionDao hsSysRolePermissionDao;
+    @Autowired
+    private HsSysUserRoleDao hsSysUserRoleDao;
+    @Autowired
+    private HsMemberDao hsMemberDao;
+
+    /**
+     *  根据条件查询用户信息
+     * @param condition
+     * @return
+     */
+    @Override
+    public HsSysUser selectHsSysUserByCondition(Map<Object, Object> condition) {
+        return hsSysUserDao.selectHsSysUserByCondition(condition);
+    }
+
+    /**
+     *  根据条件查询用户权限
+     * @param condition
+     * @return
+     */
+    @Override
+    public List<HsSysPermission> selectPermissionListByUser(Map<Object, Object> condition) {
+        //查询用户对应的角色
+        List<Map<Object,Object>> userRoles = hsSysRoleDao.selectRolesByUser(condition);
+        if(userRoles==null){
+            return null;
+        }
+        List<String> roleIds = new ArrayList<String>();
+        for (Map<Object, Object> userRole : userRoles) {
+            roleIds.add(StringUtil.trim(userRole.get("roleId")));
+        }
+        condition.put("roleIds",roleIds);
+        List<HsSysPermission> permissions = hsSysPermissionDao.selectPermissionsByRoleIds(condition);
+        return permissions;
+    }
+
+    /**
+     * 登录
+     * @param condition
+     * @return
+     */
+    @Override
+    public ResultVo login(Map<Object, Object> condition) {
+        ResultVo vo = new ResultVo();
+//        if(condition== null){
+//            vo.setResult(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR);
+//            vo.setMessage(ResultConstant.SYS_REQUIRED_PARAMETER_ERROR_VALUE);
+//            return vo;
+//        }
+        String language = StringUtil.trim(condition.get("language"));
+        String memberMobile = StringUtil.trim(condition.get("memberMobile"));
+        Map<Object,Object> queryFilter = new HashMap<Object,Object>();
+        queryFilter.put("memberMobile",memberMobile);
+        HsMember member = hsMemberDao.selectMemberByCondition(queryFilter);
+        if(member==null){
+            member = new HsMember();
+            member.setMemberCode(SystemNumberUtil.createCode(ResultConstant.BUS_MEMBER_CODE_VALUE));
+            member.setMemberMobile(memberMobile);
+            int state = hsMemberDao.addMember(member);
+        }
+
+        return null;
+    }
+}

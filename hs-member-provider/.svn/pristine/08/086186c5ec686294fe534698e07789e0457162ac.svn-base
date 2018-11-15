@@ -1,0 +1,40 @@
+package www.ucforward.com.dao.impl;
+
+import org.springframework.stereotype.Repository;
+import www.ucforward.com.dao.BaseDao;
+import www.ucforward.com.dao.HsMemberDao;
+import www.ucforward.com.entity.HsMember;
+
+@Repository("hsMemberDao")
+public class HsMemberDaoImpl extends BaseDao implements HsMemberDao {
+
+    @Override
+    public int deleteByPrimaryKey(Integer id) {
+        return this.getSqlSession().delete("HsMemberDao.deleteByPrimaryKey" ,id);
+    }
+
+    @Override
+    public int insert(HsMember record) {
+        return insertSelective(record);
+    }
+
+    @Override
+    public int insertSelective(HsMember record) {
+        return this.getSqlSession().delete("HsMemberDao.insertSelective" ,record);
+    }
+
+    @Override
+    public HsMember selectByPrimaryKey(Integer id) {
+        return this.getSqlSession().selectOne("HsMemberDao.selectByPrimaryKey" ,id);
+    }
+
+    @Override
+    public int updateByPrimaryKeySelective(HsMember record) {
+        return this.getSqlSession().update("HsMemberDao.updateByPrimaryKeySelective" ,record);
+    }
+
+    @Override
+    public int updateByPrimaryKey(HsMember record) {
+        return updateByPrimaryKeySelective(record);
+    }
+}

@@ -1,0 +1,120 @@
+package www.ucforward.com.serviceImpl;
+
+import com.google.gson.Gson;
+import org.omg.CORBA.OBJ_ADAPTER;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.utils.StringUtil;
+import www.ucforward.com.constants.ResultConstant;
+import www.ucforward.com.dao.*;
+import www.ucforward.com.entity.HsMember;
+import www.ucforward.com.entity.HsSysPermission;
+import www.ucforward.com.entity.HsSysRole;
+import www.ucforward.com.entity.HsSysUser;
+import www.ucforward.com.serviceInter.MemberService;
+import www.ucforward.com.utils.EncryptionUtil;
+import www.ucforward.com.utils.JsonUtil;
+import www.ucforward.com.utils.RedisUtil;
+import www.ucforward.com.utils.SystemNumberUtil;
+import www.ucforward.com.vo.HeaderVo;
+import www.ucforward.com.vo.PayLoadVo;
+import www.ucforward.com.vo.ResultVo;
+
+import javax.annotation.Resource;
+import java.util.*;
+
+@Service("memberService")
+public class MemberServiceImpl implements MemberService {
+
+    @Autowired
+    private HsSysUserDao hsSysUserDao;
+    @Autowired
+    private HsSysPermissionDao hsSysPermissionDao;
+    @Autowired
+    private HsSysRoleDao hsSysRoleDao;
+    @Autowired
+    private HsSysRolePermissionDao hsSysRolePermissionDao;
+    @Autowired
+    private HsSysUserRoleDao hsSysUserRoleDao;
+    @Autowired
+    private HsMemberDao hsMemberDao;
+
+    /**
+     *  根据条件查询用户信息
+     * @param condition
+     * @return
+     */
+    @Override
+    public HsSysUser selectHsSysUserByCondition(Map<Object, Object> condition) {
+        return hsSysUserDao.selectHsSysUserByCondition(condition);
+    }
+
+    /**
+     *  根据条件查询用户权限
+     * @param condition
+     * @return
+     */
+    @Override
+    public List<HsSysPermission> selectPermissionListByUser(Map<Object, Object> condition) {
+        //查询用户对应的角色
+        List<Map<Object,Object>> userRoles = hsSysRoleDao.selectRolesByUser(condition);
+        if(userRoles==null){
+            return null;
+        }
+        List<String> roleIds = new ArrayList<String>();
+        for (Map<Object, Object> userRole : userRoles) {
+            roleIds.add(StringUtil.trim(userRole.get("roleId")));
+        }
+        condition.put("roleIds",roleIds);
+        List<HsSysPermission> permissions = hsSysPermissionDao.selectPermissionsByRoleIds(condition);
+        return permissions;
+    }
+
+    /**
+     * 登录
+     * @param condition
+     * @return
+     */
+    @Override
+    public ResultVo login(Map<Object, Object> condition) throws Exception{
+        ResultVo vo = new ResultVo();
+        int language = (int) condition.get("language");
+        String memberMobile = StringUtil.trim(condition.get("memberMobile"));
+        Map<Object,Object> queryFilter = new HashMap<Object,Object>();
+        queryFilter.put("memberMobile",memberMobile);
+        HsMember member = hsMemberDao.selectMemberByCondition(queryFilter);
+        if(member==null){
+            member = new HsMember();
+            member.setMemberCode(SystemNumberUtil.createCode(ResultConstant.BUS_MEMBER_CODE_VALUE));
+            member.setMemberMobile(memberMobile);
+            member.setLanguageVersion(language);
+            member.setCreateTime(new Date());
+            int state = hsMemberDao.addMember(member);
+            if(state<=0){
+                vo.setResult(-1);
+                vo.setMessage("新增会员失败");
+                return vo;
+            }
+        }
+        if(member.getState() == 0){
+            vo.setResult(-1);
+            vo.setMessage("会员已禁用，请联系管理员");
+            return vo;
+        }
+        //生成token值
+        PayLoadVo payLoadVo = new PayLoadVo();
+        HeaderVo headerVo = new HeaderVo();
+        payLoadVo.setUserId(String.valueOf(member.getId()));
+        payLoadVo.setIss(member.getMemberCode());
+        payLoadVo.setExp(new Date());
+        String content = EncryptionUtil.getBase64(JsonUtil.toJson(headerVo)).replaceAll("\r|\n", "")+"."+EncryptionUtil.getBase64(new Gson().toJson(payLoadVo)).replaceAll("\r|\n", "");
+        String signature = EncryptionUtil.getSHA256StrJava(ResultConstant.TAG_TOKEN+content);
+        vo.setToken(content+"."+EncryptionUtil.getBase64(signature).replaceAll("\r|\n", ""));
+        //请求成功
+        vo.setMessage(ResultConstant.SYS_REQUIRED_SUCCESS_VALUE);
+        vo.setResult(ResultConstant.SYS_REQUIRED_SUCCESS);
+        //保存至redis
+        RedisUtil.safeSet(member.getMemberCode(),signature,1800);
+        return vo;
+    }
+}

@@ -1,0 +1,54 @@
+package www.ucforward.com.dao.impl;
+
+import org.apache.ibatis.session.SqlSessionFactory;
+import org.mybatis.spring.support.SqlSessionDaoSupport;
+import org.springframework.stereotype.Repository;
+import www.ucforward.com.dao.HsSysUserRoleDao;
+import www.ucforward.com.entity.HsSysUserRole;
+
+import javax.annotation.Resource;
+
+@Repository("hsSysUserRoleDao")
+public class HsSysUserRoleDaoImpl extends SqlSessionDaoSupport implements HsSysUserRoleDao {
+
+    /**
+     * 需要继承
+     * @param sqlSessionFactory
+     */
+    @Resource
+    @Override
+    public void setSqlSessionFactory(SqlSessionFactory sqlSessionFactory) {
+        super.setSqlSessionFactory(sqlSessionFactory);
+    }
+
+
+    @Override
+    public int deleteByPrimaryKey(String id) {
+        return this.getSqlSession().delete("HsSysUserRoleDao.deleteByPrimaryKey" ,id);
+    }
+
+    @Override
+    public int insert(HsSysUserRole record) {
+        return insertSelective(record);
+    }
+
+    @Override
+    public int insertSelective(HsSysUserRole record) {
+        return this.getSqlSession().insert("HsSysUserRoleDao.insertSelective" ,record);
+    }
+
+    @Override
+    public HsSysUserRole selectByPrimaryKey(String id) {
+        return this.getSqlSession().selectOne("HsSysUserRoleDao.selectByPrimaryKey" ,id);
+    }
+
+    @Override
+    public int updateByPrimaryKeySelective(HsSysUserRole record) {
+        return this.getSqlSession().update("HsSysUserRoleDao.updateByPrimaryKeySelective" ,record);
+    }
+
+    @Override
+    public int updateByPrimaryKey(HsSysUserRole record) {
+        return updateByPrimaryKeySelective(record);
+    }
+}

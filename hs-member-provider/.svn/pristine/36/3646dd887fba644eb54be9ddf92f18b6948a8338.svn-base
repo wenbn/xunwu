@@ -1,0 +1,8 @@
+package www.ucforward.com.serviceImpl;
+
+import org.springframework.stereotype.Service;
+import www.ucforward.com.serviceInter.MemberService;
+
+@Service("memberService")
+public class MemberServiceImpl implements MemberService {
+}

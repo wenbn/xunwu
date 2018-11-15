@@ -1,0 +1,922 @@
+package www.ucforward.com.serviceImpl;
+
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.gson.Gson;
+import io.swagger.client.model.RegisterUsers;
+import io.swagger.client.model.User;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.utils.StringUtil;
+import www.ucforward.com.constants.ResultConstant;
+import www.ucforward.com.dao.*;
+import www.ucforward.com.emchat.api.impl.EasemobIMUsers;
+import www.ucforward.com.entity.*;
+import www.ucforward.com.serviceInter.MemberService;
+import www.ucforward.com.utils.*;
+import www.ucforward.com.vo.HeaderVo;
+import www.ucforward.com.vo.PayLoadVo;
+import www.ucforward.com.vo.ResultVo;
+
+import java.util.*;
+
+@Service("memberService")
+public class MemberServiceImpl<T> implements MemberService<T> {
+
+    private static Logger logger = LoggerFactory.getLogger(MemberServiceImpl.class); // 日志记录
+
+    @Autowired
+    private HsSysUserDao hsSysUserDao;
+    @Autowired
+    private HsSysPermissionDao hsSysPermissionDao;
+    @Autowired
+    private HsSysRoleDao hsSysRoleDao;
+    @Autowired
+    private HsSysRolePermissionDao hsSysRolePermissionDao;
+    @Autowired
+    private HsSysUserRoleDao hsSysUserRoleDao;
+    @Autowired
+    private HsMemberDao hsMemberDao;
+    @Autowired
+    private HsSystemUserOrderTasksDao hsSystemUserOrderTasksDao;
+    @Autowired
+    private HsSystemUserOrderTasksLogDao hsSystemUserOrderTasksLogDao;
+    @Autowired
+    private HsSysUserLocationDao hsSysUserLocationDao;
+
+    @Autowired
+    private HsHousesBrowseHistoryDao hsHousesBrowseHistoryDao;
+    @Autowired
+    private HsMemberFavoriteDao hsMemberFavoriteDao;
+    @Autowired
+    private HsFeedbackDao hsFeedbackDao;
+    @Autowired
+    private HsMemberHousesSubscribeDao hsMemberHousesSubscribeDao;
+    @Autowired
+    private HsMemberHousingApplicationDao hsMemberHousingApplicationDao;
+    @Autowired
+    private HsMemberHousingBargainMessageDao hsMemberHousingBargainMessageDao;
+
+    private EasemobIMUsers easemobIMUsers = new EasemobIMUsers();
+
+    @Autowired
+    private HsUserAttendanceSheetDao hsUserAttendanceSheetDao;
+    @Autowired
+    private HsUserVacateSheetDao hsUserVacateSheetDao;
+    @Autowired
+    private HsMemberHousingBargainDao hsMemberHousingBargainDao;
+    @Autowired
+    private HsMemberPurchaseDao hsMemberPurchaseDao;
+
+
+    @Override
+    public ResultVo delete(Integer id, Object o) throws Exception {
+        ResultVo vo = new ResultVo();
+        int result = -1;//
+        try {
+            if (o instanceof HsSysUser) {//
+                result = hsSysUserDao.deleteByPrimaryKey(id);
+            } else if (o instanceof HsSysPermission) {
+                result = hsSysPermissionDao.deleteByPrimaryKey(id);
+            } else if (o instanceof HsMember) {
+                result = hsMemberDao.deleteByPrimaryKey(id);
+            } else if (o instanceof HsMemberHousesSubscribe) {
+                result = hsMemberHousesSubscribeDao.deleteByPrimaryKey(id);
+            } else if (o instanceof HsMemberHousingApplication) {
+                result = hsMemberHousingApplicationDao.deleteByPrimaryKey(id);
+            } else if (o instanceof HsSysUserLocation) {
+                result = hsSysUserLocationDao.deleteByPrimaryKey(id);
+            } else if (o instanceof HsMemberHousingBargainMessage) {
+                result = hsMemberHousingBargainMessageDao.insert((HsMemberHousingBargainMessage) o);
+            }
+            if (result > 0) {//操作成功
+                vo.setResult(ResultConstant.SYS_REQUIRED_SUCCESS);
+                vo.setMessage(ResultConstant.SYS_REQUIRED_SUCCESS_VALUE);
+            } else {
+                vo.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+                vo.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+            }
+        } catch (Exception e) {
+            logger.error("MemberServiceImpl delete Exception message:" + e.getMessage());
+            vo.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            vo.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        } finally {
+            return vo;
+        }
+    }
+
+    @Override
+    public ResultVo insert(Object o) throws Exception {
+        ResultVo vo = new ResultVo();
+        int result = -1;//
+        try {
+            if (o instanceof HsSysUser) {//
+                result = hsSysUserDao.insert((HsSysUser) o);
+            } else if (o instanceof HsSysPermission) {
+                result = hsSysPermissionDao.insert((HsSysPermission) o);
+            } else if (o instanceof HsMember) {
+                result = hsMemberDao.insert((HsMember) o);
+            } else if (o instanceof HsHousesBrowseHistory) {
+                result = hsHousesBrowseHistoryDao.insert((HsHousesBrowseHistory) o);
+            } else if (o instanceof HsMemberFavorite) {
+                result = hsMemberFavoriteDao.insert((HsMemberFavorite) o);
+            } else if (o instanceof HsFeedback) {
+                result = hsFeedbackDao.insert((HsFeedback) o);
+            } else if (o instanceof HsMemberHousesSubscribe) {
+                result = hsMemberHousesSubscribeDao.insert((HsMemberHousesSubscribe) o);
+            } else if (o instanceof HsMemberHousingApplication) {
+                result = hsMemberHousingApplicationDao.insert((HsMemberHousingApplication) o);
+            } else if (o instanceof HsSysUserLocation) {
+                result = hsSysUserLocationDao.insert((HsSysUserLocation) o);
+            } else if (o instanceof HsMemberHousingBargainMessage) {
+                result = hsMemberHousingBargainMessageDao.insert((HsMemberHousingBargainMessage) o);
+            } else if (o instanceof HsSystemUserOrderTasks) {
+                result = hsSystemUserOrderTasksDao.insert((HsSystemUserOrderTasks) o);
+            } else if (o instanceof HsSystemUserOrderTasksLog) {
+                result = hsSystemUserOrderTasksLogDao.insert((HsSystemUserOrderTasksLog) o);
+            } else if (o instanceof HsUserAttendanceSheet) {
+                result = hsUserAttendanceSheetDao.insert((HsUserAttendanceSheet) o);
+            }else if (o instanceof HsMemberHousingBargain) {
+                result = hsMemberHousingBargainDao.insert((HsMemberHousingBargain) o);
+            }else if (o instanceof HsMemberPurchase) {
+                result = hsMemberPurchaseDao.insert((HsMemberPurchase) o);
+            }else if (o instanceof HsSysRole) {
+                result = hsSysRoleDao.insert((HsSysRole) o);
+            }else if (o instanceof HsSysPermission) {
+                result = hsSysPermissionDao.insert((HsSysPermission) o);
+            }
+
+            if (result > 0) {//操作成功
+                vo.setDataSet(o);
+                vo.setResult(ResultConstant.SYS_REQUIRED_SUCCESS);
+                vo.setMessage(ResultConstant.SYS_REQUIRED_SUCCESS_VALUE);
+            } else {
+                vo.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+                vo.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+            }
+        } catch (Exception e) {
+            logger.error("MemberServiceImpl insert Exception message:" + e.getMessage());
+            vo.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            vo.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        } finally {
+            return vo;
+        }
+    }
+
+    @Override
+    public ResultVo select(Integer id, Object o) throws Exception {
+        ResultVo vo = new ResultVo();
+        Object obj = null;
+        try {
+            if (o instanceof HsSysUser) {//
+                obj = hsSysUserDao.selectByPrimaryKey(id);
+            } else if (o instanceof HsSysPermission) {
+                obj = hsSysPermissionDao.selectByPrimaryKey(id);
+            } else if (o instanceof HsMember) {
+                obj = hsMemberDao.selectByPrimaryKey(id);
+            } else if (o instanceof HsHousesBrowseHistory) {
+                obj = hsHousesBrowseHistoryDao.selectByPrimaryKey(id);
+            } else if (o instanceof HsMemberFavorite) {
+                obj = hsMemberFavoriteDao.selectByPrimaryKey(id);
+            } else if (o instanceof HsFeedback) {
+                obj = hsFeedbackDao.selectByPrimaryKey(id);
+            } else if (o instanceof HsMemberHousesSubscribe) {
+                obj = hsMemberHousesSubscribeDao.selectByPrimaryKey(id);
+            } else if (o instanceof HsMemberHousingApplication) {
+                obj = hsMemberHousingApplicationDao.selectByPrimaryKey(id);
+            } else if (o instanceof HsSysUserLocation) {
+                obj = hsSysUserLocationDao.selectByPrimaryKey(id);
+            } else if (o instanceof HsMemberHousingBargainMessage) {
+                obj = hsMemberHousingBargainMessageDao.selectByPrimaryKey(id);
+            } else if (o instanceof HsSystemUserOrderTasks) {
+                obj = hsSystemUserOrderTasksDao.selectByPrimaryKey(id);
+            } else if (o instanceof HsUserAttendanceSheet) {
+                obj = hsUserAttendanceSheetDao.selectByPrimaryKey(id);
+            }else if (o instanceof HsMemberHousingBargain) {
+                obj = hsMemberHousingBargainDao.selectByPrimaryKey(id);
+            }else if (o instanceof HsMemberPurchase) {
+                obj = hsMemberPurchaseDao.selectByPrimaryKey(id);
+            }
+            vo.setDataSet(obj);
+            vo.setResult(ResultConstant.SYS_REQUIRED_SUCCESS);
+            vo.setMessage(ResultConstant.SYS_REQUIRED_SUCCESS_VALUE);
+        } catch (Exception e) {
+            logger.error("MemberServiceImpl insert Exception message:" + e.getMessage());
+            vo.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            vo.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        } finally {
+            return vo;
+        }
+    }
+
+    @Override
+    public ResultVo select(String id, Object o) throws Exception {
+        ResultVo vo = new ResultVo();
+        Object obj = null;
+        try {
+            if (o instanceof HsSysRole) {//查询角色
+                obj = hsSysRoleDao.selectByPrimaryKey(id);
+            }
+            vo.setDataSet(obj);
+            vo.setResult(ResultConstant.SYS_REQUIRED_SUCCESS);
+            vo.setMessage(ResultConstant.SYS_REQUIRED_SUCCESS_VALUE);
+        } catch (Exception e) {
+            logger.error("MemberServiceImpl insert Exception message:" + e.getMessage());
+            vo.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            vo.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        } finally {
+            return vo;
+        }
+    }
+
+    @Override
+    public ResultVo selectList(Object o, Map<Object, Object> condition, int returnType) throws Exception {
+        ResultVo vo = new ResultVo();
+        List<Object> data = null;
+        Map<Object, Object> result = new HashMap<Object, Object>();
+        try {
+//            if (o instanceof HsSysUser) {
+//                obj = hsSysUserDao.selectListByCondition(condition,returnType);
+//            } else if (o instanceof HsSysPermission) {
+//                obj = hsSysPermissionDao.selectListByCondition(condition,returnType);
+//            } else if (o instanceof HsMember) {
+//                obj = hsMemberDao.selectListByCondition(condition,returnType);
+//            }
+            if (o instanceof HsHousesBrowseHistory) {
+                result = hsHousesBrowseHistoryDao.selectListByCondition(condition, returnType);
+            } else if (o instanceof HsMemberFavorite) {
+                result = hsMemberFavoriteDao.selectListByCondition(condition, returnType);
+            } else if (o instanceof HsMemberHousesSubscribe) {
+                result = hsMemberHousesSubscribeDao.selectListByCondition(condition, returnType);
+            } else if (o instanceof HsMemberHousingApplication) {
+                result = hsMemberHousingApplicationDao.selectListByCondition(condition, returnType);
+            } else if (o instanceof HsSysUserLocation) {
+                //result = hsSysUserLocationDao.selectListByCondition(condition,returnType);
+            } else if (o instanceof HsMemberHousingBargainMessage) {
+                result = hsMemberHousingBargainMessageDao.selectListByCondition(condition,returnType);
+            } else if (o instanceof HsSystemUserOrderTasks) {
+                result = hsSystemUserOrderTasksDao.selectListByCondition(condition, returnType);
+            } else if (o instanceof HsMember) {
+                result = hsMemberDao.selectListByCondition(condition, returnType);
+            } else if (o instanceof HsSysUser) {
+                result = hsSysUserDao.selectListByCondition(condition, returnType);
+            }else if (o instanceof HsMemberHousingBargain) {
+                result = hsMemberHousingBargainDao.selectListByCondition(condition, returnType);
+            }else if (o instanceof HsMemberPurchase) {
+                result = hsMemberPurchaseDao.selectListByCondition(condition, returnType);
+            } else if (o instanceof HsSysRole) {
+                result = hsSysRoleDao.selectListByCondition(condition, returnType);
+            }else if (o instanceof HsSysPermission) {
+                result = hsSysPermissionDao.selectListByCondition(condition, returnType);
+            }
+
+
+            vo.setResult(ResultConstant.SYS_REQUIRED_SUCCESS);
+            vo.setMessage(ResultConstant.SYS_REQUIRED_SUCCESS_VALUE);
+            vo.setDataSet(result.get("data"));
+            vo.setPageInfo(result.get("pageInfo"));
+        } catch (Exception e) {
+            logger.info("MemberServiceImpl selectList Exception message:" + e.getMessage());
+            vo.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            vo.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        } finally {
+            return vo;
+        }
+    }
+
+    /**
+     * 自定义查询列数据
+     *
+     * @param condition 查询条件 List<String> columns
+     * @return
+     * @throws Exception
+     */
+    @Override
+    public ResultVo selectCustomColumnNamesList(T t, Map<Object, Object> condition) throws Exception {
+        ResultVo vo = new ResultVo();
+        Map<Object, Object> result = new HashMap<Object, Object>();
+        try {
+            if (t.hashCode() == HsSystemUserOrderTasks.class.hashCode()) {//
+                result = hsSystemUserOrderTasksDao.selectCustomColumnNamesList(condition);
+            } else if (t.hashCode() == HsMemberHousesSubscribe.class.hashCode()) {
+                result = hsMemberHousesSubscribeDao.selectCustomColumnNamesList(condition);
+            } else if (t.hashCode() == HsUserAttendanceSheet.class.hashCode()) {//业务员考勤表
+                result = hsUserAttendanceSheetDao.selectCustomColumnNamesList(condition);
+            } else if (t.hashCode() == HsUserVacateSheet.class.hashCode()) {//业务员请假记录表
+                result = hsUserVacateSheetDao.selectCustomColumnNamesList(condition);
+            } else if (t.hashCode() == HsSysUser.class.hashCode()) {//业务员表
+                result = hsSysUserDao.selectCustomColumnNamesList(condition);
+            } else if (t.hashCode() == HsMemberHousingBargainMessage.class.hashCode()) {//会员议价记录表
+                result = hsMemberHousingBargainMessageDao.selectCustomColumnNamesList(condition);
+            } else if (t.hashCode() == HsMemberHousingApplication.class.hashCode()) {
+                result = hsMemberHousingApplicationDao.selectCustomColumnNames(condition);
+            } else if (t.hashCode() == HsMember.class.hashCode()) {
+                result = hsMemberDao.selectCustomColumnNamesList(condition);
+            }else if (t.hashCode() == HsMemberHousingBargain.class.hashCode()) {
+                result = hsMemberHousingBargainDao.selectCustomColumnNamesList(condition);
+            }else if (t.hashCode() == HsSysRole.class.hashCode()) {
+                result = hsSysRoleDao.selectCustomColumnNamesList(condition);
+            }else if (t.hashCode() == HsSysPermission.class.hashCode()) {
+                result = hsSysPermissionDao.selectCustomColumnNamesList(condition);
+            }else if (t.hashCode() == HsSysRolePermission.class.hashCode()) {
+                result = hsSysRolePermissionDao.selectCustomColumnNamesList(condition);
+            }else if (t.hashCode() == HsSysUserRole.class.hashCode()) {
+                result = hsSysUserRoleDao.selectCustomColumnNamesList(condition);
+            }
+
+
+            vo.setResult(ResultConstant.SYS_REQUIRED_SUCCESS);
+            vo.setMessage(ResultConstant.SYS_REQUIRED_SUCCESS_VALUE);
+            vo.setDataSet(result.get("data"));
+            vo.setPageInfo(result.get("pageInfo"));
+        } catch (Exception e) {
+            logger.error("HousesServiceImpl selectCustomColumnNamesList Exception message:" + e.getMessage());
+            vo.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            vo.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        } finally {
+            return vo;
+        }
+    }
+
+    @Override
+    public ResultVo update(Object o) throws Exception {
+        ResultVo vo = new ResultVo();
+        int result = -1;//
+        try {
+            if (o instanceof HsSysUser) {//
+                result = hsSysUserDao.updateByPrimaryKeySelective((HsSysUser) o);
+            } else if (o instanceof HsSysPermission) {
+                result = hsSysPermissionDao.updateByPrimaryKeySelective((HsSysPermission) o);
+            } else if (o instanceof HsMember) {
+                result = hsMemberDao.updateByPrimaryKeySelective((HsMember) o);
+            } else if (o instanceof HsHousesBrowseHistory) {
+                result = hsHousesBrowseHistoryDao.updateByPrimaryKeySelective((HsHousesBrowseHistory) o);
+            } else if (o instanceof HsMemberFavorite) {
+                result = hsMemberFavoriteDao.updateByPrimaryKeySelective((HsMemberFavorite) o);
+            } else if (o instanceof HsFeedback) {
+                result = hsFeedbackDao.updateByPrimaryKeySelective((HsFeedback) o);
+            } else if (o instanceof HsMemberHousesSubscribe) {
+                result = hsMemberHousesSubscribeDao.updateByPrimaryKeySelective((HsMemberHousesSubscribe) o);
+            } else if (o instanceof HsMemberHousingApplication) {
+                result = hsMemberHousingApplicationDao.updateByPrimaryKeySelective((HsMemberHousingApplication) o);
+            } else if (o instanceof HsSysUserLocation) {
+                result = hsSysUserLocationDao.updateByPrimaryKeySelective((HsSysUserLocation) o);
+            } else if (o instanceof HsMemberHousingBargainMessage) {
+                result = hsMemberHousingBargainMessageDao.updateByPrimaryKeySelective((HsMemberHousingBargainMessage) o);
+            } else if (o instanceof HsSystemUserOrderTasks) {
+                result = hsSystemUserOrderTasksDao.updateByPrimaryKeySelective((HsSystemUserOrderTasks) o);
+            } else if (o instanceof HsUserAttendanceSheet) {
+                result = hsUserAttendanceSheetDao.updateByPrimaryKeySelective((HsUserAttendanceSheet) o);
+            }else if (o instanceof HsMemberHousingBargain) {
+                result = hsMemberHousingBargainDao.updateByPrimaryKeySelective((HsMemberHousingBargain) o);
+            }else if (o instanceof HsMemberPurchase) {
+                result = hsMemberPurchaseDao.updateByPrimaryKeySelective((HsMemberPurchase) o);
+            }else if (o instanceof HsSysRole) {
+                result = hsSysRoleDao.updateByPrimaryKeySelective((HsSysRole) o);
+            }
+
+
+            if (result > 0) {//操作成功
+                vo.setResult(ResultConstant.SYS_REQUIRED_SUCCESS);
+                vo.setMessage(ResultConstant.SYS_REQUIRED_SUCCESS_VALUE);
+            } else {
+                vo.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+                vo.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+            }
+        } catch (Exception e) {
+            vo.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            vo.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        } finally {
+            return vo;
+        }
+    }
+
+    /**
+     * @param o
+     * @param condition data---》需要插入的数据实体类，
+     * @return
+     */
+    @Override
+    public ResultVo batchInsert(Object o, Map<Object, Object> condition) {
+        ResultVo vo = new ResultVo();
+        int result = -1;//
+        try {
+            if (o instanceof HsSysUser) {//
+                List<HsSysUser> data = (List<HsSysUser>) condition.get("data");
+                //result = hsSystemOrderPoolDao.batchInsert(data);
+            } else if (o instanceof HsSystemOrderPoolLog) {
+                //List<HsSystemOrderPoolLog> data = (List<HsSystemOrderPoolLog>) condition.get("data");
+                //result = hsSysPermissionDao.batchInsert(data);
+            } else if (o instanceof HsSystemUserOrderTasks) {
+                List<HsSystemUserOrderTasks> data = (List<HsSystemUserOrderTasks>) condition.get("data");
+                List<HsSystemUserOrderTasksLog> LogData = (List<HsSystemUserOrderTasksLog>) condition.get("logData");
+                result = hsSystemUserOrderTasksDao.batchInsert(data);
+                if (result > 0) {
+                    for (HsSystemUserOrderTasks task : data) {
+                        Integer id = task.getId();//任务id
+                        Integer poolId = task.getPoolId();//任务id
+                        for (HsSystemUserOrderTasksLog log : LogData) {
+                            if (log.getPoolId() == poolId) {
+                                log.setTaskId(id);
+                            }
+                        }
+                    }
+                    int state = hsSystemUserOrderTasksLogDao.batchInsert(LogData);
+                }
+            } else if (o instanceof HsSystemUserOrderTasksLog) {
+                List<HsSystemUserOrderTasksLog> logData = (List<HsSystemUserOrderTasksLog>) condition.get("logData");
+                result = hsSystemUserOrderTasksLogDao.batchInsert(logData);
+            }else if (o instanceof HsSysRolePermission) {
+                List<HsSysRolePermission> data = (List<HsSysRolePermission>) condition.get("data");
+                result = hsSysRolePermissionDao.batchInsert(data);
+            }else if (o instanceof HsSysUserRole ) {
+                List<HsSysUserRole> data = (List<HsSysUserRole>) condition.get("data");
+                result = hsSysUserRoleDao.batchInsert(data);
+            }
+
+
+            if (result > 0) {//操作成功
+                vo.setResult(ResultConstant.SYS_REQUIRED_SUCCESS);
+                vo.setMessage(ResultConstant.SYS_REQUIRED_SUCCESS_VALUE);
+            } else {
+                vo.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+                vo.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.info("MemberServiceImpl selectList Exception message:" + e.getMessage());
+            vo.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            vo.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        } finally {
+            return vo;
+        }
+    }
+
+    @Override
+    public ResultVo batchUpdate(Object o, Map<Object, Object> condition) {
+        ResultVo vo = new ResultVo();
+        int result = -1;//
+        try {
+            if (o instanceof HsSystemUserOrderTasks) {
+                List<HsSystemUserOrderTasks> list = (List<HsSystemUserOrderTasks>) condition.get("tasksList");
+                result = hsSystemUserOrderTasksDao.batchUpdate(list);
+            }
+
+            if (result > 0) {//操作成功
+                vo.setResult(ResultConstant.SYS_REQUIRED_SUCCESS);
+                vo.setMessage(ResultConstant.SYS_REQUIRED_SUCCESS_VALUE);
+            } else {
+                vo.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+                vo.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.info("MemberServiceImpl batchUpdate Exception message:" + e.getMessage());
+            vo.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            vo.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return vo;
+    }
+
+    /**
+     * 根据条件查询用户信息
+     *
+     * @param condition
+     * @return
+     */
+    @Override
+    public HsSysUser selectHsSysUserByCondition(Map<Object, Object> condition) {
+        return hsSysUserDao.selectHsSysUserByCondition(condition);
+    }
+
+    /**
+     * 根据条件查询用户权限
+     *
+     * @param condition
+     * @return
+     */
+    @Override
+    public List<HsSysPermission> selectPermissionListByUser(Map<Object, Object> condition) {
+        //查询用户对应的角色
+        List<Map<Object, Object>> userRoles = hsSysRoleDao.selectRolesByUser(condition);
+        if (userRoles == null) {
+            return null;
+        }
+        List<String> roleIds = new ArrayList<String>();
+        for (Map<Object, Object> userRole : userRoles) {
+            roleIds.add(StringUtil.trim(userRole.get("roleId")));
+        }
+        condition.put("roleIds", roleIds);
+        List<HsSysPermission> permissions = hsSysPermissionDao.selectPermissionsByRoleIds(condition);
+        return permissions;
+    }
+
+    /**
+     * 登录
+     *
+     * @param condition
+     * @return
+     */
+    @Override
+    public ResultVo login(Map<Object, Object> condition) throws Exception {
+        ResultVo vo = new ResultVo();
+        int language = (int) condition.get("language");
+        String areaCode = StringUtil.trim(condition.get("areaCode"));//区号
+        String memberMoble = StringUtil.trim(condition.get("memberMoble"));//手机号
+        Map<Object, Object> queryFilter = new HashMap<Object, Object>();
+        queryFilter.put("memberMoble", memberMoble);
+        HsMember member = hsMemberDao.selectMemberByCondition(queryFilter);
+        if (member == null) {
+            String member_code = SystemNumberUtil.createCode(ResultConstant.BUS_MEMBER_CODE_VALUE);
+            member = new HsMember();
+            member.setMemberCode(member_code);
+            member.setMemberMoble(memberMoble);
+            member.setLanguageVersion(language);
+            member.setAreaCode(areaCode);
+            member.setCreateTime(vo.getSystemTime());
+            int state = hsMemberDao.addMember(member);
+            if (state < 1) {
+                vo.setResult(-1);
+                vo.setMessage("新增会员失败");
+                return vo;
+            }
+            //注册环信用户
+
+            boolean b = addUser(member_code);
+            if (!b) {
+                /*vo.setResult(-1);
+                vo.setMessage("注册环信用户失败");
+                //是否需要记录到日志表中，方便后续人工处理，增加用户
+                return vo;*/
+            }
+        } else {
+            //数据库中有当前用户，但是环信中并没有该用户。在环信中注册该用户
+            String memberCode = member.getMemberCode();
+            //查询用户是否在环信中注册
+            Object result = easemobIMUsers.getIMUserByUserName(memberCode);
+            JSONObject jsonObject = JSON.parseObject(result.toString());
+            //环信接口返回错误码
+            String code = StringUtil.trim(jsonObject.getString("code"));
+            //code为404表示用户不存在。code为null表示请求成功。有该用户信息
+            if ("404".equals(code)) {
+                boolean b = addUser(memberCode);
+                if (!b) {
+                    /*vo.setResult(-1);
+                    vo.setMessage("注册环信用户失败");
+                    return vo;*/
+                }
+            }
+        }
+        //生成token值
+        PayLoadVo payLoadVo = new PayLoadVo();
+        HeaderVo headerVo = new HeaderVo();
+        payLoadVo.setUserId(String.valueOf(member.getId()));
+        payLoadVo.setIss(member.getMemberCode());
+        payLoadVo.setExp(new Date());
+        payLoadVo.setMoble(memberMoble);
+        payLoadVo.setAreaCode(areaCode);
+        String content = EncryptionUtil.getBase64(JsonUtil.toJson(headerVo)).replaceAll("\r|\n", "") + "." + EncryptionUtil.getBase64(new Gson().toJson(payLoadVo)).replaceAll("\r|\n", "");
+        String signature = EncryptionUtil.getSHA256StrJava(ResultConstant.BUS_TAG_TOKEN + content);
+        vo.setToken(content + "." + EncryptionUtil.getBase64(signature).replaceAll("\r|\n", ""));
+        //请求成功
+        vo.setMessage(ResultConstant.SYS_REQUIRED_SUCCESS_VALUE);
+        vo.setResult(ResultConstant.SYS_REQUIRED_SUCCESS);
+        //保存至redis
+        RedisUtil.safeSet(member.getMemberCode(), signature, 1800);
+        return vo;
+    }
+
+    //计算可用的业务员
+    @Override
+    public List<Map<Object, Object>> allotUsableUsers(Map<Object, Object> condition) {
+        if (condition == null || condition.size() == 0) {
+            return null;
+        }
+        //查询对应角色的userIds
+        List<Map<Object, Object>> users = hsSysUserDao.loadUserRoles(condition);
+        if (users == null) {
+            return null;
+        }
+        //获取最新一次位置
+//        List<Integer> userIds =  new ArrayList<Integer>();
+//        for (Map<Object, Object> user : users) {
+//            userIds.add(StringUtil.getAsInt(StringUtil.trim(user.get("userId"))));
+//        }
+        double longitude = 114.057865;
+        double latitude = 22.543096;
+        for (Map<Object, Object> user : users) {
+            int rd = (int) (Math.random() > 0.5 ? 1 : 0);
+            int x = (int) ((Math.random() * 9 + 1) * 100000) / 10000000;
+            int y = (int) ((Math.random() * 9 + 1) * 100000) / 10000000;
+            if (rd > 0) {
+                user.put("longitude", longitude + x);
+                user.put("latitude", latitude + y);
+            } else {
+                user.put("longitude", longitude - x);
+                user.put("latitude", latitude - y);
+            }
+        }
+        return users;
+    }
+
+    /**
+     * 获取外获业务员
+     *
+     * @param condition
+     * @return
+     */
+    @Override
+    public List<Map<Object, Object>> selectOutsideUser(Map<Object, Object> condition) {
+        if (condition == null || condition.size() == 0) {
+            return null;
+        }
+        //查询对应角色的userIds
+        return hsSysUserDao.loadUserRoles(condition);
+    }
+
+    @Override
+    public ResultVo updateUserOrderTask(Map<Object, Object> condition) {
+        ResultVo result = new ResultVo();
+        int count = -1;
+        try {
+            count = hsSystemUserOrderTasksDao.updateOrderTaskByPoolId(condition);
+            if (count > 0) {
+                result.setResult(ResultConstant.SYS_REQUIRED_SUCCESS);
+                result.setMessage(ResultConstant.SYS_REQUIRED_SUCCESS_VALUE);
+            } else {
+                result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+                result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.info("MemberServiceImpl updateUserOrderTask Exception message:" + e.getMessage());
+            result.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            result.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return result;
+    }
+
+    /**
+     * 查询今日可看
+     *
+     * @param condition
+     * @return
+     */
+    @Override
+    public ResultVo getToday2SeeHouses(Map<Object, Object> condition) {
+        ResultVo result = null;
+        try {
+            List<String> queryColumn = new ArrayList<>();//自定义查询列名
+            queryColumn.add("ID id");//主键ID
+            queryColumn.add("HOUSE_ID houseId");//房源ID
+            queryColumn.add("HOUSE_TYPE houseType");//房源类型
+            condition.put("queryColumn", queryColumn);
+            //查询今日可看的
+            Map<Object, Object> houses = hsMemberHousingApplicationDao.selectCustomColumnNames(condition);
+            result = ResultVo.success();
+            result.setDataSet(houses.get("data"));
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.info("MemberServiceImpl getToday2SeeHouses Exception message:" + e.getMessage());
+            result.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            result.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return result;
+    }
+
+    /**
+     * 查询用户角色
+     *
+     * @param condition
+     * @return
+     */
+    @Override
+    public ResultVo selectUserRoles(Map<Object, Object> condition) {
+        ResultVo result = null;
+        List<Map<Object, Object>> users = null;
+        try {
+            users = hsSysRoleDao.selectRolesByUser(condition);
+            result = ResultVo.success();
+            result.setDataSet(users);
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.info("MemberServiceImpl selectUserRoles Exception message:" + e.getMessage());
+            result.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            result.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return result;
+    }
+
+    /**
+     * 查询用户所能访问的资源名称
+     * @param condition
+     * @return
+     */
+    @Override
+    public ResultVo showPermissions(Map<Object, Object> condition) {
+        ResultVo vo = ResultVo.success();
+        List<Map<Object, Object>> userRoles = hsSysRoleDao.selectRolesByUser(condition);
+        condition.clear();
+        condition.put("isForbidden",0);
+        List<String> roleIds = Lists.newArrayList();
+        for (Map<Object, Object> userRole : userRoles) {
+            roleIds.add(StringUtil.trim(userRole.get("roleId")));
+        }
+        condition.clear();
+        condition.put("roleIds",roleIds);
+        //查询角色所能访问的资源
+        List<Map<Object, Object>> rolePermissions = hsSysRolePermissionDao.selectRolePermission(condition);
+        vo.setDataSet(rolePermissions);
+        return vo;
+    }
+
+    @Override
+    public ResultVo selectPersonalPerformance(Map<Object, Object> condition) {
+        ResultVo result = new ResultVo();
+        try {
+            int count = hsSystemUserOrderTasksDao.selectPersonalPerformance(condition);
+            result.setDataSet(count);
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.info("MemberServiceImpl selectPersonalPerformance Exception message:" + e.getMessage());
+            result.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            result.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return result;
+    }
+
+    @Override
+    public ResultVo updateHousingApplicationByPoolId(Map<Object, Object> condition) {
+        ResultVo result = new ResultVo();
+        try {
+            int count = -1;
+            count = hsMemberHousingApplicationDao.updateHousingApplicationByPoolId(condition);
+            if (count > 0) {//操作成功
+                result.setResult(ResultConstant.SYS_REQUIRED_SUCCESS);
+                result.setMessage(ResultConstant.SYS_REQUIRED_SUCCESS_VALUE);
+            } else {
+                result.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+                result.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.info("MemberServiceImpl updateHousingApplicationByPoolId Exception message:" + e.getMessage());
+            result.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            result.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return result;
+    }
+
+    /**
+     * 查询业务员对应的单数
+     *
+     * @param condition
+     * @return
+     */
+    @Override
+    public ResultVo selectGroupUserTasksByCondition(Map<Object, Object> condition) {
+        ResultVo result = new ResultVo();
+        try {
+            List<Map<Object, Object>> taskGroup = hsSystemUserOrderTasksDao.selectGroupUserTasksByCondition(condition);
+            result.setDataSet(taskGroup);
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.info("MemberServiceImpl selectGroupUserTasksByCondition Exception message:" + e.getMessage());
+            result.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            result.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return result;
+    }
+
+
+    /**
+     * 业务员打卡记录
+     *
+     * @return
+     */
+    @Override
+    public ResultVo clockIn(HsUserAttendanceSheet sheet) {
+        ResultVo result = new ResultVo();
+        int state = -1;
+        try {
+            Map<Object, Object> condition = Maps.newHashMap();
+            //获取业务员ID,并查询今天是否有打过卡，打过卡直接返回成功
+            Integer userId = sheet.getUserId();
+            condition.put("userId", userId);
+            state = hsUserAttendanceSheetDao.selectToDayCount(condition);
+            if (state > 0) {
+                return ResultVo.success();
+            }
+            state = hsUserAttendanceSheetDao.insert(sheet);
+            if (state <= 0) {
+                return ResultVo.error(ResultConstant.SYS_REQUIRED_FAILURE, ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.info("MemberServiceImpl selectGroupUserTasksByCondition Exception message:" + e.getMessage());
+            return ResultVo.error(ResultConstant.SYS_REQUIRED_FAILURE, ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+        }
+        return result;
+    }
+
+    /**
+     * 注册环信用户
+     *
+     * @param memberCode 用户code
+     * @return
+     */
+    public boolean addUser(String memberCode) {
+        boolean b = true;
+        //新增环信用户
+        RegisterUsers users = new RegisterUsers();
+        User user = new User().username(memberCode).password(memberCode);
+        users.add(user);
+        Object result = easemobIMUsers.createNewIMUserSingle(users);
+        JSONObject jsonObject = JSON.parseObject(result.toString());
+        String status = StringUtil.trim(jsonObject.getString("status"));
+        if ("fail".equals(status)) {
+            b = false;
+        }
+        return b;
+    }
+
+    /**
+     * 修改看房数据
+     * @param resultMap
+     * @return
+     */
+    @Override
+    public ResultVo updateSeeHouseApply(Map<Object, Object> resultMap) {
+        //修改预约看房状态
+        int houseId = StringUtil.getAsInt(StringUtil.trim(resultMap.get("houseId")));
+        Date estimatedTime = (Date) resultMap.get("estimatedTime");
+        int poolId  = StringUtil.getAsInt(StringUtil.trim(resultMap.get("poolId")));
+        
+        HsMemberHousingApplication houseApply = new HsMemberHousingApplication();
+        houseApply.setStartApartmentTime(estimatedTime);//任务开始时间
+        houseApply.setHouseId(houseId);
+        houseApply.setStandby1(StringUtil.trim(poolId));
+        int state = hsMemberHousingApplicationDao.updateByPrimaryKey(houseApply);
+        if(state>0){
+            return  new ResultVo();
+        }
+        return ResultVo.error(ResultConstant.SYS_REQUIRED_FAILURE, ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+    }
+    @Override
+    public ResultVo getMyBargainList(Map<Object, Object> condition){
+        ResultVo result = new ResultVo();
+        List<Map<Object, Object>> myBargainList = hsMemberHousingBargainDao.getMyBargainList(condition);
+        result.setDataSet(myBargainList);
+        return result;
+    }
+
+    /**
+     * 检查系统中是否存在账号或手机号码
+     * @param condition
+     * @return
+     */
+    @Override
+    public int checkExistUserCodeOrMobile(Map<Object, Object> condition) {
+        return hsSysUserDao.checkExistUserCodeOrMobile(condition);
+    }
+
+    /**
+     * 批量删除数据,只有关联表才做删除
+     * @param t
+     * @param condition
+     * @return
+     */
+    @Override
+    public ResultVo batchDelete(T t, Map<Object,Object> condition) {
+        ResultVo vo = new ResultVo();
+        int result = -1;//
+        try {
+            if(condition==null){
+                vo.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+                vo.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+                return vo;
+            }
+            if (t.hashCode() == HsSysRolePermission.class.hashCode()) {
+                result = hsSysRolePermissionDao.batchDelete(condition);
+            }else if(t.hashCode() == HsSysUserRole.class.hashCode()) {
+                result = hsSysUserRoleDao.batchDelete(condition);
+            }
+            if (result <= 0) {//操作失败
+                vo.setResult(ResultConstant.SYS_REQUIRED_FAILURE);
+                vo.setMessage(ResultConstant.SYS_REQUIRED_FAILURE_VALUE);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.error("HousesServiceImpl batchInsert Exception message:" + e.getMessage());
+            vo.setResult(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR);
+            vo.setMessage(ResultConstant.SYS_REQUIRED_TIMEOUT_ERROR_VALUE);
+        }
+        return vo;
+    }
+
+}

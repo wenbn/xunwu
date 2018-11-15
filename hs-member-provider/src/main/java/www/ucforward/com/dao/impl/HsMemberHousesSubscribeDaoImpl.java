@@ -1,0 +1,64 @@
+package www.ucforward.com.dao.impl;
+
+import org.springframework.stereotype.Repository;
+import www.ucforward.com.dao.BaseDao;
+import www.ucforward.com.dao.HsMemberHousesSubscribeDao;
+import www.ucforward.com.entity.HsMemberHousesSubscribe;
+
+import java.util.Map;
+
+/**
+ * Created by Administrator on 2018/6/13.
+ */
+@Repository("memberHousesSubscribeDao")
+public class HsMemberHousesSubscribeDaoImpl extends BaseDao implements HsMemberHousesSubscribeDao{
+    @Override
+    public int deleteByPrimaryKey(Integer id) {
+        return this.getSqlSession().delete("HsMemberHousesSubscribeDao.deleteByPrimaryKey",id);
+    }
+
+    @Override
+    public int insert(HsMemberHousesSubscribe record) {
+        return insertSelective(record);
+    }
+
+    @Override
+    public int insertSelective(HsMemberHousesSubscribe record) {
+        return this.getSqlSession().insert("HsMemberHousesSubscribeDao.insertSelective",record);
+    }
+
+    @Override
+    public HsMemberHousesSubscribe selectByPrimaryKey(Integer id) {
+        return this.getSqlSession().selectOne("HsMemberHousesSubscribeDao.selectByPrimaryKey",id);
+    }
+
+    @Override
+    public int updateByPrimaryKeySelective(HsMemberHousesSubscribe record) {
+        return this.getSqlSession().update("HsMemberHousesSubscribeDao.updateByPrimaryKeySelective",record);
+    }
+
+    @Override
+    public int updateByPrimaryKey(HsMemberHousesSubscribe record) {
+        return this.getSqlSession().update("HsMemberHousesSubscribeDao.updateByPrimaryKey",record);
+    }
+
+    @Override
+    public Map<Object, Object> selectListByCondition(Map<Object, Object> condition, int returnType) {
+        String sql = "HsMemberHousesSubscribeDao.selectHousesSubscribeListMapByCondition";
+
+        if(returnType != 0){
+            sql = "HsMemberHousesSubscribeDao.selectHousesSubscribeListByCondition";
+        }
+        return executeSql(condition,sql);
+    }
+
+    /**
+     * 自定义查询列
+     * @param condition
+     * @return
+     */
+    @Override
+    public Map<Object, Object> selectCustomColumnNamesList(Map<Object, Object> condition) {
+        return executeSql(condition, "HsMemberHousesSubscribeDao.selectCustomColumnNamesList");
+    }
+}

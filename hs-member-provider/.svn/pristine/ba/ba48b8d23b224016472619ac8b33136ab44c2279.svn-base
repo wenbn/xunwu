@@ -1,0 +1,79 @@
+package www.ucforward.com.dao.impl;
+
+import org.springframework.stereotype.Repository;
+import www.ucforward.com.dao.BaseDao;
+import www.ucforward.com.dao.HsMemberHousingApplicationDao;
+import www.ucforward.com.entity.HsMemberHousingApplication;
+
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Created by Administrator on 2018/6/19.
+ */
+@Repository("hsMemberHousingApplicationDao")
+public class HsMemberHousingApplicationDaoImpl extends BaseDao implements HsMemberHousingApplicationDao{
+    @Override
+    public int deleteByPrimaryKey(Integer id) {
+        return this.getSqlSession().delete("HsMemberHousingApplicationDao.deleteByPrimaryKey",id);
+    }
+
+    @Override
+    public int insert(HsMemberHousingApplication record) {
+        return insertSelective(record);
+    }
+
+    @Override
+    public int insertSelective(HsMemberHousingApplication record) {
+        return this.getSqlSession().insert("HsMemberHousingApplicationDao.insertSelective",record);
+    }
+
+    @Override
+    public HsMemberHousingApplication selectByPrimaryKey(Integer id) {
+        return this.getSqlSession().selectOne("HsMemberHousingApplicationDao.selectByPrimaryKey",id);
+    }
+
+    @Override
+    public int updateByPrimaryKeySelective(HsMemberHousingApplication record) {
+        return this.getSqlSession().update("HsMemberHousingApplicationDao.updateByPrimaryKeySelective",record);
+    }
+
+    @Override
+    public int updateByPrimaryKey(HsMemberHousingApplication record) {
+        return this.getSqlSession().update("HsMemberHousingApplicationDao.updateByPrimaryKey",record);
+    }
+
+    @Override
+    public Map<Object, Object> selectListByCondition(Map<Object, Object> condition, int returnType) {
+        String sql = "HsMemberHousingApplicationDao.selectMemberHousingApplyListMapByCondition";
+        if(returnType != 0){
+            sql = "HsMemberHousingApplicationDao.selectMemberHousingApplyListByCondition";
+        }
+        return executeSql(condition,sql);
+    }
+
+    /**
+     * 自定义列名查询
+     * @param condition
+     * @return
+     */
+    @Override
+    public Map<Object, Object> selectCustomColumnNames(Map<Object, Object> condition) {
+        return this.executeSql(condition,"HsMemberHousingApplicationDao.selectCustomColumnNames");
+    }
+
+    @Override
+    public int updateHousingApplicationByPoolId(Map<Object, Object> condition) {
+        return this.getSqlSession().update("HsMemberHousingApplicationDao.updateHousingApplicationByPoolId",condition);
+    }
+
+    /**
+     * 根据ids修改订单池ID
+     * @param condition
+     * @return
+     */
+    @Override
+    public int updatePoolIdByApplyIds(Map<Object, Object> condition) {
+        return this.getSqlSession().update("HsMemberHousingApplicationDao.updatePoolIdByApplyIds",condition);
+    }
+}

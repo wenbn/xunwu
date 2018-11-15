@@ -1,0 +1,61 @@
+package www.ucforward.com.serviceImpl;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.utils.StringUtil;
+import www.ucforward.com.dao.*;
+import www.ucforward.com.entity.HsSysPermission;
+import www.ucforward.com.entity.HsSysRole;
+import www.ucforward.com.entity.HsSysUser;
+import www.ucforward.com.serviceInter.MemberService;
+
+import javax.annotation.Resource;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+@Service("memberService")
+public class MemberServiceImpl implements MemberService {
+
+    @Autowired
+    private HsSysUserDao hsSysUserDao;
+    @Autowired
+    private HsSysPermissionDao hsSysPermissionDao;
+    @Autowired
+    private HsSysRoleDao hsSysRoleDao;
+    @Autowired
+    private HsSysRolePermissionDao hsSysRolePermissionDao;
+    @Autowired
+    private HsSysUserRoleDao hsSysUserRoleDao;
+
+    /**
+     *  根据条件查询用户信息
+     * @param condition
+     * @return
+     */
+    @Override
+    public HsSysUser selectHsSysUserByCondition(Map<Object, Object> condition) {
+        return hsSysUserDao.selectHsSysUserByCondition(condition);
+    }
+
+    /**
+     *  根据条件查询用户权限
+     * @param condition
+     * @return
+     */
+    @Override
+    public List<HsSysPermission> selectPermissionListByUser(Map<Object, Object> condition) {
+        //查询用户对应的角色
+        List<Map<Object,Object>> userRoles = hsSysRoleDao.selectRolesByUser(condition);
+        if(userRoles==null){
+            return null;
+        }
+        List<String> roleIds = new ArrayList<String>();
+        for (Map<Object, Object> userRole : userRoles) {
+            roleIds.add(StringUtil.trim(userRole.get("roleId")));
+        }
+        condition.put("roleIds",roleIds);
+        List<HsSysPermission> permissions = hsSysPermissionDao.selectPermissionsByRoleIds(condition);
+        return permissions;
+    }
+}

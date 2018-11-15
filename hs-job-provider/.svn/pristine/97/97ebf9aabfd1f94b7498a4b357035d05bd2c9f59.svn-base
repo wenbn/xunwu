@@ -1,0 +1,22 @@
+package www.ucforward.com.dao;
+
+import org.springframework.stereotype.Repository;
+import www.ucforward.com.entity.ScheduleJob;
+
+import java.util.List;
+
+/**
+ * Author:wenbn
+ * Date:2018/1/19
+ * Description:
+ */
+@Repository
+public interface ScheduleJobDao {
+    List<ScheduleJob> getAll();
+
+    int insertSelective(ScheduleJob job);
+
+    ScheduleJob selectByPrimaryKey(Long jobId);
+
+    void updateByPrimaryKeySelective(ScheduleJob job);
+}

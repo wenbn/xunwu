@@ -1,0 +1,174 @@
+package www.ucforward.com.serviceImpl;
+
+import net.sf.json.JSONObject;
+import org.elasticsearch.action.index.IndexResponse;
+import org.elasticsearch.action.search.SearchRequestBuilder;
+import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.action.update.UpdateResponse;
+import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.rest.RestStatus;
+import org.modelmapper.ModelMapper;
+import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.stereotype.Service;
+import www.ucforward.com.constants.IndexConstant;
+import www.ucforward.com.constants.MessageConstant;
+import www.ucforward.com.constants.ResultConstant;
+import www.ucforward.com.entity.HsMainHouse;
+import www.ucforward.com.index.key.HouseIndexKey;
+import www.ucforward.com.index.message.HouseIndexMessage;
+import www.ucforward.com.index.template.HouseIndexTemplate;
+import www.ucforward.com.serviceInter.HousesService;
+import www.ucforward.com.serviceInter.SearchService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import www.ucforward.com.utils.ElasticsearchUtil;
+import www.ucforward.com.utils.JsonUtil;
+import www.ucforward.com.vo.ResultVo;
+
+import javax.annotation.Resource;
+
+/**
+ * @author wenbn
+ * @version 1.0
+ * @date 2018/6/25
+ */
+@Service("searchService")
+public class SearchServiceImpl implements SearchService {
+
+    private static Logger logger = LoggerFactory.getLogger(SearchServiceImpl.class); // 日志记录
+
+    @Resource
+    private HousesService housesService;
+
+    @Resource
+    private KafkaTemplate<String, String> kafkaTemplate;
+
+    /**
+     * 监听消息
+     * @param content
+     */
+    @KafkaListener(topics = MessageConstant.CREATE_HOUSE_INDEX_TOPIC_MESSAGE)
+    private void handleMessage(String content) {
+        HouseIndexMessage message = JsonUtil.jsonToObjectT(content,HouseIndexMessage.class);
+        switch (message.getOperation()) {
+            case HouseIndexMessage.INDEX:
+                this.createOrUpdateIndex(message);
+                break;
+            case HouseIndexMessage.REMOVE:
+                //this.removeIndex(message);
+                break;
+            default:
+                logger.warn("Not support message content " + content);
+                break;
+        }
+    }
+
+    /**
+     * 创建索引
+     * @param message
+     * @throws Exception
+     */
+    private void createOrUpdateIndex(HouseIndexMessage message){
+        int houseId = message.getHouseId();
+        HsMainHouse house = null;
+        try {
+            ResultVo houseVo = housesService.select(houseId, new HsMainHouse());
+            if(houseVo.getResult()== ResultConstant.SYS_REQUIRED_SUCCESS ){
+                house = (HsMainHouse) houseVo.getDataSet();
+            }
+            if (house == null) {
+                logger.error("Index house {} dose not exist!", houseId);
+                this.index(houseId, message.getRetry() + 1);
+                return;
+            }
+            //创建索引模板
+            HouseIndexTemplate houseIndexTemplate = new HouseIndexTemplate();
+            new ModelMapper().map(house,houseIndexTemplate);
+            boolean success = true;
+            //查询索引，是否存在
+            boolean isExists = ElasticsearchUtil.indexIsExists(IndexConstant.INDEX_NAME);
+            if(!isExists){
+                success = create(houseIndexTemplate);
+            }else{
+                SearchRequestBuilder requestBuilder = ElasticsearchUtil.getConnection().prepareSearch(IndexConstant.INDEX_NAME).setTypes(IndexConstant.INDEX_TYPE).setQuery(QueryBuilders.termQuery(HouseIndexKey.HOUSE_ID, houseId));
+                logger.debug(requestBuilder.toString());
+                SearchResponse searchResponse = requestBuilder.get();
+                long totalHit = searchResponse.getHits().getTotalHits();
+                if (totalHit == 1) {
+                    String esId = searchResponse.getHits().getAt(0).getId();
+                    success = update(esId, houseIndexTemplate);
+                } else {
+                    //success = deleteAndCreate(totalHit, indexTemplate);
+                }
+            }
+            if (!success) {
+                this.index(message.getHouseId(), message.getRetry() + 1);
+            } else {
+                logger.debug("Index success with house " + houseId);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 创建索引
+     * @param houseIndexTemplate
+     * @return
+     */
+    private boolean create(HouseIndexTemplate houseIndexTemplate) {
+        IndexResponse response = ElasticsearchUtil.getConnection().prepareIndex(IndexConstant.INDEX_NAME, IndexConstant.INDEX_TYPE).setSource(JSONObject.fromObject(houseIndexTemplate), XContentType.JSON).get();
+        logger.debug("Create index with house: " + houseIndexTemplate.getId());
+        if (response.status() == RestStatus.CREATED) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * 修改索引
+     * @param esId
+     * @param houseIndexTemplate
+     * @return
+     */
+    private boolean update(String esId, HouseIndexTemplate houseIndexTemplate) {
+        UpdateResponse response = ElasticsearchUtil.getConnection().prepareUpdate(IndexConstant.INDEX_NAME, IndexConstant.INDEX_TYPE, esId).setDoc(JSONObject.fromObject(houseIndexTemplate), XContentType.JSON).get();
+        logger.debug("Update index with house: " + houseIndexTemplate.getId());
+        if (response.status() == RestStatus.OK) {
+            return true;
+        }
+        logger.debug("Update failure index with house: " + houseIndexTemplate.getId());
+        return false;
+    }
+
+
+    /**
+     * 索引目标房源
+     * @param houseId
+     */
+    @Override
+    public void index(int houseId) {
+        this.index(houseId, 0);
+    }
+
+    /**
+     * 索引目标房源
+     * @param houseId
+     * @param retry 重试次数
+     */
+    private void index(int houseId, int retry) {
+        if (retry > HouseIndexMessage.MAX_RETRY) {//
+            logger.error("Retry index times over 3 for house: " + houseId + " Please check it!");
+            return;
+        }
+        HouseIndexMessage message = new HouseIndexMessage(houseId, HouseIndexMessage.INDEX, retry);
+        kafkaTemplate.send(MessageConstant.CREATE_HOUSE_INDEX_TOPIC_MESSAGE, JsonUtil.toJson(message));
+    }
+
+    @Override
+    public void remove(int houseId) {
+
+    }
+}

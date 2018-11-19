@@ -3,6 +3,8 @@ package com.example.demo.dao;
 import com.example.demo.pojo.HsAdvertData;
 import org.springframework.stereotype.Repository;
 
+import java.util.Map;
+
 
 @Repository
 public interface HsAdvertDataDao {
@@ -53,5 +55,12 @@ public interface HsAdvertDataDao {
      * @mbg.generated
      */
     int updateByPrimaryKey(HsAdvertData record);
+
+    /**
+     * 自定义查询列
+     * @param condition
+     * @return
+     */
+    Map<Object,Object> selectCustomColumnNamesList(Map<Object, Object> condition);
 
 }

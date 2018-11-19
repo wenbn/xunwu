@@ -32,10 +32,13 @@
   </properties>
 
   <dependencies>
-    <!--<dependency>-->
-      <!--<groupId>org.springframework.boot</groupId>-->
-      <!--<artifactId>spring-boot-starter</artifactId>-->
-    <!--</dependency>-->
+
+    <dependency>
+      <groupId>www.ucforward.com</groupId>
+      <artifactId>utils-core</artifactId>
+      <version>1.0.3</version>
+    </dependency>
+
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>
@@ -71,6 +74,12 @@
       <groupId>mysql</groupId>
       <artifactId>mysql-connector-java</artifactId>
       <version>5.1.38</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.github.pagehelper</groupId>
+      <artifactId>pagehelper-spring-boot-starter</artifactId>
+      <version>1.2.3</version>
     </dependency>
 
   </dependencies>

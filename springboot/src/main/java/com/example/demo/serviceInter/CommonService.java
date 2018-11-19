@@ -3,6 +3,10 @@ package com.example.demo.serviceInter;
 import com.example.demo.pojo.HsAdvertData;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 
 /**
  * @author wenbn
@@ -14,4 +18,13 @@ public interface CommonService<T>{
 
     //添加广告
     public void addAdvertData(HsAdvertData hsAdvertData);
+
+
+    /**
+     * 自定义查询列数据
+     * @param condition 查询条件 List<String> columns
+     * @return
+     * @throws Exception
+     */
+    public List<T> selectCustomColumnNamesList(T t, Map<Object, Object> condition) throws Exception;
 }

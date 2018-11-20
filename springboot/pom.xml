@@ -76,20 +76,34 @@
       <version>5.1.38</version>
     </dependency>
 
+    <!--分页插件-->
     <dependency>
       <groupId>com.github.pagehelper</groupId>
       <artifactId>pagehelper-spring-boot-starter</artifactId>
       <version>1.2.3</version>
     </dependency>
 
+    <!--redis-->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-redis</artifactId>
+    </dependency>
+
   </dependencies>
 
   <build>
-
     <plugins>
+      <!--springload热部署插件-->
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
+        <!--<dependencies>-->
+          <!--<dependency>-->
+            <!--<groupId>org.springframework</groupId>-->
+            <!--<artifactId>springloaded</artifactId>-->
+            <!--<version>1.2.5.RELEASE</version>-->
+          <!--</dependency>-->
+        <!--</dependencies>-->
       </plugin>
     </plugins>
 

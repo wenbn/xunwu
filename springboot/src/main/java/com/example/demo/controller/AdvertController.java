@@ -34,6 +34,11 @@ public class AdvertController {
 
     @RequestMapping("list")
     public List<Map<Object,Object>> advertList() throws Exception {
+
+        int i = Integer.MIN_VALUE;
+        if(i==-i){
+            System.out.println("true....."+i);
+        }
         Map<Object,Object> condition = new HashMap<>();
         //自定义查询的列名
         List<String> queryColumn = new ArrayList<>();
@@ -52,8 +57,6 @@ public class AdvertController {
         condition.put("pageIndex", 0);
         condition.put("pageSize", 10);
         List list = commonService.selectCustomColumnNamesList(HsAdvertData.class, condition);
-        String nuls = null;
-        System.out.println(nuls.length());
         return list;
     }
 }

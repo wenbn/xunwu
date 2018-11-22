@@ -1,0 +1,81 @@
+{
+  "groups": [
+    {
+      "name": "spring.redis",
+      "type": "org.springframework.data.redis.connection.jedis.JedisConnectionFactory",
+      "sourceType": "com.example.demo.config.RedisConfig",
+      "sourceMethod": "jedisConnectionFactory(redis.clients.jedis.JedisPoolConfig)"
+    }
+  ],
+  "properties": [
+    {
+      "name": "spring.redis.convert-pipeline-and-tx-results",
+      "type": "java.lang.Boolean",
+      "sourceType": "org.springframework.data.redis.connection.jedis.JedisConnectionFactory"
+    },
+    {
+      "name": "spring.redis.client-name",
+      "type": "java.lang.String",
+      "sourceType": "org.springframework.data.redis.connection.jedis.JedisConnectionFactory",
+      "deprecated": true,
+      "deprecation": {}
+    },
+    {
+      "name": "spring.redis.database",
+      "type": "java.lang.Integer",
+      "sourceType": "org.springframework.data.redis.connection.jedis.JedisConnectionFactory",
+      "deprecated": true,
+      "deprecation": {}
+    },
+    {
+      "name": "spring.redis.host-name",
+      "type": "java.lang.String",
+      "sourceType": "org.springframework.data.redis.connection.jedis.JedisConnectionFactory",
+      "deprecated": true,
+      "deprecation": {}
+    },
+    {
+      "name": "spring.redis.password",
+      "type": "java.lang.String",
+      "sourceType": "org.springframework.data.redis.connection.jedis.JedisConnectionFactory",
+      "deprecated": true,
+      "deprecation": {}
+    },
+    {
+      "name": "spring.redis.port",
+      "type": "java.lang.Integer",
+      "sourceType": "org.springframework.data.redis.connection.jedis.JedisConnectionFactory",
+      "deprecated": true,
+      "deprecation": {}
+    },
+    {
+      "name": "spring.redis.shard-info",
+      "type": "redis.clients.jedis.JedisShardInfo",
+      "sourceType": "org.springframework.data.redis.connection.jedis.JedisConnectionFactory",
+      "deprecated": true,
+      "deprecation": {}
+    },
+    {
+      "name": "spring.redis.timeout",
+      "type": "java.lang.Integer",
+      "sourceType": "org.springframework.data.redis.connection.jedis.JedisConnectionFactory",
+      "deprecated": true,
+      "deprecation": {}
+    },
+    {
+      "name": "spring.redis.use-pool",
+      "type": "java.lang.Boolean",
+      "sourceType": "org.springframework.data.redis.connection.jedis.JedisConnectionFactory",
+      "deprecated": true,
+      "deprecation": {}
+    },
+    {
+      "name": "spring.redis.use-ssl",
+      "type": "java.lang.Boolean",
+      "sourceType": "org.springframework.data.redis.connection.jedis.JedisConnectionFactory",
+      "deprecated": true,
+      "deprecation": {}
+    }
+  ],
+  "hints": []
+}

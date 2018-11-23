@@ -16,5 +16,20 @@ interface ${table.serviceName} : ${superServiceClass}<${entity}>
 #else
 public interface ${table.serviceName} extends ${superServiceClass}<${entity}> {
 
+    //添加$!{table.comment}
+    ${table.entityPath}Manager.add${entity}();
+
+    //删除$!{table.comment}
+    ${table.entityPath}Manager.delete${entity}ById();
+
+    //修改$!{table.comment}
+    ${table.entityPath}Manager.update${entity}();
+
+    //查询$!{table.comment}列表
+    ${table.entityPath}Manager.get${entity}List(reqMap);
+
+    //获取$!{table.comment}详情
+    ${table.entityPath}Manager.get${entity}Detail();
+
 }
 #end

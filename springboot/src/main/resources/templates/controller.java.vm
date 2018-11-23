@@ -43,7 +43,7 @@ public class ${table.controllerName} {
     public ${table.managerName} ${table.entityPath}Manager;
 
     /**
-     * 添加广告
+     * 添加$!{table.comment}
      * @return
      */
     @PostMapping("/${table.entityPath}/add")
@@ -58,7 +58,7 @@ public class ${table.controllerName} {
     */
     @PostMapping("/${table.entityPath}/delete/{${table.entityPath}Id}")
     public String delete${entity}ById (@PathVariable Integer ${table.entityPath}Id) throws Exception {
-        ${table.entityPath}Manager.add${entity}();
+        ${table.entityPath}Manager.delete${entity}ById();
         return "";
     }
 
@@ -78,7 +78,7 @@ public class ${table.controllerName} {
     */
     @PostMapping("/${table.entityPath}/list")
     public String get${entity}List (@ResponseBody Map<String,Object> reqMap) throws Exception {
-        ${table.entityPath}Manager.get${entity}List();
+        ${table.entityPath}Manager.get${entity}List(reqMap);
         return JsonUtil.toJson(vo);
     }
 

@@ -1,10 +1,17 @@
 package ${package.ManagerImpl};
 
 import ${package.Entity}.${entity};
-import ${package.Mapper}.${table.mapperName};
 import ${package.Manager}.${table.managerName};
 import ${superManagerImplClassPackage};
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.*;
+import java.util.Map;
+
+import ${package.Entity}.${entity};
+import ${package.Service}.${table.serviceName};
+import org.springframework.web.bind.annotation.PathVariable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * <p>
@@ -28,28 +35,35 @@ public class ${table.managerImplName} implements ${table.managerName} {
     public ${table.serviceName} ${table.entityPath}Service;
 
     //添加$!{table.comment}
-    public ${table.entityPath}Manager.add${entity}(){
-        ${table.entityPath}Service
+    public ResultVo add${entity}(${entity} ${table.entityPath}){
+        ResultVo vo = null;
+        ${table.entityPath}Service.save(${table.entityPath});
+        return vo;
     }
 
     //删除$!{table.comment}
-    public ${table.entityPath}Manager.delete${entity}ById(){
-
+    public ResultVo delete${entity}ById(@PathVariable Integer ${table.entityPath}Id){
+        ResultVo vo = null;
+        ${table.entityPath}Service.removeById(${table.entityPath}Id);
+        return vo ;
     }
 
     //修改$!{table.comment}
-    public ${table.entityPath}Manager.update${entity}(){
-
+    public ResultVo update${entity}(${entity} ${table.entityPath}){
+        ResultVo vo = null;
+        return vo;
     }
 
     //查询$!{table.comment}列表
-    public ${table.entityPath}Manager.get${entity}List(reqMap){
-
+    public ResultVo get${entity}List(Map<String,Object> reqMap){
+        ResultVo vo = null;
+        return vo;
     }
 
     //获取$!{table.comment}详情
-    public ${table.entityPath}Manager.get${entity}Detail(){
-
+    public ResultVo get${entity}Detail(Integer ${table.entityPath}Id){
+        ResultVo vo = null;
+        return vo;
     }
 }
 #end

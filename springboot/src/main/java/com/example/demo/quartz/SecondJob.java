@@ -7,7 +7,7 @@ package com.example.demo.quartz;
  * @date 2018/11/21
  */
 import com.example.demo.pojo.HsAdvertData;
-import com.example.demo.serviceInter.CommonService;
+import com.example.demo.service.CommonService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.stereotype.Component;

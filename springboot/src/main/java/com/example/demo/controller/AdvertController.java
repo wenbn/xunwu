@@ -1,11 +1,10 @@
 package com.example.demo.controller;
 
 import com.example.demo.pojo.HsAdvertData;
-import com.example.demo.serviceInter.CommonService;
+import com.example.demo.service.CommonService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.thymeleaf.expression.Maps;
 
 import java.util.ArrayList;
 import java.util.HashMap;

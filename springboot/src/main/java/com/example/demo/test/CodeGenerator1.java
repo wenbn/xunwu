@@ -29,7 +29,7 @@ public class CodeGenerator1 {
     private static String canonicalPath = "";
 
     //基本包名
-    private static String basePackage = "www.wenbn.com";
+    private static String basePackage = "com.example.demo";
     //作者
     private static String authorName = "wenbn";
     //要生成的表名

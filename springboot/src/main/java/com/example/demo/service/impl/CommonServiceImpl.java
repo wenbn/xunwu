@@ -1,8 +1,8 @@
-package com.example.demo.serviceImpl;
+package com.example.demo.service.impl;
 
 import com.example.demo.dao.HsAdvertDataDao;
 import com.example.demo.pojo.HsAdvertData;
-import com.example.demo.serviceInter.CommonService;
+import com.example.demo.service.CommonService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;

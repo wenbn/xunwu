@@ -1,8 +1,10 @@
-package ${package.Service};
+package ${package.Manager};
 
 import ${package.Entity}.${entity};
-import ${superServiceClassPackage};
+import ${superManagerClassPackage};
 
+import java.util.Map;
+import org.springframework.web.bind.annotation.PathVariable;
 /**
  * <p>
  * $!{table.comment} 服务类
@@ -12,9 +14,24 @@ import ${superServiceClassPackage};
  * @since ${date}
  */
 #if(${kotlin})
-interface ${table.serviceName} : ${superServiceClass}<${entity}>
+interface ${table.managerName}
 #else
-public interface ${table.serviceName} extends ${superServiceClass}<${entity}> {
+public interface ${table.managerName} {
+
+    //添加$!{table.comment}
+    ResultVo add${entity}(${entity} ${table.entityPath});
+
+    //删除$!{table.comment}
+    ResultVo delete${entity}ById(@PathVariable Integer ${table.entityPath}Id);
+
+    //修改$!{table.comment}
+    ResultVo update${entity}(${entity} ${table.entityPath});
+
+    //查询$!{table.comment}列表
+    ResultVo get${entity}List(Map<String,Object> reqMap);
+
+    //获取$!{table.comment}详情
+    ResultVo get${entity}Detail(Integer ${table.entityPath}Id);
 
 }
 #end

@@ -1,9 +1,8 @@
-package com.example.demo.serviceInter;
+package com.example.demo.service;
 
 import com.example.demo.pojo.HsAdvertData;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 

@@ -98,7 +98,7 @@ public abstract class WenbnAbstractTemplateEngine{
                 if (null != tableInfo.getServiceName() && null != pathInfo.get("manager_path")) {
                     controllerFile = String.format((String)pathInfo.get("manager_path") + File.separator + tableInfo.getManagerName() + this.suffixJavaOrKt(), entityName);
                     if (this.isCreate(WenbnFileType.SERVICE, controllerFile)) {
-                        this.writer(objectMap, this.templateFilePath(template.getService()), controllerFile);
+                        this.writer(objectMap, this.templateFilePath(template.getManager()), controllerFile);
                     }
                 }
 

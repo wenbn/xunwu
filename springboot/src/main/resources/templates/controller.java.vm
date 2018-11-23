@@ -1,7 +1,11 @@
 package ${package.Controller};
 
 
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.beans.factory.annotation.Autowired;
+import java.util.Map;
 
 #if(${restControllerStyle})
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -12,6 +16,9 @@ import org.springframework.stereotype.Controller;
 #if(${superControllerClassPackage})
 import ${superControllerClassPackage};
 #end
+
+import ${package.Manager}.${table.managerName};
+import ${package.Entity}.${entity};
 
 /**
  * <p>
@@ -48,7 +55,7 @@ public class ${table.controllerName} {
      */
     @PostMapping("/${table.entityPath}/add")
     public String add${entity}(${entity} ${table.entityPath}) throws Exception {
-        ${table.entityPath}Manager.add${entity}();
+        ${table.entityPath}Manager.add${entity}(${table.entityPath});
         return "";
     }
 
@@ -58,7 +65,7 @@ public class ${table.controllerName} {
     */
     @PostMapping("/${table.entityPath}/delete/{${table.entityPath}Id}")
     public String delete${entity}ById (@PathVariable Integer ${table.entityPath}Id) throws Exception {
-        ${table.entityPath}Manager.delete${entity}ById();
+        ${table.entityPath}Manager.delete${entity}ById(${table.entityPath}Id);
         return "";
     }
 
@@ -68,7 +75,7 @@ public class ${table.controllerName} {
      */
     @PostMapping("/${table.entityPath}/update")
     public String update${entity}(${entity} ${table.entityPath}) throws Exception {
-        ${table.entityPath}Manager.update${entity}();
+        ${table.entityPath}Manager.update${entity}(${table.entityPath});
         return "";
     }
 
@@ -77,7 +84,7 @@ public class ${table.controllerName} {
     * @return
     */
     @PostMapping("/${table.entityPath}/list")
-    public String get${entity}List (@ResponseBody Map<String,Object> reqMap) throws Exception {
+    public String get${entity}List (@RequestBody Map<String,Object> reqMap) throws Exception {
         ${table.entityPath}Manager.get${entity}List(reqMap);
         return JsonUtil.toJson(vo);
     }
@@ -88,7 +95,7 @@ public class ${table.controllerName} {
     */
     @PostMapping("/${table.entityPath}/detail/{${table.entityPath}Id}")
     public String get${entity}Detail (@PathVariable Integer ${table.entityPath}Id) throws Exception {
-        ${table.entityPath}Manager.get${entity}Detail();
+        ${table.entityPath}Manager.get${entity}Detail(${table.entityPath}Id);
         return "";
     }
 

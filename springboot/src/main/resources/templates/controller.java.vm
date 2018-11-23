@@ -4,6 +4,7 @@ package ${package.Controller};
 import org.springframework.web.bind.annotation.RequestMapping;
 
 #if(${restControllerStyle})
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 #else
 import org.springframework.stereotype.Controller;
@@ -18,7 +19,7 @@ import ${superControllerClassPackage};
  * </p>
  *
  * @author ${author}
- * @since ${date}
+ * @since ${date},
  */
 #if(${restControllerStyle})
 @RestController
@@ -36,6 +37,60 @@ public class ${table.controllerName} extends ${superControllerClass} {
 public class ${table.controllerName} {
 #end
 
-}
+    private final Logger logger = LoggerFactory.getLogger(${table.controllerName}.class);
 
+    @Autowired
+    public ${table.managerName} ${table.entityPath}Manager;
+
+    /**
+     * 添加广告
+     * @return
+     */
+    @PostMapping("/${table.entityPath}/add")
+    public String add${entity}(${entity} ${table.entityPath}) throws Exception {
+        ${table.entityPath}Manager.add${entity}();
+        return "";
+    }
+
+    /**
+    * 删除$!{table.comment}
+    * @return
+    */
+    @PostMapping("/${table.entityPath}/delete/{${table.entityPath}Id}")
+    public String delete${entity}ById (@PathVariable Integer ${table.entityPath}Id) throws Exception {
+        ${table.entityPath}Manager.add${entity}();
+        return "";
+    }
+
+    /**
+     * 修改$!{table.comment}
+     * @return
+     */
+    @PostMapping("/${table.entityPath}/update")
+    public String update${entity}(${entity} ${table.entityPath}) throws Exception {
+        ${table.entityPath}Manager.update${entity}();
+        return "";
+    }
+
+    /**
+    * 查询$!{table.comment}列表
+    * @return
+    */
+    @PostMapping("/${table.entityPath}/list")
+    public String get${entity}List (@ResponseBody Map<String,Object> reqMap) throws Exception {
+        ${table.entityPath}Manager.get${entity}List();
+        return JsonUtil.toJson(vo);
+    }
+
+    /**
+    * 获取$!{table.comment}详情
+    * @return
+    */
+    @PostMapping("/${table.entityPath}/detail/{${table.entityPath}Id}")
+    public String get${entity}Detail (@PathVariable Integer ${table.entityPath}Id) throws Exception {
+        ${table.entityPath}Manager.get${entity}Detail();
+        return "";
+    }
+
+}
 #end

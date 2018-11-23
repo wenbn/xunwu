@@ -33,7 +33,7 @@ public class CodeGenerator1 {
     //作者
     private static String authorName = "wenbn";
     //要生成的表名
-    private static String[] tables = {"hs_booth"};
+    private static String[] tables = {};
     //table前缀
     private static String prefix = "";
 
@@ -97,7 +97,7 @@ public class CodeGenerator1 {
         wenbnGlobalConfig.setServiceName("%sService");
         wenbnGlobalConfig.setServiceImplName("%sServiceImpl");
         wenbnGlobalConfig.setManagerName("%sManager");
-        wenbnGlobalConfig.setManagerImplName("%sManager");
+        wenbnGlobalConfig.setManagerImplName("%sManagerImpl");
         wenbnGlobalConfig.setControllerName("%sController");
         gen.setGlobalConfig(wenbnGlobalConfig);
 //        gen.setGlobalConfig(new GlobalConfig()

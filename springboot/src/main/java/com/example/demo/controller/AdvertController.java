@@ -23,6 +23,10 @@ public class AdvertController {
     @Autowired
     private CommonService commonService;
 
+
+
+
+
     @RequestMapping("add")
     public String addAdvert(HsAdvertData advertData){
         advertData.setAdDesc("efefefe");

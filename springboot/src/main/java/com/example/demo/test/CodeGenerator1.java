@@ -7,8 +7,7 @@ import com.baomidou.mybatisplus.generator.config.*;
 import com.baomidou.mybatisplus.generator.config.converts.MySqlTypeConvert;
 import com.baomidou.mybatisplus.generator.config.po.TableInfo;
 import com.baomidou.mybatisplus.generator.config.rules.NamingStrategy;
-import com.baomidou.mybatisplus.generator.engine.AbstractTemplateEngine;
-import com.example.demo.generator.WenbnGlobalConfig;
+import com.example.demo.generator.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -24,7 +23,7 @@ import java.util.Map;
  * @version 1.0
  * @date 2018/11/22
  */
-public class CodeGenerator {
+public class CodeGenerator1 {
 
     //项目路径
     private static String canonicalPath = "";
@@ -49,7 +48,7 @@ public class CodeGenerator {
 
     public static void main(String[] args) {
 
-        AutoGenerator gen = new AutoGenerator();
+        WenbnAutoGenerator gen = new WenbnAutoGenerator();
 
         /**
          * 获取项目路径
@@ -159,22 +158,22 @@ public class CodeGenerator {
         /**
          * 包配置
          */
-        gen.setPackageInfo(new PackageConfig()
-                //.setModuleName("User")
-                .setParent(basePackage)// 自定义包路径
-                .setController("controller")// 这里是控制器包名，默认 web
-                .setEntity("model") // 设置Entity包名，默认entity
-                .setMapper("mapper") // 设置Mapper包名，默认mapper
-                .setService("service") // 设置Service包名，默认service
-                .setServiceImpl("service.impl") // 设置Service Impl包名，默认service.impl
-                .setXml("mapper") // 设置Mapper XML包名，默认mapper.xml
-        );
+        WenbnPackageConfig packageConfig = new WenbnPackageConfig();
+        packageConfig.setParent(basePackage);// 自定义包路径
+        packageConfig.setController("controller");// 这里是控制器包名，默认 web
+        packageConfig.setEntity("model"); // 设置Entity包名，默认entity
+        packageConfig.setMapper("mapper"); // 设置Mapper包名，默认mapper
+        packageConfig.setService("service"); // 设置Service包名，默认service
+        packageConfig.setServiceImpl("service.impl"); // 设置Service Impl包名，默认service.impl
+        packageConfig.setXml("mapper"); // 设置Mapper XML包名，默认mapper.xml
+        gen.setPackageInfo(packageConfig);
+
 
         /**
          * 注入自定义配置
          */
         // 注入自定义配置，可以在 VM 中使用 cfg.abc 设置的值
-        InjectionConfig abc = new InjectionConfig() {
+        WenbnInjectionConfig abc = new WenbnInjectionConfig() {
             @Override
             public void initMap() {
                 Map<String, Object> map = new HashMap<String, Object>();
@@ -201,18 +200,18 @@ public class CodeGenerator {
         /**
          * 模板配置
          */
-        gen.setTemplate(
-                // 关闭默认 xml 生成，调整生成 至 根目录
-                new TemplateConfig().setXml(null)
-                // 自定义模板配置，模板可以参考源码 /mybatis-plus/src/main/resources/template 使用 copy
-                // 至您项目 src/main/resources/template 目录下，模板名称也可自定义如下配置：
-                // .setController("...");
-                // .setEntity("...");
-                // .setMapper("...");
-                // .setXml("...");
-                // .setService("...");
-                // .setServiceImpl("...");
-        );
+        gen.setTemplate( new WenbnTemplateConfig());
+//                // 关闭默认 xml 生成，调整生成 至 根目录
+//                new TemplateConfig().setXml(null)
+//                // 自定义模板配置，模板可以参考源码 /mybatis-plus/src/main/resources/template 使用 copy
+//                // 至您项目 src/main/resources/template 目录下，模板名称也可自定义如下配置：
+//                // .setController("...");
+//                // .setEntity("...");
+//                // .setMapper("...");
+//                // .setXml("...");
+//                // .setService("...");
+//                // .setServiceImpl("...");
+//        );
 
         // 执行生成
         gen.execute();
